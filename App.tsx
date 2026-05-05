@@ -52,8 +52,8 @@ function AppRoutes() {
       return;
     }
 
-    // Safety timeout: si getSession tarda más de 1.5s, desbloquear la app
-    const safetyTimer = setTimeout(() => setSessionReady(true), 1500);
+    // Safety timeout: si getSession tarda más de 4s, desbloquear la app
+    const safetyTimer = setTimeout(() => setSessionReady(true), 4000);
 
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       clearTimeout(safetyTimer);
