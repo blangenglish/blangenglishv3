@@ -1,0 +1,25 @@
+{
+  "documents": [],
+  "tables_parsed": [],
+  "tables_source_info": [],
+  "images": [
+    {
+      "original_name": "Screenshot5565",
+      "file_name": "Screenshot5565.png",
+      "file_path": "/data/workspace/27619f66-9672-4c26-b484-5651de26813d/blangenglish/public/images/Screenshot5565.png",
+      "rel_path": "images/Screenshot5565.png",
+      "file_type": "png",
+      "category": "images"
+    }
+  ],
+  "summary": {
+    "total_files": 1,
+    "by_category": {
+      "documents": 0,
+      "tables_parsed": 0,
+      "tables_source_info": 0,
+      "images": 1
+    },
+    "processing_time": null
+  }
+}
