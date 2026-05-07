@@ -1207,8 +1207,9 @@ useEffect(() => {
     setPwForm({ current: '', newPw: '', confirm: '' });
   };
 
-  const handleLogout = () => {
-    onLogout?.();
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    window.location.href = '/';
   };
 
   // Not logged in guard
