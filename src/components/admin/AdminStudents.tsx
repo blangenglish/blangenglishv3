@@ -627,7 +627,7 @@ export default function AdminStudents() {
   const [studentProgressData, setStudentProgressData] = useState<Record<string, any[]>>({});
   const [studentProgressError, setStudentProgressError] = useState<Record<string, string>>({});
 
- const loadStudentProgress = useCallback(async (studentId: string) => {
+  const loadStudentProgress = useCallback(async (studentId: string) => {
     setStudentProgressError(prev => ({ ...prev, [studentId]: '' }));
     const { data: { session } } = await supabase.auth.getSession();
     const { data, error } = await supabase.functions.invoke('admin-update-student', {
@@ -1078,29 +1078,26 @@ export default function AdminStudents() {
                           )}
 
                           {/* TAB: PROGRESS */}
-                          {tab === 'progreso' && (
+                          {tab === 'progreso' && (() => {
+                            const progressList = studentProgressData[student.id] ?? student.progress ?? null;
+                            return (
                             <div>
-                              {studentProgressError[student.id] && (
-                                <div className="mb-3 bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-red-700 font-mono">
-                                  ❌ Error: {studentProgressError[student.id]}
-                                </div>
-                              )}
-                              {!studentProgressData[student.id] ? (
+                              {!progressList ? (
                                 <div className="text-center py-8 text-muted-foreground text-sm">
                                   <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
                                   Cargando progreso...
                                 </div>
-                              ) : studentProgressData[student.id].length === 0 ? (
+                              ) : progressList.length === 0 ? (
                                 <div className="text-center py-8 text-muted-foreground text-sm">
                                   <AlertCircle className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                                  Sin progreso — ID: {student.id}
+                                  Este estudiante aún no ha registrado progreso.
                                 </div>
                               ) : (
                                 <div className="space-y-3">
                                   <p className="text-xs text-muted-foreground mb-2">
-                                    {studentProgressData[student.id].length} etapas completadas
+                                    {progressList.length} etapas completadas
                                   </p>
-                                  {studentProgressData[student.id].map((p: any, i: number) => (
+                                  {progressList.map((p: any, i: number) => (
                                     <div key={i} className="bg-muted/20 rounded-xl p-4 border border-border/30">
                                       <div className="flex items-center justify-between">
                                         <div>
@@ -1121,7 +1118,8 @@ export default function AdminStudents() {
                                 </div>
                               )}
                             </div>
-                          )}
+                            );
+                          })()}
 
                           {/* TAB: CUENTA — con draft de cambios + botón Guardar */}
                           {tab === 'cuenta' && (() => {
