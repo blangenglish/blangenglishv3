@@ -627,40 +627,14 @@ export default function AdminStudents() {
   const [studentProgressData, setStudentProgressData] = useState<Record<string, any[]>>({});
 
   const loadStudentProgress = useCallback(async (studentId: string) => {
-    const { data: progressData } = await supabase
-      .from('unit_progress')
-      .select('id, unit_id, stage, completed, completed_at, quiz_passed')
-      .eq('student_id', studentId)
-      .eq('completed', true)
-      .order('completed_at', { ascending: false });
-
-    if (!progressData) {
+    const { data, error } = await supabase
+      .rpc('get_student_progress', { p_student_id: studentId });
+    if (error) {
+      console.error('loadStudentProgress error:', error);
       setStudentProgressData(prev => ({ ...prev, [studentId]: [] }));
       return;
     }
-
-    const unitIds = [...new Set(progressData.map((p: any) => p.unit_id))];
-    const { data: unitsData } = await supabase
-      .from('units')
-      .select('id, title, course_id')
-      .in('id', unitIds);
-
-    const courseIds = [...new Set((unitsData || []).map((u: any) => u.course_id))];
-    const { data: coursesData } = await supabase
-      .from('courses')
-      .select('id, title')
-      .in('id', courseIds);
-
-    const unitsMap = Object.fromEntries((unitsData || []).map((u: any) => [u.id, u]));
-    const coursesMap = Object.fromEntries((coursesData || []).map((c: any) => [c.id, c]));
-
-    const enriched = progressData.map((p: any) => {
-      const unit = unitsMap[p.unit_id];
-      const course = unit ? coursesMap[unit.course_id] : null;
-      return { ...p, unit_title: unit?.title || 'Unidad', course_title: course?.title || '' };
-    });
-
-    setStudentProgressData(prev => ({ ...prev, [studentId]: enriched }));
+    setStudentProgressData(prev => ({ ...prev, [studentId]: data || [] }));
   }, []);
 
   const loadStudentModuleAccess = useCallback(async (studentId: string) => {
