@@ -1093,7 +1093,7 @@ export default function AdminStudents() {
                               ) : studentProgressData[student.id].length === 0 ? (
                                 <div className="text-center py-8 text-muted-foreground text-sm">
                                   <AlertCircle className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                                  Este estudiante aún no ha registrado progreso.
+                                  Sin progreso — ID: {student.id}
                                 </div>
                               ) : (
                                 <div className="space-y-3">
