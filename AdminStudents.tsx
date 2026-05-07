@@ -625,16 +625,21 @@ export default function AdminStudents() {
   useEffect(() => { loadCoursesForAccess(); }, [loadCoursesForAccess]);
 
   const [studentProgressData, setStudentProgressData] = useState<Record<string, any[]>>({});
+  const [studentProgressError, setStudentProgressError] = useState<Record<string, string>>({});
 
   const loadStudentProgress = useCallback(async (studentId: string) => {
+    setStudentProgressError(prev => ({ ...prev, [studentId]: '' }));
     const { data: { session } } = await supabase.auth.getSession();
     const { data, error } = await supabase.functions.invoke('admin-update-student', {
       body: { action: 'get_student_progress', student_id: studentId },
       headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
     });
-    if (!error && data?.progress) {
-      setStudentProgressData(prev => ({ ...prev, [studentId]: data.progress }));
+    if (error || !data?.progress) {
+      setStudentProgressError(prev => ({ ...prev, [studentId]: error?.message || 'Sin datos' }));
+      setStudentProgressData(prev => ({ ...prev, [studentId]: [] }));
+      return;
     }
+    setStudentProgressData(prev => ({ ...prev, [studentId]: data.progress }));
   }, []);
 
   const loadStudentModuleAccess = useCallback(async (studentId: string) => {
