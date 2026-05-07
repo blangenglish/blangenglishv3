@@ -1212,9 +1212,20 @@ function QuizEditor({ unitId, stage }: { unitId: string; stage: Stage; stageLabe
           {/* Opciones según tipo */}
           {(formType === 'multiple_choice' || formType === 'multiple_select' || formType === 'true_false' || formType === 'listen_select' || formType === 'image_choice') && (
             <div className="space-y-2">
-              <label className="text-xs font-semibold text-violet-700 block">
-                Opciones — {formType === 'multiple_select' ? 'marca todas las correctas' : 'marca la correcta'}
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-violet-700 block">
+                  Opciones — {formType === 'multiple_select' ? 'marca todas las correctas' : 'marca la correcta'}
+                </label>
+                {formType !== 'true_false' && (
+                  <button
+                    type="button"
+                    onClick={() => setFormOptions(prev => [...prev, ''])}
+                    className="flex items-center gap-1 text-xs text-violet-600 hover:text-violet-800 font-medium border border-violet-200 rounded-lg px-2 py-0.5"
+                  >
+                    + Agregar opción
+                  </button>
+                )}
+              </div>
               {(formType === 'true_false' ? ['Verdadero', 'Falso'] : formOptions).map((opt, oi) => (
                 <div key={oi} className="flex items-center gap-2">
                   <input
@@ -1234,6 +1245,18 @@ function QuizEditor({ unitId, stage }: { unitId: string; stage: Stage; stageLabe
                         const arr = [...formOptions]; arr[oi] = e.target.value; setFormOptions(arr);
                       }} placeholder={`Opción ${oi + 1}`} className="text-xs border-violet-200 bg-white h-8" />
                   }
+                  {formType !== 'true_false' && formOptions.length > 2 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormOptions(prev => prev.filter((_, i) => i !== oi));
+                        setFormCorrect(prev => prev.filter(x => x !== oi).map(x => x > oi ? x - 1 : x));
+                      }}
+                      className="shrink-0 text-red-400 hover:text-red-600"
+                    >
+                      ✕
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
