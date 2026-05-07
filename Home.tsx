@@ -9,6 +9,7 @@ import { ChevronRight } from 'lucide-react';
 import { ROUTE_PATHS } from '@/lib/index';
 import type { AuthModal } from '@/lib/index';
 import { IMAGES } from '@/assets/images';
+import { useSiteSettings } from '@/hooks/useSupabaseData';
 
 const staggerContainer = {
   hidden: { opacity: 0 },
@@ -46,6 +47,8 @@ const METHODOLOGY_STEPS = [
 
 export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
   const [ctaEmail, setCtaEmail] = useState('');
+  const { data: settings } = useSiteSettings();
+  const trialDays = settings?.trial_days ?? '7';
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -60,152 +63,74 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
       {/* PAGE BG */}
       <div className="fixed inset-0 -z-10 bg-gradient-to-br from-purple-50 via-violet-50/60 to-background pointer-events-none" />
 
-      {/* ── PRICING HERO — FIRST SECTION ── */}
-      <section id="pricing-hero" className="relative min-h-screen flex items-center overflow-hidden py-12 sm:py-16">
-        {/* Background gradients */}
+      {/* ── PRICING HERO ── */}
+      <section className="relative py-16 md:py-20 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-violet-900 via-purple-800 to-primary" />
-        <div className="absolute top-0 left-0 w-[400px] sm:w-[700px] h-[400px] sm:h-[700px] bg-pink-500/20 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 right-0 w-[300px] sm:w-[600px] h-[300px] sm:h-[600px] bg-amber-400/15 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary/20 via-transparent to-transparent" />
-
-        <div className="container mx-auto px-4 relative z-10 w-full">
-          <motion.div
-            className="max-w-6xl mx-auto"
-            initial="hidden" animate="visible" variants={staggerContainer}
-          >
-
-            {/* ── TÍTULO PRINCIPAL ── */}
-            <motion.div variants={staggerItem} className="text-center mb-4 px-2">
-              <span className="inline-flex items-center gap-2 bg-green-400/20 text-green-300 text-xs sm:text-sm font-bold px-4 py-2 rounded-full border border-green-400/30 backdrop-blur mb-4 sm:mb-6">
-                💡 Empieza gratis · 7 días sin costo
-              </span>
-              <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-white leading-none tracking-tight">
-                Aprende{' '}
-                <span className="text-amber-400">inglés</span>
-              </h1>
-              {/* Precio — mobile friendly */}
-              {/* Precio — una sola línea en móvil */}
-              <div className="mt-3 flex flex-col items-center gap-1">
-                <p className="text-lg sm:text-2xl md:text-3xl font-extrabold text-white/80 whitespace-nowrap">
-                  por solo{' '}
-                  <span className="text-white text-3xl sm:text-4xl md:text-5xl font-black">$15</span>
-                  <span className="text-white/60 text-base sm:text-xl font-bold"> USD/mes</span>
-                  {' '}<span className="bg-amber-400 text-black text-xs sm:text-sm font-extrabold px-3 py-1 rounded-full align-middle whitespace-nowrap">o $55,000 COP</span>
-                </p>
-              </div>
-              <p className="text-white/60 text-xs sm:text-base mt-2">
-                Sin compromisos · <strong className="text-white">Cancela cuando quieras</strong>
-              </p>
-            </motion.div>
-
-            {/* ── DOS TARJETAS DE PRECIOS ── */}
-            <motion.div variants={staggerItem} className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mt-6 sm:mt-10">
-
-              {/* ── PRUEBA GRATIS ── */}
-              <div className="bg-white/10 backdrop-blur-md border border-white/25 rounded-3xl p-5 sm:p-8 flex flex-col gap-4 sm:gap-5 hover:bg-white/15 transition-all duration-300 shadow-xl">
-                {/* Header */}
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-3xl sm:text-5xl flex-shrink-0">🎁</span>
-                    <div className="min-w-0">
-                      <h2 className="text-lg sm:text-2xl md:text-3xl font-black text-white whitespace-nowrap">Prueba Gratis</h2>
-                      <p className="text-white/65 text-xs font-medium truncate">7 días completamente gratis</p>
-                    </div>
-                  </div>
-                  <div className="text-right flex-shrink-0 ml-2">
-                    <p className="text-2xl sm:text-4xl md:text-5xl font-black text-green-400 leading-none">GRATIS</p>
-                    <p className="text-white/50 text-xs mt-0.5">7 días</p>
-                  </div>
-                </div>
-                {/* Divider */}
-                <div className="h-px bg-white/15" />
-                {/* Features */}
-                <ul className="space-y-2 sm:space-y-3 flex-1">
-                  {[
-                    '7 días completamente gratis',
-                    'Acceso a las primeras 5 lecciones del nivel A1',
-                    'Cancela en cualquier momento',
-                    'Pagos fáciles y seguros por PayPal y PSE',
-                  ].map((f, i) => (
-                    <li key={i} className="flex items-center gap-3 text-white/90 text-sm sm:text-base md:text-lg font-medium">
-                      <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-green-500 flex items-center justify-center text-white text-xs font-black flex-shrink-0">✓</span>
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                {/* CTA */}
-                <button
+        <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-pink-500/15 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-amber-400/10 rounded-full blur-3xl" />
+        <div className="container mx-auto px-4 relative z-10">
+          <motion.div initial="hidden" animate="visible" variants={staggerContainer} className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-10 items-center">
+            <div>
+              <motion.div variants={staggerItem} className="mb-5">
+                <span className="inline-flex items-center gap-2 bg-white/10 text-white/90 text-sm font-semibold px-4 py-2 rounded-full border border-white/20 backdrop-blur">
+                  💰 Precios claros, sin sorpresas
+                </span>
+              </motion.div>
+              <motion.h1 variants={staggerItem} className="text-5xl md:text-6xl font-extrabold text-white mb-5 leading-tight">
+                Aprende <span className="text-amber-400">inglés</span><br />
+                por solo <span className="text-amber-400">$15</span> <span className="text-2xl font-bold text-white/70">USD/mes</span>
+              </motion.h1>
+              <motion.p variants={staggerItem} className="text-lg text-white/80 max-w-xl mb-4">
+                {trialDays} días de prueba gratis. Sin compromisos · Cancela cuando quieras
+              </motion.p>
+              <motion.div variants={staggerItem} className="flex flex-col sm:flex-row gap-3">
+                <Button
+                  size="lg"
+                  className="bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl px-8 py-6"
                   onClick={() => onOpenAuth?.('register')}
-                  className="w-full bg-green-500 hover:bg-green-400 active:scale-[0.98] text-white font-extrabold text-base sm:text-xl py-4 sm:py-5 rounded-2xl transition-all shadow-lg shadow-green-500/40 mb-16 sm:mb-0"
                 >
                   Empezar gratis ahora →
-                </button>
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="bg-white/10 border-white/30 text-white hover:bg-white/20 font-bold rounded-xl px-8 py-6"
+                  onClick={() => onOpenAuth?.('register')}
+                >
+                  ¡Inscribirte ahora! 🚀
+                </Button>
+              </motion.div>
+            </div>
+            <motion.div variants={staggerItem} className="flex flex-col items-center gap-5">
+              <div className="relative">
+                <img
+                  src={IMAGES.INSTRUCTOR_NOBG}
+                  alt="Instructor BLANG"
+                  className="w-56 h-56 md:w-72 md:h-72 object-contain"
+                  style={{ filter: 'drop-shadow(0 0 40px rgba(251,191,36,0.3))' }}
+                />
+                <motion.div
+                  animate={{ y: [-5, 5, -5] }} transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                  className="absolute -top-2 -right-2 bg-white text-gray-900 rounded-2xl px-3 py-1.5 shadow-xl font-bold text-xs"
+                >
+                  💰 $15 USD / mes
+                </motion.div>
+                <motion.div
+                  animate={{ y: [5, -5, 5] }} transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
+                  className="absolute -bottom-2 -left-2 bg-amber-400 text-black rounded-2xl px-3 py-1.5 shadow-xl font-extrabold text-xs"
+                >
+                  🎁 {trialDays} días GRATIS
+                </motion.div>
               </div>
-
-              {/* ── PLAN MENSUAL ── */}
-              <div className="relative bg-gradient-to-br from-amber-400 via-orange-400 to-amber-500 rounded-3xl p-5 sm:p-8 flex flex-col gap-4 sm:gap-5 shadow-2xl shadow-amber-400/40 overflow-hidden">
-                <div className="absolute -top-8 -right-8 w-40 h-40 bg-white/20 rounded-full blur-2xl pointer-events-none" />
-                <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-white/10 rounded-full blur-xl pointer-events-none" />
-                <div className="relative z-10 flex flex-col gap-4 sm:gap-5 h-full">
-                  {/* Header */}
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-3xl sm:text-5xl flex-shrink-0">🚀</span>
-                      <div className="min-w-0">
-                        <h2 className="text-lg sm:text-2xl md:text-3xl font-black text-black whitespace-nowrap">Plan Mensual</h2>
-                        <span className="inline-block bg-black/15 text-black text-xs font-extrabold px-3 py-1 rounded-full mt-1">🚀 Acceso completo</span>
-                      </div>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <p className="text-3xl sm:text-4xl md:text-5xl font-black text-black leading-none">$15</p>
-                      <p className="text-black/60 text-xs sm:text-sm mt-0.5">USD / mes</p>
-                    </div>
+              <div className="grid grid-cols-3 gap-2 w-full max-w-xs">
+                {[{e:'🎁',t:'Prueba Gratis'},{e:'🚀',t:'Plan Mensual'},{e:'🎥',t:'Clases Vivo'}].map(({e,t}) => (
+                  <div key={t} className="bg-white/10 backdrop-blur border border-white/20 rounded-xl px-2 py-2.5 text-center">
+                    <span className="text-xl block mb-0.5">{e}</span>
+                    <p className="text-white/90 text-xs font-semibold leading-tight">{t}</p>
                   </div>
-                  <p className="text-black/70 font-semibold text-sm sm:text-base -mt-1">o $55,000 COP al mes</p>
-                  {/* Divider */}
-                  <div className="h-px bg-black/15" />
-                  {/* Features */}
-                  <ul className="space-y-2 sm:space-y-3 flex-1">
-                    {[
-                      'Acceso completo a TODOS los cursos',
-                      'Práctica con IA incluida',
-                      'Seguimiento de progreso semanal',
-                      'Soporte prioritario',
-                      'Sin contratos anuales',
-                    ].map((f, i) => (
-                      <li key={i} className="flex items-center gap-3 text-black text-sm sm:text-base md:text-lg font-semibold">
-                        <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-black/20 flex items-center justify-center text-black text-xs font-black flex-shrink-0">✓</span>
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-                  {/* CTA */}
-                  <button
-                    onClick={() => onOpenAuth?.('register')}
-                    className="w-full bg-black hover:bg-gray-900 active:scale-[0.98] text-white font-extrabold text-base sm:text-xl py-4 sm:py-5 rounded-2xl transition-all shadow-xl"
-                  >
-                    ¡Inscribirte ahora! 🚀
-                  </button>
-                </div>
+                ))}
               </div>
             </motion.div>
-
-            {/* ── FOOTER INFO ── */}
-            <motion.div variants={staggerItem} className="mt-5 sm:mt-8 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
-              <div className="bg-white/10 backdrop-blur border border-white/20 rounded-2xl px-4 sm:px-6 py-3 w-full sm:flex-1">
-                <p className="text-white/85 text-xs sm:text-sm text-center leading-relaxed">
-                  ✅ Empieza gratis. Después continúa por <strong className="text-amber-300">$15 USD</strong> o <strong className="text-amber-300">$55,000 COP</strong> al mes.
-                </p>
-              </div>
-              <div className="flex items-center gap-4 sm:gap-5 text-white/60">
-                <span className="flex items-center gap-1.5 text-xs sm:text-sm"><span className="text-base sm:text-lg">🅿️</span> PayPal</span>
-                <span className="text-white/25">·</span>
-                <span className="flex items-center gap-1.5 text-xs sm:text-sm"><span className="text-base sm:text-lg">🏦</span> PSE</span>
-                <span className="text-white/25">·</span>
-                <span className="flex items-center gap-1.5 text-xs sm:text-sm"><span className="text-base sm:text-lg">💳</span> Tarjeta</span>
-              </div>
-            </motion.div>
-
           </motion.div>
         </div>
       </section>
@@ -510,47 +435,7 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
         </div>
       </section>
 
-      {/* ── CTA FINAL ── */}
-      <section id="cta" className="py-16 sm:py-24 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary via-purple-600 to-pink-500" />
-        <div className="absolute top-10 left-10 w-40 h-40 bg-white/10 rounded-full blur-2xl" />
-        <div className="absolute bottom-10 right-10 w-60 h-60 bg-white/10 rounded-full blur-3xl" />
 
-        <div className="container mx-auto px-4 relative z-10">
-          <motion.div
-            className="max-w-3xl mx-auto text-center"
-            initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-100px' }} variants={staggerContainer}
-          >
-            <motion.p className="text-3xl sm:text-4xl mb-4" variants={staggerItem}>🚀</motion.p>
-            <motion.h2 className="text-2xl sm:text-4xl md:text-6xl font-bold text-white mb-5 sm:mb-6 leading-tight" variants={staggerItem}>
-              ¡Empieza hoy y cambia tu futuro!
-            </motion.h2>
-            <motion.p className="text-base sm:text-xl text-white/85 mb-3 sm:mb-4" variants={staggerItem}>
-              ¡Sé parte de los primeros estudiantes de BLANG! Empieza gratis 7 días.
-            </motion.p>
-            <motion.p className="text-sm sm:text-lg text-white/70 mb-8 sm:mb-10" variants={staggerItem}>
-              Empieza con <span className="font-bold text-white">7 días gratis</span> y luego solo $15 USD o $55,000 COP al mes 🚀
-            </motion.p>
-            <motion.div className="flex flex-col gap-3 max-w-sm sm:max-w-md mx-auto w-full px-2" variants={staggerItem}>
-              <Input
-                type="email" placeholder="Tu correo electrónico 📧"
-                value={ctaEmail} onChange={(e) => setCtaEmail(e.target.value)}
-                className="bg-white/20 text-white placeholder:text-white/60 border-white/30 rounded-full focus:ring-white/50 backdrop-blur"
-              />
-              <Button
-                size="lg"
-                className="bg-white text-primary hover:bg-white/90 rounded-full font-bold px-7"
-                onClick={() => onOpenAuth?.('register')}
-              >
-                ¡Empezar! 🎉
-              </Button>
-            </motion.div>
-            <motion.p className="text-xs sm:text-sm text-white/60 mt-5" variants={staggerItem}>
-              ✓ 7 días gratis &nbsp; ✓ Sin compromisos &nbsp; ✓ Cancela cuando quieras
-            </motion.p>
-          </motion.div>
-        </div>
-      </section>
     </Layout>
   );
 }
