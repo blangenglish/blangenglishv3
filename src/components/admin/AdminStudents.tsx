@@ -624,6 +624,20 @@ export default function AdminStudents() {
 
   useEffect(() => { loadCoursesForAccess(); }, [loadCoursesForAccess]);
 
+  const [studentProgressData, setStudentProgressData] = useState<Record<string, any[]>>({});
+
+  const loadStudentProgress = useCallback(async (studentId: string) => {
+    const { data } = await supabase
+      .from('unit_progress')
+      .select('*, units(title, course_id, courses(title, slug))')
+      .eq('student_id', studentId)
+      .eq('completed', true)
+      .order('completed_at', { ascending: false });
+    if (data) {
+      setStudentProgressData(prev => ({ ...prev, [studentId]: data }));
+    }
+  }, []);
+
   const loadStudentModuleAccess = useCallback(async (studentId: string) => {
     const { data } = await supabase.from('student_module_access')
       .select('course_id, unit_id, is_active')
@@ -962,6 +976,7 @@ export default function AdminStudents() {
                               <button key={t.id} onClick={() => {
                                 setTab(student.id, t.id as 'info'|'progreso'|'pagos'|'cuenta'|'modulos');
                                 if (t.id === 'cuenta') { loadStudentModuleAccess(student.id); loadPaymentHistory(student.id); }
+                                if (t.id === 'progreso') { loadStudentProgress(student.id); }
                               }}
                                 className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
                                   tab === t.id
@@ -1061,34 +1076,39 @@ export default function AdminStudents() {
                           {/* TAB: PROGRESS */}
                           {tab === 'progreso' && (
                             <div>
-                              {!student.progress?.length ? (
+                              {!studentProgressData[student.id] ? (
+                                <div className="text-center py-8 text-muted-foreground text-sm">
+                                  <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                                  Cargando progreso...
+                                </div>
+                              ) : studentProgressData[student.id].length === 0 ? (
                                 <div className="text-center py-8 text-muted-foreground text-sm">
                                   <AlertCircle className="w-8 h-8 mx-auto mb-2 opacity-40" />
                                   Este estudiante aún no ha registrado progreso.
                                 </div>
                               ) : (
                                 <div className="space-y-3">
-                                  {student.progress.map((p, i) => {
-                                    const prog = p.total_units ? Math.round((p.completed_units / p.total_units) * 100) : 0;
-                                    return (
-                                      <div key={i} className="bg-muted/20 rounded-xl p-4 border border-border/30">
-                                        <div className="flex items-center justify-between mb-2">
-                                          <p className="font-semibold text-sm capitalize">{p.course_slug.replace(/_/g, ' ')}</p>
-                                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                                            <span className="flex items-center gap-1"><Flame className="w-3.5 h-3.5 text-orange-500" />{p.streak_days} días</span>
-                                            <span className="flex items-center gap-1"><Award className="w-3.5 h-3.5 text-amber-500" />{p.total_points} pts</span>
-                                          </div>
+                                  <p className="text-xs text-muted-foreground mb-2">
+                                    {studentProgressData[student.id].length} etapas completadas
+                                  </p>
+                                  {studentProgressData[student.id].map((p: any, i: number) => (
+                                    <div key={i} className="bg-muted/20 rounded-xl p-4 border border-border/30">
+                                      <div className="flex items-center justify-between">
+                                        <div>
+                                          <p className="font-semibold text-sm">{p.units?.title || 'Unidad'}</p>
+                                          <p className="text-xs text-muted-foreground">{p.units?.courses?.title || ''} — Etapa: <span className="capitalize">{p.stage}</span></p>
                                         </div>
-                                        <div className="flex items-center gap-3">
-                                          <div className="flex-1 bg-muted rounded-full h-2">
-                                            <div className="bg-primary h-2 rounded-full transition-all" style={{ width: `${prog}%` }} />
-                                          </div>
-                                          <span className="text-xs font-bold text-primary">{prog}%</span>
+                                        <div className="text-right">
+                                          <span className={`text-xs font-bold px-2 py-1 rounded-full ${p.quiz_passed ? 'bg-green-100 text-green-700' : 'bg-muted text-muted-foreground'}`}>
+                                            {p.quiz_passed ? '✅ Quiz aprobado' : '📖 Completado'}
+                                          </span>
+                                          <p className="text-xs text-muted-foreground mt-1">
+                                            {new Date(p.completed_at).toLocaleDateString('es-CO')}
+                                          </p>
                                         </div>
-                                        <p className="text-xs text-muted-foreground mt-1">{p.completed_units} de {p.total_units} unidades</p>
                                       </div>
-                                    );
-                                  })}
+                                    </div>
+                                  ))}
                                 </div>
                               )}
                             </div>
