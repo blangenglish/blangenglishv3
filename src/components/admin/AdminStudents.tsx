@@ -627,15 +627,40 @@ export default function AdminStudents() {
   const [studentProgressData, setStudentProgressData] = useState<Record<string, any[]>>({});
 
   const loadStudentProgress = useCallback(async (studentId: string) => {
-    const { data } = await supabase
+    const { data: progressData } = await supabase
       .from('unit_progress')
-      .select('*, units(title, course_id, courses(title, slug))')
+      .select('id, unit_id, stage, completed, completed_at, quiz_passed')
       .eq('student_id', studentId)
       .eq('completed', true)
       .order('completed_at', { ascending: false });
-    if (data) {
-      setStudentProgressData(prev => ({ ...prev, [studentId]: data }));
+
+    if (!progressData) {
+      setStudentProgressData(prev => ({ ...prev, [studentId]: [] }));
+      return;
     }
+
+    const unitIds = [...new Set(progressData.map((p: any) => p.unit_id))];
+    const { data: unitsData } = await supabase
+      .from('units')
+      .select('id, title, course_id')
+      .in('id', unitIds);
+
+    const courseIds = [...new Set((unitsData || []).map((u: any) => u.course_id))];
+    const { data: coursesData } = await supabase
+      .from('courses')
+      .select('id, title')
+      .in('id', courseIds);
+
+    const unitsMap = Object.fromEntries((unitsData || []).map((u: any) => [u.id, u]));
+    const coursesMap = Object.fromEntries((coursesData || []).map((c: any) => [c.id, c]));
+
+    const enriched = progressData.map((p: any) => {
+      const unit = unitsMap[p.unit_id];
+      const course = unit ? coursesMap[unit.course_id] : null;
+      return { ...p, unit_title: unit?.title || 'Unidad', course_title: course?.title || '' };
+    });
+
+    setStudentProgressData(prev => ({ ...prev, [studentId]: enriched }));
   }, []);
 
   const loadStudentModuleAccess = useCallback(async (studentId: string) => {
@@ -1095,8 +1120,8 @@ export default function AdminStudents() {
                                     <div key={i} className="bg-muted/20 rounded-xl p-4 border border-border/30">
                                       <div className="flex items-center justify-between">
                                         <div>
-                                          <p className="font-semibold text-sm">{p.units?.title || 'Unidad'}</p>
-                                          <p className="text-xs text-muted-foreground">{p.units?.courses?.title || ''} — Etapa: <span className="capitalize">{p.stage}</span></p>
+                                          <p className="font-semibold text-sm">{p.unit_title || 'Unidad'}</p>
+                                          <p className="text-xs text-muted-foreground">{p.course_title || ''} — Etapa: <span className="capitalize">{p.stage}</span></p>
                                         </div>
                                         <div className="text-right">
                                           <span className={`text-xs font-bold px-2 py-1 rounded-full ${p.quiz_passed ? 'bg-green-100 text-green-700' : 'bg-muted text-muted-foreground'}`}>
