@@ -629,14 +629,17 @@ export default function AdminStudents() {
 
   const loadStudentProgress = useCallback(async (studentId: string) => {
     setStudentProgressError(prev => ({ ...prev, [studentId]: '' }));
-    const { data, error } = await supabase
-      .rpc('get_student_progress', { p_student_id: studentId });
-    if (error) {
-      setStudentProgressError(prev => ({ ...prev, [studentId]: error.message || JSON.stringify(error) }));
+    const { data: { session } } = await supabase.auth.getSession();
+    const { data, error } = await supabase.functions.invoke('admin-update-student', {
+      body: { action: 'get_student_progress', student_id: studentId },
+      headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
+    });
+    if (error || !data?.progress) {
+      setStudentProgressError(prev => ({ ...prev, [studentId]: error?.message || 'Sin datos' }));
       setStudentProgressData(prev => ({ ...prev, [studentId]: [] }));
       return;
     }
-    setStudentProgressData(prev => ({ ...prev, [studentId]: data || [] }));
+    setStudentProgressData(prev => ({ ...prev, [studentId]: data.progress }));
   }, []);
 
   const loadStudentModuleAccess = useCallback(async (studentId: string) => {
