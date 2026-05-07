@@ -89,6 +89,48 @@ export default function AdminStudents() {
   const [emailSaveMsg, setEmailSaveMsg] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<Record<string, 'info' | 'progreso' | 'pagos' | 'cuenta' | 'modulos'>>({});
+  const [detailedProgress, setDetailedProgress] = useState<Record<string, any[]>>({});
+  const [loadingProgress, setLoadingProgress] = useState<string | null>(null);
+
+  const loadDetailedProgress = async (studentId: string) => {
+    if (detailedProgress[studentId]) return;
+    setLoadingProgress(studentId);
+    try {
+      const { data: courses } = await supabase
+        .from('courses')
+        .select('id, title, level')
+        .order('sort_order', { ascending: true });
+
+      if (!courses) return;
+
+      const result = await Promise.all(courses.map(async (course) => {
+        const { data: units } = await supabase
+          .from('units')
+          .select('id, title')
+          .eq('course_id', course.id)
+          .eq('is_published', true);
+
+        const totalUnits = units?.length ?? 0;
+
+        const { data: progressRows } = await supabase
+          .from('unit_progress')
+          .select('unit_id')
+          .eq('student_id', studentId)
+          .eq('completed', true);
+
+        const completedUnitIds = new Set((progressRows ?? []).map(r => r.unit_id));
+        const completedUnits = (units ?? []).filter(u => completedUnitIds.has(u.id)).length;
+
+        return { level: course.level, title: course.title, totalUnits, completedUnits };
+      }));
+
+      setDetailedProgress(prev => ({ ...prev, [studentId]: result.filter(r => r.totalUnits > 0) }));
+    } catch (e) {
+      console.error('Error cargando progreso:', e);
+    } finally {
+      setLoadingProgress(null);
+    }
+  };
 
   // Draft de cambios del tab Cuenta (pendientes de guardar)
   interface AccountDraft {
