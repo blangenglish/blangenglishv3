@@ -627,7 +627,7 @@ export default function AdminStudents() {
   const [studentProgressData, setStudentProgressData] = useState<Record<string, any[]>>({});
   const [studentProgressError, setStudentProgressError] = useState<Record<string, string>>({});
 
-  const loadStudentProgress = useCallback(async (studentId: string) => {
+ const loadStudentProgress = useCallback(async (studentId: string) => {
     setStudentProgressError(prev => ({ ...prev, [studentId]: '' }));
     const { data: { session } } = await supabase.auth.getSession();
     const { data, error } = await supabase.functions.invoke('admin-update-student', {
