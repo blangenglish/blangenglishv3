@@ -1069,14 +1069,17 @@ export default function AdminStudents() {
                               ) : (
                                 <div className="space-y-3">
                                   {student.progress.map((p, i) => {
-                                    const prog = p.total_units ? Math.round((p.completed_units / p.total_units) * 100) : 0;
+                                    const completedUnits = p?.completed_units ?? 0;
+                                    const totalUnits = p?.total_units ?? 0;
+                                    const prog = totalUnits ? Math.round((completedUnits / totalUnits) * 100) : 0;
+                                    const courseLabel = p?.course_slug ? p.course_slug.replace(/_/g, ' ') : '—';
                                     return (
                                       <div key={i} className="bg-muted/20 rounded-xl p-4 border border-border/30">
                                         <div className="flex items-center justify-between mb-2">
-                                          <p className="font-semibold text-sm capitalize">{p.course_slug.replace(/_/g, ' ')}</p>
+                                          <p className="font-semibold text-sm capitalize">{courseLabel}</p>
                                           <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                                            <span className="flex items-center gap-1"><Flame className="w-3.5 h-3.5 text-orange-500" />{p.streak_days} días</span>
-                                            <span className="flex items-center gap-1"><Award className="w-3.5 h-3.5 text-amber-500" />{p.total_points} pts</span>
+                                            <span className="flex items-center gap-1"><Flame className="w-3.5 h-3.5 text-orange-500" />{p?.streak_days ?? 0} días</span>
+                                            <span className="flex items-center gap-1"><Award className="w-3.5 h-3.5 text-amber-500" />{p?.total_points ?? 0} pts</span>
                                           </div>
                                         </div>
                                         <div className="flex items-center gap-3">
@@ -1085,7 +1088,7 @@ export default function AdminStudents() {
                                           </div>
                                           <span className="text-xs font-bold text-primary">{prog}%</span>
                                         </div>
-                                        <p className="text-xs text-muted-foreground mt-1">{p.completed_units} de {p.total_units} unidades</p>
+                                        <p className="text-xs text-muted-foreground mt-1">{completedUnits} de {totalUnits} unidades</p>
                                       </div>
                                     );
                                   })}
