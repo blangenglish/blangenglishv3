@@ -234,6 +234,28 @@ export function QuizEditor({ unitId, onClose }: QuizEditorProps) {
     }))
   }
 
+  const addOption = (questionIndex: number) => {
+    setQuiz(prev => ({
+      ...prev,
+      questions: prev.questions.map((q, i) => {
+        if (i !== questionIndex || !q.options) return q
+        return { ...q, options: [...q.options, ''] }
+      })
+    }))
+  }
+
+  const removeOption = (questionIndex: number, optionIndex: number) => {
+    setQuiz(prev => ({
+      ...prev,
+      questions: prev.questions.map((q, i) => {
+        if (i !== questionIndex || !q.options || q.options.length <= 2) return q
+        const newOptions = q.options.filter((_, oi) => oi !== optionIndex)
+        const newCorrect = q.correct_answer === q.options[optionIndex] ? '' : q.correct_answer
+        return { ...q, options: newOptions, correct_answer: newCorrect }
+      })
+    }))
+  }
+
   if (loading) {
     return (
       <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
@@ -359,7 +381,7 @@ export function QuizEditor({ unitId, onClose }: QuizEditorProps) {
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="multiple_choice">Opción Múltiple (4 opciones)</SelectItem>
+                                <SelectItem value="multiple_choice">Opción Múltiple</SelectItem>
                                 <SelectItem value="true_false">Verdadero/Falso</SelectItem>
                                 <SelectItem value="fill_blank">Llenar el Espacio</SelectItem>
                                 <SelectItem value="short_answer">Respuesta Corta</SelectItem>
@@ -369,7 +391,18 @@ export function QuizEditor({ unitId, onClose }: QuizEditorProps) {
 
                           {question.question_type === 'multiple_choice' && question.options && (
                             <div className="space-y-2">
-                              <Label>Opciones</Label>
+                              <div className="flex items-center justify-between">
+                                <Label>Opciones — marca la correcta</Label>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => addOption(qIndex)}
+                                  className="h-7 text-xs gap-1"
+                                >
+                                  <Plus className="h-3 w-3" /> Agregar opción
+                                </Button>
+                              </div>
                               {question.options.map((option, oIndex) => (
                                 <div key={oIndex} className="flex items-center gap-2">
                                   <span className="text-sm font-medium text-muted-foreground w-6">{String.fromCharCode(65 + oIndex)}.</span>
@@ -378,6 +411,16 @@ export function QuizEditor({ unitId, onClose }: QuizEditorProps) {
                                     onChange={(e) => updateOption(qIndex, oIndex, e.target.value)}
                                     placeholder={`Opción ${String.fromCharCode(65 + oIndex)}`}
                                   />
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => removeOption(qIndex, oIndex)}
+                                    disabled={question.options!.length <= 2}
+                                    className="h-8 w-8 shrink-0 text-destructive hover:text-destructive disabled:opacity-30"
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
                                 </div>
                               ))}
                             </div>
