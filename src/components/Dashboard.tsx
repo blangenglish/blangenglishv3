@@ -1209,7 +1209,6 @@ useEffect(() => {
 
   const handleLogout = () => {
     onLogout?.();
-    navigate(ROUTE_PATHS.HOME);
   };
 
   // Not logged in guard
