@@ -510,47 +510,6 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
         </div>
       </section>
 
-      {/* ── CTA FINAL ── */}
-      <section id="cta" className="py-16 sm:py-24 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary via-purple-600 to-pink-500" />
-        <div className="absolute top-10 left-10 w-40 h-40 bg-white/10 rounded-full blur-2xl" />
-        <div className="absolute bottom-10 right-10 w-60 h-60 bg-white/10 rounded-full blur-3xl" />
-
-        <div className="container mx-auto px-4 relative z-10">
-          <motion.div
-            className="max-w-3xl mx-auto text-center"
-            initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-100px' }} variants={staggerContainer}
-          >
-            <motion.p className="text-3xl sm:text-4xl mb-4" variants={staggerItem}>🚀</motion.p>
-            <motion.h2 className="text-2xl sm:text-4xl md:text-6xl font-bold text-white mb-5 sm:mb-6 leading-tight" variants={staggerItem}>
-              ¡Empieza hoy y cambia tu futuro!
-            </motion.h2>
-            <motion.p className="text-base sm:text-xl text-white/85 mb-3 sm:mb-4" variants={staggerItem}>
-              ¡Sé parte de los primeros estudiantes de BLANG! Empieza gratis 7 días.
-            </motion.p>
-            <motion.p className="text-sm sm:text-lg text-white/70 mb-8 sm:mb-10" variants={staggerItem}>
-              Empieza con <span className="font-bold text-white">7 días gratis</span> y luego solo $15 USD o $55,000 COP al mes 🚀
-            </motion.p>
-            <motion.div className="flex flex-col gap-3 max-w-sm sm:max-w-md mx-auto w-full px-2" variants={staggerItem}>
-              <Input
-                type="email" placeholder="Tu correo electrónico 📧"
-                value={ctaEmail} onChange={(e) => setCtaEmail(e.target.value)}
-                className="bg-white/20 text-white placeholder:text-white/60 border-white/30 rounded-full focus:ring-white/50 backdrop-blur"
-              />
-              <Button
-                size="lg"
-                className="bg-white text-primary hover:bg-white/90 rounded-full font-bold px-7"
-                onClick={() => onOpenAuth?.('register')}
-              >
-                ¡Empezar! 🎉
-              </Button>
-            </motion.div>
-            <motion.p className="text-xs sm:text-sm text-white/60 mt-5" variants={staggerItem}>
-              ✓ 7 días gratis &nbsp; ✓ Sin compromisos &nbsp; ✓ Cancela cuando quieras
-            </motion.p>
-          </motion.div>
-        </div>
-      </section>
     </Layout>
   );
 }
