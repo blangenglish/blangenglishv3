@@ -625,12 +625,14 @@ export default function AdminStudents() {
   useEffect(() => { loadCoursesForAccess(); }, [loadCoursesForAccess]);
 
   const [studentProgressData, setStudentProgressData] = useState<Record<string, any[]>>({});
+  const [studentProgressError, setStudentProgressError] = useState<Record<string, string>>({});
 
   const loadStudentProgress = useCallback(async (studentId: string) => {
+    setStudentProgressError(prev => ({ ...prev, [studentId]: '' }));
     const { data, error } = await supabase
       .rpc('get_student_progress', { p_student_id: studentId });
     if (error) {
-      console.error('loadStudentProgress error:', error);
+      setStudentProgressError(prev => ({ ...prev, [studentId]: error.message || JSON.stringify(error) }));
       setStudentProgressData(prev => ({ ...prev, [studentId]: [] }));
       return;
     }
@@ -1075,6 +1077,11 @@ export default function AdminStudents() {
                           {/* TAB: PROGRESS */}
                           {tab === 'progreso' && (
                             <div>
+                              {studentProgressError[student.id] && (
+                                <div className="mb-3 bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-red-700 font-mono">
+                                  ❌ Error: {studentProgressError[student.id]}
+                                </div>
+                              )}
                               {!studentProgressData[student.id] ? (
                                 <div className="text-center py-8 text-muted-foreground text-sm">
                                   <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
