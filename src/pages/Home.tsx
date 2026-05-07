@@ -9,6 +9,7 @@ import { ChevronRight } from 'lucide-react';
 import { ROUTE_PATHS } from '@/lib/index';
 import type { AuthModal } from '@/lib/index';
 import { IMAGES } from '@/assets/images';
+import { useSiteSettings } from '@/hooks/useSupabaseData';
 
 const staggerContainer = {
   hidden: { opacity: 0 },
@@ -46,6 +47,8 @@ const METHODOLOGY_STEPS = [
 
 export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
   const [ctaEmail, setCtaEmail] = useState('');
+  const { data: settings } = useSiteSettings();
+  const trialDays = settings?.trial_days ?? '7';
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -59,6 +62,78 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
 
       {/* PAGE BG */}
       <div className="fixed inset-0 -z-10 bg-gradient-to-br from-purple-50 via-violet-50/60 to-background pointer-events-none" />
+
+      {/* ── PRICING HERO ── */}
+      <section className="relative py-16 md:py-20 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-violet-900 via-purple-800 to-primary" />
+        <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-pink-500/15 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-amber-400/10 rounded-full blur-3xl" />
+        <div className="container mx-auto px-4 relative z-10">
+          <motion.div initial="hidden" animate="visible" variants={staggerContainer} className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-10 items-center">
+            <div>
+              <motion.div variants={staggerItem} className="mb-5">
+                <span className="inline-flex items-center gap-2 bg-white/10 text-white/90 text-sm font-semibold px-4 py-2 rounded-full border border-white/20 backdrop-blur">
+                  💰 Precios claros, sin sorpresas
+                </span>
+              </motion.div>
+              <motion.h1 variants={staggerItem} className="text-5xl md:text-6xl font-extrabold text-white mb-5 leading-tight">
+                Aprende <span className="text-amber-400">inglés</span><br />
+                por solo <span className="text-amber-400">$15</span> <span className="text-2xl font-bold text-white/70">USD/mes</span>
+              </motion.h1>
+              <motion.p variants={staggerItem} className="text-lg text-white/80 max-w-xl mb-4">
+                {trialDays} días de prueba gratis. Sin compromisos · Cancela cuando quieras
+              </motion.p>
+              <motion.div variants={staggerItem} className="flex flex-col sm:flex-row gap-3">
+                <Button
+                  size="lg"
+                  className="bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl px-8 py-6"
+                  onClick={() => onOpenAuth?.('register')}
+                >
+                  Empezar gratis ahora →
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="bg-white/10 border-white/30 text-white hover:bg-white/20 font-bold rounded-xl px-8 py-6"
+                  onClick={() => onOpenAuth?.('register')}
+                >
+                  ¡Inscribirte ahora! 🚀
+                </Button>
+              </motion.div>
+            </div>
+            <motion.div variants={staggerItem} className="flex flex-col items-center gap-5">
+              <div className="relative">
+                <img
+                  src={IMAGES.INSTRUCTOR_NOBG}
+                  alt="Instructor BLANG"
+                  className="w-56 h-56 md:w-72 md:h-72 object-contain"
+                  style={{ filter: 'drop-shadow(0 0 40px rgba(251,191,36,0.3))' }}
+                />
+                <motion.div
+                  animate={{ y: [-5, 5, -5] }} transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                  className="absolute -top-2 -right-2 bg-white text-gray-900 rounded-2xl px-3 py-1.5 shadow-xl font-bold text-xs"
+                >
+                  💰 $15 USD / mes
+                </motion.div>
+                <motion.div
+                  animate={{ y: [5, -5, 5] }} transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
+                  className="absolute -bottom-2 -left-2 bg-amber-400 text-black rounded-2xl px-3 py-1.5 shadow-xl font-extrabold text-xs"
+                >
+                  🎁 {trialDays} días GRATIS
+                </motion.div>
+              </div>
+              <div className="grid grid-cols-3 gap-2 w-full max-w-xs">
+                {[{e:'🎁',t:'Prueba Gratis'},{e:'🚀',t:'Plan Mensual'},{e:'🎥',t:'Clases Vivo'}].map(({e,t}) => (
+                  <div key={t} className="bg-white/10 backdrop-blur border border-white/20 rounded-xl px-2 py-2.5 text-center">
+                    <span className="text-xl block mb-0.5">{e}</span>
+                    <p className="text-white/90 text-xs font-semibold leading-tight">{t}</p>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
 
       {/* ── HERO ── */}
       <section id="hero" className="relative py-14 sm:py-20 md:py-28 overflow-hidden">
