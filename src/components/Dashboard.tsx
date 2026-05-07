@@ -1208,8 +1208,9 @@ useEffect(() => {
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    window.location.href = '/';
+    try { await supabase.auth.signOut(); } catch (_) {}
+    localStorage.clear();
+    window.location.replace(window.location.origin);
   };
 
   // Not logged in guard
