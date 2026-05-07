@@ -650,8 +650,10 @@ export default function AdminStudents() {
   };
 
   const getTab = (id: string) => activeTab[id] || 'info';
-  const setTab = (id: string, tab: 'info' | 'progreso' | 'pagos' | 'cuenta' | 'modulos') =>
+  const setTab = (id: string, tab: 'info' | 'progreso' | 'pagos' | 'cuenta' | 'modulos') => {
     setActiveTab(prev => ({ ...prev, [id]: tab }));
+    if (tab === 'progreso') loadDetailedProgress(id);
+  };
 
   // Load courses for module access management
   const loadCoursesForAccess = useCallback(async () => {
@@ -1103,34 +1105,43 @@ export default function AdminStudents() {
                           {/* TAB: PROGRESS */}
                           {tab === 'progreso' && (
                             <div>
-                              {!student.progress?.length ? (
+                              {loadingProgress === student.id ? (
+                                <div className="text-center py-8 text-muted-foreground text-sm">
+                                  <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                                  Cargando progreso...
+                                </div>
+                              ) : !detailedProgress[student.id]?.length ? (
                                 <div className="text-center py-8 text-muted-foreground text-sm">
                                   <AlertCircle className="w-8 h-8 mx-auto mb-2 opacity-40" />
                                   Este estudiante aún no ha registrado progreso.
                                 </div>
                               ) : (
                                 <div className="space-y-3">
-                                  {student.progress.map((p, i) => {
-                                    const completedUnits = p?.completed_units ?? 0;
-                                    const totalUnits = p?.total_units ?? 0;
-                                    const prog = totalUnits ? Math.round((completedUnits / totalUnits) * 100) : 0;
-                                    const courseLabel = p?.course_slug ? p.course_slug.replace(/_/g, ' ') : '—';
+                                  {detailedProgress[student.id].map((p, i) => {
+                                    const prog = p.totalUnits ? Math.round((p.completedUnits / p.totalUnits) * 100) : 0;
+                                    const levelColors: Record<string, string> = {
+                                      A1: 'bg-green-100 text-green-700 border-green-200',
+                                      A2: 'bg-teal-100 text-teal-700 border-teal-200',
+                                      B1: 'bg-blue-100 text-blue-700 border-blue-200',
+                                      B2: 'bg-indigo-100 text-indigo-700 border-indigo-200',
+                                      C1: 'bg-purple-100 text-purple-700 border-purple-200',
+                                    };
+                                    const color = levelColors[p.level] || 'bg-gray-100 text-gray-700 border-gray-200';
                                     return (
                                       <div key={i} className="bg-muted/20 rounded-xl p-4 border border-border/30">
-                                        <div className="flex items-center justify-between mb-2">
-                                          <p className="font-semibold text-sm capitalize">{courseLabel}</p>
-                                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                                            <span className="flex items-center gap-1"><Flame className="w-3.5 h-3.5 text-orange-500" />{p?.streak_days ?? 0} días</span>
-                                            <span className="flex items-center gap-1"><Award className="w-3.5 h-3.5 text-amber-500" />{p?.total_points ?? 0} pts</span>
+                                        <div className="flex items-center justify-between mb-3">
+                                          <div className="flex items-center gap-2">
+                                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${color}`}>{p.level}</span>
+                                            <p className="font-semibold text-sm">{p.title}</p>
                                           </div>
+                                          <span className="text-xs font-bold text-primary">{prog}%</span>
                                         </div>
                                         <div className="flex items-center gap-3">
                                           <div className="flex-1 bg-muted rounded-full h-2">
                                             <div className="bg-primary h-2 rounded-full transition-all" style={{ width: `${prog}%` }} />
                                           </div>
-                                          <span className="text-xs font-bold text-primary">{prog}%</span>
                                         </div>
-                                        <p className="text-xs text-muted-foreground mt-1">{completedUnits} de {totalUnits} unidades</p>
+                                        <p className="text-xs text-muted-foreground mt-2">{p.completedUnits} de {p.totalUnits} unidades completadas</p>
                                       </div>
                                     );
                                   })}
