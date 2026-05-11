@@ -247,6 +247,9 @@ function InlineQuiz({ questions, onPassed }) {
   // story_order: storyItems reordered
   const [storyOrder, setStoryOrder] = useState([]);
 
+  // lightbox para imágenes
+  const [lightboxUrl, setLightboxUrl] = useState(null);
+
   // word_sort: {optText -> categoryName}
   const [wordPlacements, setWordPlacements] = useState({});
   const [wordSelected, setWordSelected] = useState(null);
@@ -440,7 +443,12 @@ function InlineQuiz({ questions, onPassed }) {
       <div className="p-4 space-y-4">
         {/* Image for image-based types */}
         {(q.type === 'image_url' || q.type === 'image_choice' || q.type === 'image_write') && q.imageUrl && (
-          <img src={q.imageUrl} alt="Quiz" className="w-full max-h-52 object-contain rounded-xl border border-border bg-muted/20" />
+          <img
+            src={q.imageUrl}
+            alt="Quiz"
+            onClick={() => setLightboxUrl(q.imageUrl)}
+            className="w-full max-h-52 object-contain rounded-xl border border-border bg-muted/20 cursor-zoom-in"
+          />
         )}
 
         {/* Audio hint for listen types */}
@@ -738,6 +746,27 @@ function InlineQuiz({ questions, onPassed }) {
           </div>
         )}
       </div>
+
+      {/* ── Lightbox modal ── */}
+      {lightboxUrl && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          onClick={() => setLightboxUrl(null)}
+        >
+          <button
+            onClick={() => setLightboxUrl(null)}
+            className="absolute top-4 right-4 text-white bg-black/50 hover:bg-black/80 rounded-full w-9 h-9 flex items-center justify-center text-xl font-bold"
+          >
+            ✕
+          </button>
+          <img
+            src={lightboxUrl}
+            alt="Imagen ampliada"
+            onClick={e => e.stopPropagation()}
+            className="max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl"
+          />
+        </div>
+      )}
     </div>
   );
 }
