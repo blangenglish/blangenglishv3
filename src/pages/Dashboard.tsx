@@ -729,6 +729,7 @@ export default function Dashboard({ isLoggedIn = false, onOpenAuth, onLogout, us
   const [showNewPw, setShowNewPw] = useState(false);
   const [showConfirmPw, setShowConfirmPw] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
+  const [profileSaveError, setProfileSaveError] = useState('');
   const [profileLoading, setProfileLoading] = useState(true);
   const [pwSaved, setPwSaved] = useState(false);
   const [pwError, setPwError] = useState('');
@@ -1161,8 +1162,17 @@ useEffect(() => {
 
   const handleProfileSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    setProfileSaveError('');
+    // Usar el userId ya cargado en estado; si no hay, obtenerlo de la sesión
+    let uid = currentUserId;
+    if (!uid) {
+      const { data: { session } } = await supabase.auth.getSession();
+      uid = session?.user?.id || '';
+    }
+    if (!uid) {
+      setProfileSaveError('No se pudo identificar tu sesión. Por favor recarga la página.');
+      return;
+    }
     setLoading(true);
     const patch = {
       full_name: profileForm.name.trim() || null,
@@ -1177,11 +1187,14 @@ useEffect(() => {
     // Upsert asegura crear o actualizar el perfil
     const { error: saveErr } = await supabase
       .from('student_profiles')
-      .upsert({ id: user.id, ...patch }, { onConflict: 'id' });
+      .upsert({ id: uid, ...patch }, { onConflict: 'id' });
+    setLoading(false);
     if (saveErr) {
       console.error('Profile save error:', saveErr);
-    }    setLoading(false);
-    await refreshProfile(user.id);
+      setProfileSaveError('Error al guardar: ' + saveErr.message);
+      return;
+    }
+    await refreshProfile(uid);
     setProfileSaved(true);
     setTimeout(() => setProfileSaved(false), 2500);
   };
@@ -1931,6 +1944,21 @@ useEffect(() => {
                   </div>
                   )}
                   {/* Edición directa de datos personales */}
+                  {profileLoading ? (
+                    <div className="bg-background rounded-2xl border border-border/50 p-6 shadow-sm animate-pulse">
+                      <div className="h-5 rounded bg-muted w-2/5 mb-4" />
+                      <div className="space-y-3">
+                        <div className="h-10 rounded-xl bg-muted" />
+                        <div className="h-10 rounded-xl bg-muted" />
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="h-10 rounded-xl bg-muted" />
+                          <div className="h-10 rounded-xl bg-muted" />
+                        </div>
+                        <div className="h-10 rounded-xl bg-muted" />
+                        <div className="h-10 rounded-xl bg-muted" />
+                      </div>
+                    </div>
+                  ) : (
                   <div className="bg-background rounded-2xl border border-border/50 p-6 shadow-sm">
                     <h2 className="font-bold text-base mb-4 flex items-center gap-2">
                       <User className="w-4 h-4 text-primary" /> Editar información personal
@@ -2002,8 +2030,12 @@ useEffect(() => {
                       {profileSaved && (
                         <p className="text-sm text-green-600 font-medium text-center">✓ Información actualizada correctamente</p>
                       )}
+                      {profileSaveError && (
+                        <p className="text-sm text-red-500 font-medium text-center">{profileSaveError}</p>
+                      )}
                     </form>
                   </div>
+                  )}
 
                   {/* Change password */}
                   <div className="bg-background rounded-2xl border border-border/50 p-6 shadow-sm">
