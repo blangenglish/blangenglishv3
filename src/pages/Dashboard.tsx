@@ -1930,11 +1930,80 @@ useEffect(() => {
                     </div>
                   </div>
                   )}
-                  {/* Solicitud de actualización de datos */}
-                  <UpdateRequestForm
-                    studentName={profileForm.name || userName || ''}
-                    studentEmail={currentEmail}
-                  />
+                  {/* Edición directa de datos personales */}
+                  <div className="bg-background rounded-2xl border border-border/50 p-6 shadow-sm">
+                    <h2 className="font-bold text-base mb-4 flex items-center gap-2">
+                      <User className="w-4 h-4 text-primary" /> Editar información personal
+                    </h2>
+                    <form onSubmit={handleProfileSave} className="space-y-4">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="prof-name" className="text-sm font-medium">Nombre completo</Label>
+                        <Input
+                          id="prof-name"
+                          type="text"
+                          placeholder="Tu nombre completo"
+                          value={profileForm.name}
+                          onChange={e => setProfileForm(p => ({ ...p, name: e.target.value }))}
+                          className="rounded-xl"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="prof-phone" className="text-sm font-medium">Teléfono</Label>
+                        <Input
+                          id="prof-phone"
+                          type="tel"
+                          placeholder="Ej: +57 300 123 4567"
+                          value={profileForm.phone}
+                          onChange={e => setProfileForm(p => ({ ...p, phone: e.target.value }))}
+                          className="rounded-xl"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <Label htmlFor="prof-country" className="text-sm font-medium">País</Label>
+                          <Input
+                            id="prof-country"
+                            type="text"
+                            placeholder="Ej: Colombia"
+                            value={profileForm.country}
+                            onChange={e => setProfileForm(p => ({ ...p, country: e.target.value }))}
+                            className="rounded-xl"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label htmlFor="prof-city" className="text-sm font-medium">Ciudad</Label>
+                          <Input
+                            id="prof-city"
+                            type="text"
+                            placeholder="Ej: Bogotá"
+                            value={profileForm.city}
+                            onChange={e => setProfileForm(p => ({ ...p, city: e.target.value }))}
+                            className="rounded-xl"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="prof-birthday" className="text-sm font-medium">Fecha de nacimiento</Label>
+                        <Input
+                          id="prof-birthday"
+                          type="date"
+                          value={profileForm.birthday}
+                          onChange={e => setProfileForm(p => ({ ...p, birthday: e.target.value }))}
+                          className="rounded-xl"
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        disabled={loading}
+                        className="w-full py-2.5 px-4 rounded-xl bg-primary text-primary-foreground font-semibold text-sm hover:bg-primary/90 transition disabled:opacity-50"
+                      >
+                        {loading ? 'Guardando...' : 'Guardar cambios'}
+                      </button>
+                      {profileSaved && (
+                        <p className="text-sm text-green-600 font-medium text-center">✓ Información actualizada correctamente</p>
+                      )}
+                    </form>
+                  </div>
 
                   {/* Change password */}
                   <div className="bg-background rounded-2xl border border-border/50 p-6 shadow-sm">
