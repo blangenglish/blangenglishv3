@@ -107,7 +107,7 @@ function generateInvoiceHTML({ studentName, studentEmail, studentCity, studentCo
 // ─── InvoiceModal ─────────────────────────────────────────────────────────────
 function InvoiceModal({ student, items, onClose }: { student: any; items: any[]; onClose: () => void }) {
   const [sending, setSending] = useState(false);
-  const [sent, setSent] = useState(false);
+  const [sentMsg, setSentMsg] = useState('');
   const [sendError, setSendError] = useState('');
 
   const payItems = items.filter(i => i.amount_usd > 0);
@@ -145,9 +145,9 @@ function InvoiceModal({ student, items, onClose }: { student: any; items: any[];
 
   const handleSendEmail = async () => {
     if (!student.email) { setSendError('Este estudiante no tiene correo registrado.'); return; }
-    setSending(true); setSendError(''); setSent(false);
+    setSending(true); setSendError(''); setSentMsg('');
     try {
-      const { error } = await supabase.functions.invoke('send-invoice-email', {
+      const { data, error } = await supabase.functions.invoke('send-invoice-email', {
         body: {
           studentName: student.full_name || 'Estudiante',
           studentEmail: student.email,
@@ -159,7 +159,14 @@ function InvoiceModal({ student, items, onClose }: { student: any; items: any[];
         },
       });
       if (error) throw new Error(error.message || 'Error desconocido');
-      setSent(true);
+      // Mostrar mensaje según a quién se envió
+      if (data?.sentTo === 'student') {
+        setSentMsg(`✅ Factura enviada al correo del estudiante: ${student.email}`);
+      } else if (data?.sentTo === 'admin') {
+        setSentMsg(`📬 Factura enviada a tu correo (${student.email} aún no es dominio verificado). Reenvíala al estudiante desde tu bandeja.`);
+      } else {
+        setSentMsg('✅ Factura enviada correctamente.');
+      }
     } catch (err: any) {
       setSendError('Error al enviar: ' + (err?.message || String(err)));
     }
@@ -200,8 +207,8 @@ function InvoiceModal({ student, items, onClose }: { student: any; items: any[];
             <X className="w-4 h-4" />
           </button>
         </div>
-        {sent && <div className="bg-green-50 border-b border-green-200 px-5 py-2 text-sm text-green-700 font-semibold">✅ Factura enviada a {student.email}</div>}
-        {sendError && <div className="bg-red-50 border-b border-red-200 px-5 py-2 text-sm text-red-600 font-semibold">❌ {sendError}</div>}
+        {sentMsg && <div className="bg-green-50 border-b border-green-200 px-5 py-2.5 text-sm text-green-800 font-medium leading-snug">{sentMsg}</div>}
+        {sendError && <div className="bg-red-50 border-b border-red-200 px-5 py-2.5 text-sm text-red-600 font-medium">❌ {sendError}</div>}
 
         {/* ── PREVIEW DE LA FACTURA ── */}
         <div className="p-6 bg-gray-50">
