@@ -1137,7 +1137,7 @@ export default function AdminStudents() {
                         className="p-1.5 rounded-lg hover:bg-red-50 text-red-400 hover:text-red-600 transition-colors">
                         <Trash2 className="w-4 h-4" />
                       </button>
-                      <button onClick={() => setExpandedId(isExpanded ? null : student.id)} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
+                      <button onClick={() => { const next = isExpanded ? null : student.id; setExpandedId(next); if (next) loadPaymentHistory(next); }} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
                         {isExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
                       </button>
                     </div>
@@ -1728,14 +1728,29 @@ export default function AdminStudents() {
                               {/* ════ 9. HISTORIAL DE PAGOS ════ */}
                               {(() => {
                                 const hist = studentPayHistory[student.id] || [];
+                                const sub = student.subscription;
+                                // Items de factura: primero el historial, si está vacío usar la suscripción como fallback
+                                const invoiceItems = hist.filter(i => i.amount_usd > 0).length > 0
+                                  ? hist
+                                  : sub && sub.amount_usd > 0
+                                    ? [{
+                                        id: sub.created_at || 'sub-1',
+                                        event_type: 'payment_approved',
+                                        amount_usd: sub.amount_usd,
+                                        payment_method: sub.payment_method || 'paypal',
+                                        notes: sub.plan_name || 'Plan Mensual',
+                                        created_at: sub.created_at || new Date().toISOString(),
+                                      }]
+                                    : [];
+                                const canInvoice = invoiceItems.length > 0;
                                 return (
                                   <div className="bg-muted/20 border border-border/40 rounded-xl p-4">
                                     <div className="flex items-center gap-2 mb-3">
                                       <History className="w-3.5 h-3.5 text-primary" />
                                       <p className="text-xs font-extrabold text-muted-foreground uppercase tracking-wider flex-1">Historial de pagos</p>
-                                      {hist.filter(i => i.amount_usd > 0).length > 0 && (
+                                      {canInvoice && (
                                         <button
-                                          onClick={() => setInvoiceModal({ student, items: hist })}
+                                          onClick={() => setInvoiceModal({ student, items: invoiceItems })}
                                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-600 text-white text-[11px] font-bold hover:bg-violet-700 transition"
                                         >
                                           <FileText className="w-3 h-3" /> Generar Factura
