@@ -158,14 +158,16 @@ function InvoiceModal({ student, items, onClose }: { student: any; items: any[];
           items: invoiceItemsForFn,
         },
       });
-      if (error) throw new Error(error.message || 'Error desconocido');
-      // Mostrar mensaje según a quién se envió
-      if (data?.sentTo === 'student') {
-        setSentMsg(`✅ Factura enviada al correo del estudiante: ${student.email}`);
+      // La función siempre devuelve 200 — revisamos data.success
+      if (error) throw new Error(error.message || 'Error de conexión');
+      if (data?.success === false) {
+        setSendError(data?.error || 'No se pudo enviar el correo.');
+      } else if (data?.sentTo === 'student') {
+        setSentMsg(`✅ Factura enviada directamente a ${student.email}`);
       } else if (data?.sentTo === 'admin') {
-        setSentMsg(`📬 Factura enviada a tu correo (${student.email} aún no es dominio verificado). Reenvíala al estudiante desde tu bandeja.`);
+        setSentMsg(`📬 Factura enviada a tu correo. Reenvíala a ${student.email} desde tu bandeja de entrada.`);
       } else {
-        setSentMsg('✅ Factura enviada correctamente.');
+        setSentMsg('✅ Factura procesada correctamente.');
       }
     } catch (err: any) {
       setSendError('Error al enviar: ' + (err?.message || String(err)));
