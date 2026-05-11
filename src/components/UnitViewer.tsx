@@ -797,6 +797,7 @@ function detectSubtype(mat) {
 // ─── Material renderer ────────────────────────────────────────────────────────
 function MaterialItem({ mat }) {
   const [playing, setPlaying] = useState(false);
+  const [lightboxUrl, setLightboxUrl] = useState(null);
   const subtype = detectSubtype(mat);
 
   return (
@@ -819,7 +820,33 @@ function MaterialItem({ mat }) {
           <video src={mat.file_url} controls className="w-full rounded-lg max-h-64 bg-black" />
         )}
         {mat.material_type === 'image' && mat.file_url && (
-          <img src={mat.file_url} alt={mat.title} className="w-full rounded-lg max-h-64 object-contain" />
+          <>
+            <img
+              src={mat.file_url}
+              alt={mat.title}
+              onClick={() => setLightboxUrl(mat.file_url)}
+              className="w-full rounded-lg max-h-64 object-contain cursor-zoom-in"
+            />
+            {lightboxUrl && (
+              <div
+                className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+                onClick={() => setLightboxUrl(null)}
+              >
+                <button
+                  onClick={() => setLightboxUrl(null)}
+                  className="absolute top-4 right-4 text-white bg-black/50 hover:bg-black/80 rounded-full w-9 h-9 flex items-center justify-center text-xl font-bold"
+                >
+                  ✕
+                </button>
+                <img
+                  src={lightboxUrl}
+                  alt="Imagen ampliada"
+                  onClick={e => e.stopPropagation()}
+                  className="max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl"
+                />
+              </div>
+            )}
+          </>
         )}
 
         {/* ── PDF: Google Docs viewer (works in Chrome) + direct download ── */}
