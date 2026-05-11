@@ -12,7 +12,7 @@ import {
   Check, X, Mail, Phone, Calendar, Award, Flame,
   ChevronDown, ChevronUp, BookOpen, AlertCircle, KeyRound, RefreshCw,
   Video, Clock, Target, ShieldCheck, ShieldX, Trash2, Lock, Unlock,
-  ToggleLeft, ToggleRight, History, Gift,
+  ToggleLeft, ToggleRight, History, Gift, FileText, Printer, Send,
 } from 'lucide-react';
 
 interface SessionRequestRow {
@@ -75,6 +75,238 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   expired:   { label: 'Expirado', color: 'bg-gray-100 text-gray-700' },
 };
 
+// ─── Helpers para facturas ───────────────────────────────────────────────────
+
+function eventTypeLabel(type: string) {
+  if (type === 'payment_approved') return 'Pago aprobado — Plan Mensual';
+  if (type === 'payment_pending')  return 'Pago en revisión — Plan Mensual';
+  if (type === 'subscription_created') return 'Suscripción creada';
+  if (type === 'cancelled')        return 'Cancelación de suscripción';
+  return type.replace(/_/g, ' ');
+}
+
+function eventStatusLabel(type: string) {
+  if (type === 'payment_approved') return 'Aprobado';
+  if (type === 'payment_pending')  return 'Pendiente';
+  if (type === 'cancelled')        return 'Cancelado';
+  return 'Registrado';
+}
+
+function generateInvoiceHTML({ studentName, studentEmail, studentCity, studentCountry, invoiceNumber, invoiceDate, items }: any) {
+  const total = items.reduce((s: number, i: any) => s + (i.amount || 0), 0);
+  const locationStr = [studentCity, studentCountry].filter(Boolean).join(', ');
+  const rowsHtml = items.map((it: any, i: number) => {
+    const bg = i % 2 === 0 ? '#ffffff' : '#f9f7ff';
+    const sc = it.status === 'Aprobado' ? '#16a34a' : it.status === 'Pendiente' ? '#d97706' : '#6b7280';
+    const mi = it.method === 'PAYPAL' ? '🅿' : it.method === 'PSE' ? '🏦' : it.method === 'MANUAL' ? '💵' : '💳';
+    return `<tr style="background:${bg}"><td style="padding:10px 14px;font-size:13px;color:#374151;border-bottom:1px solid #e5e7eb">${it.date}</td><td style="padding:10px 14px;font-size:13px;color:#374151;border-bottom:1px solid #e5e7eb">${it.description}</td><td style="padding:10px 14px;font-size:13px;color:#374151;border-bottom:1px solid #e5e7eb;text-align:center">${mi} ${it.method}</td><td style="padding:10px 14px;font-size:13px;border-bottom:1px solid #e5e7eb;text-align:center"><span style="background:${sc}20;color:${sc};padding:2px 10px;border-radius:99px;font-size:11px;font-weight:700">${it.status}</span></td><td style="padding:10px 14px;font-size:13px;font-weight:700;color:#7c3aed;border-bottom:1px solid #e5e7eb;text-align:right">$${(it.amount||0).toFixed(2)} USD</td></tr>`;
+  }).join('');
+  return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Factura ${invoiceNumber}</title><style>@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body style="margin:0;padding:32px;background:#f3f4f6;font-family:'Segoe UI',Arial,sans-serif"><table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6"><tr><td align="center"><table width="700" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.10)"><tr><td style="background:linear-gradient(135deg,#7c3aed,#4f46e5);padding:36px 40px"><table width="100%"><tr><td><div style="font-size:28px;font-weight:900;color:#fff;letter-spacing:-0.5px">BLANG</div><div style="font-size:11px;font-weight:500;color:#c4b5fd;letter-spacing:3px;text-transform:uppercase;margin-top:2px">English Academy</div></td><td align="right"><div style="font-size:30px;font-weight:900;color:#fff;letter-spacing:2px">FACTURA</div><div style="font-size:12px;color:#c4b5fd;margin-top:4px">${invoiceNumber}</div><div style="font-size:12px;color:#c4b5fd">${invoiceDate}</div></td></tr></table></td></tr><tr><td style="padding:32px 40px 20px;border-bottom:2px solid #f3f4f6"><table width="100%"><tr><td width="50%" style="vertical-align:top"><div style="font-size:10px;font-weight:700;color:#7c3aed;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">EMITIDO POR</div><div style="font-size:14px;font-weight:700;color:#111827">BLANG English Academy</div><div style="font-size:12px;color:#6b7280;margin-top:4px">blangenglishlearning@blangenglish.com</div><div style="font-size:12px;color:#6b7280">www.blangenglish.com</div></td><td width="50%" style="vertical-align:top;padding-left:24px;border-left:2px solid #f3f4f6"><div style="font-size:10px;font-weight:700;color:#7c3aed;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">FACTURADO A</div><div style="font-size:14px;font-weight:700;color:#111827">${studentName}</div><div style="font-size:12px;color:#6b7280;margin-top:4px">${studentEmail}</div>${locationStr ? `<div style="font-size:12px;color:#6b7280">${locationStr}</div>` : ''}</td></tr></table></td></tr><tr><td style="padding:24px 40px"><table width="100%" style="border:1px solid #e5e7eb;border-radius:12px;overflow:hidden"><thead><tr style="background:#7c3aed"><th style="padding:12px 14px;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:1px;text-align:left">Fecha</th><th style="padding:12px 14px;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:1px;text-align:left">Descripción</th><th style="padding:12px 14px;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:1px;text-align:center">Método</th><th style="padding:12px 14px;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:1px;text-align:center">Estado</th><th style="padding:12px 14px;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:1px;text-align:right">Valor</th></tr></thead><tbody>${rowsHtml}</tbody></table></td></tr><tr><td style="padding:0 40px 28px"><table width="100%"><tr><td></td><td align="right"><table style="border:2px solid #7c3aed;border-radius:12px;overflow:hidden;min-width:220px"><tr style="background:#f9f7ff"><td style="padding:14px 20px;font-size:14px;color:#4b5563;font-weight:600">Total pagado</td><td style="padding:14px 20px;font-size:22px;font-weight:900;color:#7c3aed;text-align:right">$${total.toFixed(2)} USD</td></tr></table></td></tr></table></td></tr><tr><td style="background:#f9f7ff;padding:24px 40px;border-top:2px solid #ede9fe"><table width="100%"><tr><td><div style="font-size:15px;font-weight:700;color:#7c3aed">¡Gracias por tu confianza! 🎓</div><div style="font-size:12px;color:#6b7280;margin-top:6px">Este documento es un comprobante oficial de pago de BLANG English Academy.</div><div style="font-size:12px;color:#6b7280;margin-top:2px">Consultas: <a href="mailto:blangenglishlearning@blangenglish.com" style="color:#7c3aed">blangenglishlearning@blangenglish.com</a></div></td><td align="right" style="vertical-align:bottom"><div style="font-size:22px;font-weight:900;color:#7c3aed;opacity:.25;letter-spacing:-0.5px">BLANG</div></td></tr></table></td></tr></table></td></tr></table></body></html>`;
+}
+
+// ─── InvoiceModal ─────────────────────────────────────────────────────────────
+function InvoiceModal({ student, items, onClose }: { student: any; items: any[]; onClose: () => void }) {
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [sendError, setSendError] = useState('');
+
+  const payItems = items.filter(i => i.amount_usd > 0);
+  const total = payItems.reduce((s, i) => s + (i.amount_usd || 0), 0);
+
+  const now = new Date();
+  const invoiceNumber = `INV-${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}-${(student.id||'').slice(0,5).toUpperCase()}`;
+  const invoiceDate = now.toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' });
+
+  const invoiceItemsForFn = payItems.map(it => ({
+    date: new Date(it.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' }),
+    description: eventTypeLabel(it.event_type),
+    method: (it.payment_method || '—').toUpperCase(),
+    amount: it.amount_usd || 0,
+    status: eventStatusLabel(it.event_type),
+  }));
+
+  const handleDownload = () => {
+    const html = generateInvoiceHTML({
+      studentName: student.full_name || 'Estudiante',
+      studentEmail: student.email || '',
+      studentCity: student.city || '',
+      studentCountry: student.country || '',
+      invoiceNumber,
+      invoiceDate,
+      items: invoiceItemsForFn,
+    });
+    const w = window.open('', '_blank', 'width=900,height=1000');
+    if (!w) { alert('Permite ventanas emergentes para descargar el PDF'); return; }
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+    setTimeout(() => { w.focus(); w.print(); }, 600);
+  };
+
+  const handleSendEmail = async () => {
+    if (!student.email) { setSendError('Este estudiante no tiene correo registrado.'); return; }
+    setSending(true); setSendError(''); setSent(false);
+    try {
+      const { error } = await supabase.functions.invoke('send-invoice-email', {
+        body: {
+          studentName: student.full_name || 'Estudiante',
+          studentEmail: student.email,
+          studentCity: student.city || '',
+          studentCountry: student.country || '',
+          invoiceNumber,
+          invoiceDate,
+          items: invoiceItemsForFn,
+        },
+      });
+      if (error) throw new Error(error.message || 'Error desconocido');
+      setSent(true);
+    } catch (err: any) {
+      setSendError('Error al enviar: ' + (err?.message || String(err)));
+    }
+    setSending(false);
+  };
+
+  const locationStr = [student.city, student.country].filter(Boolean).join(', ');
+
+  return (
+    <div
+      className="fixed inset-0 z-[400] bg-black/60 backdrop-blur-sm flex items-start justify-center overflow-y-auto py-8 px-4"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Barra de acciones */}
+        <div className="flex items-center gap-2 px-5 py-3 bg-gray-50 border-b border-gray-200">
+          <span className="flex items-center gap-1.5 font-bold text-sm text-gray-700 flex-1">
+            <FileText className="w-4 h-4 text-violet-600" /> Factura · {invoiceNumber}
+          </span>
+          <button
+            onClick={handleDownload}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-600 text-white text-xs font-bold hover:bg-violet-700 transition"
+          >
+            <Printer className="w-3.5 h-3.5" /> Descargar PDF
+          </button>
+          <button
+            onClick={handleSendEmail}
+            disabled={sending}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 transition disabled:opacity-50"
+          >
+            <Send className="w-3.5 h-3.5" />
+            {sending ? 'Enviando...' : 'Enviar al correo'}
+          </button>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-200 transition text-gray-500">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        {sent && <div className="bg-green-50 border-b border-green-200 px-5 py-2 text-sm text-green-700 font-semibold">✅ Factura enviada a {student.email}</div>}
+        {sendError && <div className="bg-red-50 border-b border-red-200 px-5 py-2 text-sm text-red-600 font-semibold">❌ {sendError}</div>}
+
+        {/* ── PREVIEW DE LA FACTURA ── */}
+        <div className="p-6 bg-gray-50">
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+
+            {/* Header morado */}
+            <div style={{ background: 'linear-gradient(135deg,#7c3aed,#4f46e5)' }} className="px-8 py-7">
+              <div className="flex items-end justify-between">
+                <div>
+                  <p className="text-3xl font-black text-white tracking-tight">BLANG</p>
+                  <p className="text-xs font-medium text-violet-200 tracking-[3px] uppercase mt-0.5">English Academy</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-2xl font-black text-white tracking-widest">FACTURA</p>
+                  <p className="text-xs text-violet-200 mt-1">{invoiceNumber}</p>
+                  <p className="text-xs text-violet-200">{invoiceDate}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* From / To */}
+            <div className="px-8 py-5 border-b-2 border-gray-100 grid grid-cols-2 gap-6">
+              <div>
+                <p className="text-[10px] font-bold text-violet-600 tracking-[2px] uppercase mb-2">Emitido por</p>
+                <p className="text-sm font-bold text-gray-900">BLANG English Academy</p>
+                <p className="text-xs text-gray-500 mt-1">blangenglishlearning@blangenglish.com</p>
+                <p className="text-xs text-gray-500">www.blangenglish.com</p>
+              </div>
+              <div className="pl-6 border-l-2 border-gray-100">
+                <p className="text-[10px] font-bold text-violet-600 tracking-[2px] uppercase mb-2">Facturado a</p>
+                <p className="text-sm font-bold text-gray-900">{student.full_name || '—'}</p>
+                <p className="text-xs text-gray-500 mt-1">{student.email || '—'}</p>
+                {locationStr && <p className="text-xs text-gray-500">{locationStr}</p>}
+              </div>
+            </div>
+
+            {/* Tabla de pagos */}
+            <div className="px-8 py-5">
+              <table className="w-full border border-gray-200 rounded-xl overflow-hidden text-sm">
+                <thead>
+                  <tr style={{ background: '#7c3aed' }}>
+                    <th className="px-4 py-3 text-left text-[11px] font-bold text-white uppercase tracking-wide">Fecha</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-bold text-white uppercase tracking-wide">Descripción</th>
+                    <th className="px-4 py-3 text-center text-[11px] font-bold text-white uppercase tracking-wide">Método</th>
+                    <th className="px-4 py-3 text-center text-[11px] font-bold text-white uppercase tracking-wide">Estado</th>
+                    <th className="px-4 py-3 text-right text-[11px] font-bold text-white uppercase tracking-wide">Valor</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {payItems.length === 0 ? (
+                    <tr><td colSpan={5} className="py-6 text-center text-gray-400 text-xs">Sin pagos registrados</td></tr>
+                  ) : payItems.map((it, idx) => {
+                    const sc = it.event_type === 'payment_approved' ? 'text-green-700 bg-green-100' : it.event_type === 'payment_pending' ? 'text-amber-700 bg-amber-100' : 'text-gray-600 bg-gray-100';
+                    const mi = (it.payment_method||'').toUpperCase() === 'PAYPAL' ? '🅿' : (it.payment_method||'').toUpperCase() === 'PSE' ? '🏦' : (it.payment_method||'').toUpperCase() === 'MANUAL' ? '💵' : '💳';
+                    return (
+                      <tr key={it.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-violet-50/40'}>
+                        <td className="px-4 py-2.5 text-xs text-gray-700 border-b border-gray-100">
+                          {new Date(it.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </td>
+                        <td className="px-4 py-2.5 text-xs text-gray-700 border-b border-gray-100">
+                          {eventTypeLabel(it.event_type)}
+                        </td>
+                        <td className="px-4 py-2.5 text-xs text-gray-700 border-b border-gray-100 text-center">
+                          {mi} {(it.payment_method || '—').toUpperCase()}
+                        </td>
+                        <td className="px-4 py-2.5 border-b border-gray-100 text-center">
+                          <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${sc}`}>{eventStatusLabel(it.event_type)}</span>
+                        </td>
+                        <td className="px-4 py-2.5 text-xs font-bold text-violet-700 border-b border-gray-100 text-right">
+                          {it.amount_usd > 0 ? `$${it.amount_usd.toFixed(2)} USD` : '—'}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Total */}
+            <div className="px-8 pb-5 flex justify-end">
+              <div className="border-2 border-violet-600 rounded-xl overflow-hidden">
+                <div className="flex items-center gap-8 px-6 py-3 bg-violet-50">
+                  <span className="text-sm font-semibold text-gray-600">Total pagado</span>
+                  <span className="text-2xl font-black text-violet-700">${total.toFixed(2)} USD</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-8 py-5 bg-violet-50 border-t-2 border-violet-100 flex items-end justify-between">
+              <div>
+                <p className="text-sm font-bold text-violet-700">¡Gracias por tu confianza! 🎓</p>
+                <p className="text-xs text-gray-500 mt-1">Comprobante oficial de pago — BLANG English Academy</p>
+                <p className="text-xs text-gray-500">Consultas: blangenglishlearning@blangenglish.com</p>
+              </div>
+              <p className="text-2xl font-black text-violet-300 tracking-tight select-none">BLANG</p>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminStudents() {
   const [students, setStudents] = useState<StudentRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -91,6 +323,7 @@ export default function AdminStudents() {
   const [activeTab, setActiveTab] = useState<Record<string, 'info' | 'progreso' | 'pagos' | 'cuenta' | 'modulos'>>({});
   const [detailedProgress, setDetailedProgress] = useState<Record<string, any[]>>({});
   const [loadingProgress, setLoadingProgress] = useState<string | null>(null);
+  const [invoiceModal, setInvoiceModal] = useState<{ student: any; items: any[] } | null>(null);
 
   const loadDetailedProgress = async (studentId: string) => {
     if (detailedProgress[studentId]) return;
@@ -1499,7 +1732,15 @@ export default function AdminStudents() {
                                   <div className="bg-muted/20 border border-border/40 rounded-xl p-4">
                                     <div className="flex items-center gap-2 mb-3">
                                       <History className="w-3.5 h-3.5 text-primary" />
-                                      <p className="text-xs font-extrabold text-muted-foreground uppercase tracking-wider">Historial de pagos</p>
+                                      <p className="text-xs font-extrabold text-muted-foreground uppercase tracking-wider flex-1">Historial de pagos</p>
+                                      {hist.filter(i => i.amount_usd > 0).length > 0 && (
+                                        <button
+                                          onClick={() => setInvoiceModal({ student, items: hist })}
+                                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-600 text-white text-[11px] font-bold hover:bg-violet-700 transition"
+                                        >
+                                          <FileText className="w-3 h-3" /> Generar Factura
+                                        </button>
+                                      )}
                                     </div>
                                     {hist.length === 0 ? (
                                       <p className="text-xs text-muted-foreground text-center py-3">Sin historial disponible</p>
@@ -1522,9 +1763,20 @@ export default function AdminStudents() {
                                                 </p>
                                               </div>
                                             </div>
-                                            {item.amount_usd > 0 && (
-                                              <span className="text-xs font-bold text-green-600">${item.amount_usd} USD</span>
-                                            )}
+                                            <div className="flex items-center gap-2">
+                                              {item.amount_usd > 0 && (
+                                                <span className="text-xs font-bold text-green-600">${item.amount_usd} USD</span>
+                                              )}
+                                              {item.amount_usd > 0 && (
+                                                <button
+                                                  title="Ver factura de este pago"
+                                                  onClick={() => setInvoiceModal({ student, items: [item] })}
+                                                  className="p-1 rounded-md hover:bg-violet-100 text-violet-500 hover:text-violet-700 transition"
+                                                >
+                                                  <FileText className="w-3.5 h-3.5" />
+                                                </button>
+                                              )}
+                                            </div>
                                           </div>
                                         ))}
                                       </div>
@@ -1576,6 +1828,15 @@ export default function AdminStudents() {
           </div>
         )}
         </>)}
+
+        {/* ── INVOICE MODAL ── */}
+        {invoiceModal && (
+          <InvoiceModal
+            student={invoiceModal.student}
+            items={invoiceModal.items}
+            onClose={() => setInvoiceModal(null)}
+          />
+        )}
 
         {/* ── TOAST MENSAJE ── */}
         {actionMsg && (
