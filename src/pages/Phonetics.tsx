@@ -29,7 +29,7 @@ function speakDemo(text) {
   window.speechSynthesis.cancel();
   const utt = new SpeechSynthesisUtterance(text);
   utt.lang = 'en-US';
-  utt.rate = 0.75;
+  utt.rate = 0.65;
   utt.pitch = 1;
   const eng = getEnglishVoice();
   if (eng) utt.voice = eng;
@@ -47,6 +47,7 @@ const SOUNDS = [
     name: 'Long EE',
     nameEs: 'I larga',
     demos: [{ label: '[iː]', text: 'ee' }],
+    videoId: 'RZmGzSb-6OM',
     category: 'vowel',
     color: 'from-violet-500 to-purple-600',
     light: 'bg-violet-50 border-violet-200',
@@ -112,6 +113,7 @@ const SOUNDS = [
     display: '[ɪ]',
     name: 'Short I',
     demos: [{ label: '[ɪ]', text: 'ih' }],
+    videoId: 'TNFKG0yvDx4',
     nameEs: 'I corta',
     category: 'vowel',
     color: 'from-blue-500 to-indigo-600',
@@ -178,6 +180,7 @@ const SOUNDS = [
     name: 'Long A',
     nameEs: 'A larga (diptongo)',
     demos: [{ label: '[eɪ]', text: 'ay' }],
+    videoId: '5FMPlqlFt9g',
     category: 'vowel',
     color: 'from-amber-500 to-orange-500',
     light: 'bg-amber-50 border-amber-200',
@@ -225,6 +228,7 @@ const SOUNDS = [
     name: 'Short E',
     nameEs: 'E corta',
     demos: [{ label: '[ε]', text: 'eh' }],
+    videoId: 'hLN1cdSTDo8',
     category: 'vowel',
     color: 'from-green-500 to-emerald-600',
     light: 'bg-green-50 border-green-200',
@@ -272,6 +276,7 @@ const SOUNDS = [
     name: 'Short A',
     nameEs: 'A abierta',
     demos: [{ label: '[æ]', text: 'ah' }],
+    videoId: 'qVhaIHk88a8',
     category: 'vowel',
     color: 'from-pink-500 to-rose-600',
     light: 'bg-pink-50 border-pink-200',
@@ -316,6 +321,7 @@ const SOUNDS = [
     name: 'Long AH',
     nameEs: 'A profunda',
     demos: [{ label: '[ɑː]', text: 'ah' }],
+    videoId: 'uDHMuMQdBNw',
     category: 'vowel',
     color: 'from-teal-500 to-cyan-600',
     light: 'bg-teal-50 border-teal-200',
@@ -363,6 +369,7 @@ const SOUNDS = [
     name: 'Short U',
     nameEs: 'U corta (schwa tónica)',
     demos: [{ label: '[ʌ]', text: 'uh' }],
+    videoId: 'PZwKFFp7V50',
     category: 'vowel',
     color: 'from-orange-500 to-amber-600',
     light: 'bg-orange-50 border-orange-200',
@@ -391,6 +398,7 @@ const SOUNDS = [
     name: 'Schwa',
     nameEs: 'Schwa (vocal reducida)',
     demos: [{ label: '[ə]', text: 'uh' }],
+    videoId: 'wg0P0oYkniE',
     category: 'vowel',
     color: 'from-slate-500 to-gray-600',
     light: 'bg-slate-50 border-slate-200',
@@ -420,6 +428,7 @@ const SOUNDS = [
     name: 'Long O',
     nameEs: 'O larga (diptongo)',
     demos: [{ label: '[oʊ]', text: 'oh' }],
+    videoId: 'r1BRCG0P9C8',
     category: 'vowel',
     color: 'from-indigo-500 to-blue-600',
     light: 'bg-indigo-50 border-indigo-200',
@@ -449,6 +458,7 @@ const SOUNDS = [
     name: 'Long OO',
     nameEs: 'U larga',
     demos: [{ label: '[uː]', text: 'oo' }],
+    videoId: 'mnKEGLuEzV4',
     category: 'vowel',
     color: 'from-purple-500 to-violet-600',
     light: 'bg-purple-50 border-purple-200',
@@ -478,7 +488,8 @@ const SOUNDS = [
     display: '[t] [d]',
     name: 'T and D',
     nameEs: 'T y D',
-    demos: [{ label: '[t]', text: 'tah' }, { label: '[d]', text: 'dah' }],
+    demos: [{ label: '[t]', text: 'tea' }, { label: '[d]', text: 'do' }],
+    videoId: 'qA5ZYC89oso',
     category: 'consonant',
     color: 'from-sky-500 to-blue-600',
     light: 'bg-sky-50 border-sky-200',
@@ -537,7 +548,8 @@ const SOUNDS = [
     display: '[p] [b] [k] [g]',
     name: 'Stop Consonants',
     nameEs: 'Oclusivas sordas y sonoras',
-    demos: [{ label: '[p]', text: 'pah' }, { label: '[b]', text: 'bah' }, { label: '[k]', text: 'kah' }, { label: '[g]', text: 'gah' }],
+    demos: [{ label: '[p]', text: 'pay' }, { label: '[b]', text: 'bay' }, { label: '[k]', text: 'key' }, { label: '[g]', text: 'go' }],
+    videoId: 'AZRREr7DqqM',
     category: 'consonant',
     color: 'from-orange-500 to-amber-600',
     light: 'bg-orange-50 border-orange-200',
@@ -566,7 +578,8 @@ const SOUNDS = [
     display: '[s] [z]',
     name: 'S and Z',
     nameEs: 'S y Z',
-    demos: [{ label: '[s]', text: 'sah' }, { label: '[z]', text: 'zah' }],
+    demos: [{ label: '[s]', text: 'sea' }, { label: '[z]', text: 'zoo' }],
+    videoId: 'QtH3vRXmvvo',
     category: 'consonant',
     color: 'from-green-500 to-emerald-600',
     light: 'bg-green-50 border-green-200',
@@ -623,7 +636,8 @@ const SOUNDS = [
     display: '[f] [v] [h]',
     name: 'F, V and H',
     nameEs: 'F, V y H',
-    demos: [{ label: '[f]', text: 'fah' }, { label: '[v]', text: 'vah' }, { label: '[h]', text: 'hah' }],
+    demos: [{ label: '[f]', text: 'fee' }, { label: '[v]', text: 'view' }, { label: '[h]', text: 'hay' }],
+    videoId: 'vE12RFyH-hY',
     category: 'consonant',
     color: 'from-fuchsia-500 to-pink-600',
     light: 'bg-fuchsia-50 border-fuchsia-200',
@@ -654,6 +668,7 @@ const SOUNDS = [
     name: 'Voiceless TH',
     nameEs: 'TH sorda',
     demos: [{ label: '[θ]', text: 'think' }],
+    videoId: 'b4Aj3k65HSo',
     category: 'consonant',
     color: 'from-rose-500 to-pink-600',
     light: 'bg-rose-50 border-rose-200',
@@ -680,6 +695,7 @@ const SOUNDS = [
     name: 'Voiced TH',
     nameEs: 'TH sonora',
     demos: [{ label: '[ð]', text: 'the' }],
+    videoId: 'tu1t3Fn5Lw8',
     category: 'consonant',
     color: 'from-red-500 to-rose-600',
     light: 'bg-red-50 border-red-200',
@@ -705,7 +721,8 @@ const SOUNDS = [
     display: '[ʃ]',
     name: 'SH sound',
     nameEs: 'CH inglesa (SH)',
-    demos: [{ label: '[ʃ]', text: 'sh' }],
+    demos: [{ label: '[ʃ]', text: 'she' }],
+    videoId: 'NF92RdZC6wE',
     category: 'consonant',
     color: 'from-emerald-500 to-teal-600',
     light: 'bg-emerald-50 border-emerald-200',
@@ -733,7 +750,8 @@ const SOUNDS = [
     display: '[r]',
     name: 'English R',
     nameEs: 'R inglesa',
-    demos: [{ label: '[r]', text: 'rah' }],
+    demos: [{ label: '[r]', text: 'ray' }],
+    videoId: 'Lxuo14hjP_8',
     category: 'consonant',
     color: 'from-cyan-500 to-blue-600',
     light: 'bg-cyan-50 border-cyan-200',
@@ -762,6 +780,7 @@ const SOUNDS = [
     name: 'ZH sound',
     nameEs: 'S francesa (ZH)',
     demos: [{ label: '[ʒ]', text: 'measure' }],
+    videoId: 'bTxeAiBF61I',
     category: 'consonant',
     color: 'from-indigo-500 to-violet-600',
     light: 'bg-indigo-50 border-indigo-200',
@@ -790,6 +809,7 @@ const SOUNDS = [
     name: 'CH and J sounds',
     nameEs: 'CH y DY inglesas',
     demos: [{ label: '[ʧ]', text: 'church' }, { label: '[ʤ]', text: 'judge' }],
+    videoId: 'PykxZ5kkrjs',
     category: 'consonant',
     color: 'from-orange-500 to-amber-600',
     light: 'bg-orange-50 border-orange-200',
@@ -819,7 +839,8 @@ const SOUNDS = [
     display: '[m] / [n] / [ŋ]',
     name: 'Nasal sounds',
     nameEs: 'Sonidos nasales',
-    demos: [{ label: '[m]', text: 'mah' }, { label: '[n]', text: 'nah' }, { label: '[ŋ]', text: 'sing' }],
+    demos: [{ label: '[m]', text: 'me' }, { label: '[n]', text: 'no' }, { label: '[ŋ]', text: 'sing' }],
+    videoId: '0Te4Us8Tsv8',
     category: 'consonant',
     color: 'from-teal-500 to-emerald-600',
     light: 'bg-teal-50 border-teal-200',
@@ -848,7 +869,8 @@ const SOUNDS = [
     display: '[l]',
     name: 'English L',
     nameEs: 'L inglesa (clara y oscura)',
-    demos: [{ label: '[l]', text: 'lah' }],
+    demos: [{ label: '[l]', text: 'lay' }],
+    videoId: 'CwWLgmMk0Z0',
     category: 'consonant',
     color: 'from-sky-500 to-cyan-600',
     light: 'bg-sky-50 border-sky-200',
@@ -876,7 +898,8 @@ const SOUNDS = [
     display: '[j] / [w]',
     name: 'Glides: Y and W',
     nameEs: 'Semivocales Y y W',
-    demos: [{ label: '[j]', text: 'yah' }, { label: '[w]', text: 'wah' }],
+    demos: [{ label: '[j]', text: 'yes' }, { label: '[w]', text: 'way' }],
+    videoId: '_Fi9E6Yw-qg',
     category: 'consonant',
     color: 'from-pink-500 to-rose-600',
     light: 'bg-pink-50 border-pink-200',
@@ -1099,6 +1122,25 @@ export default function Phonetics({ isLoggedIn, onOpenAuth, onLogout, userName }
                     ))}
                   </div>
                 </div>
+
+                {/* ── BBC Video ── */}
+                {sound.videoId && (
+                  <div className="rounded-2xl overflow-hidden border border-border/50 shadow-sm">
+                    <div className="bg-muted/30 px-4 py-2 flex items-center gap-2 border-b border-border/30">
+                      <span className="text-lg">📺</span>
+                      <span className="text-sm font-semibold text-muted-foreground">Video BBC — Pronunciación</span>
+                    </div>
+                    <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+                      <iframe
+                        src={`https://www.youtube.com/embed/${sound.videoId}?rel=0&modestbranding=1`}
+                        title={`BBC pronunciation: ${sound.name}`}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        className="absolute inset-0 w-full h-full"
+                      />
+                    </div>
+                  </div>
+                )}
 
                 {/* ── Examples ── */}
                 <div className="bg-white rounded-2xl border border-border/50 shadow-sm p-5">
