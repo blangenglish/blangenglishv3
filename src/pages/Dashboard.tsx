@@ -856,6 +856,7 @@ useEffect(() => {
   // ── refreshProfile: carga perfil + suscripción + historial usando cliente directo ──
   const refreshProfile = async (userId: string) => {
     setProfileLoading(true);
+    try {
     const [profRes, subRes, histRes, modRes] = await Promise.all([
       supabase
         .from('student_profiles')
@@ -947,7 +948,11 @@ useEffect(() => {
       .filter(Boolean);
     setGrantedModuleIds(grantedIds);
     setRevokedModuleIds(revokedIds);
-    setProfileLoading(false);
+    } catch (err) {
+      console.error('[refreshProfile] error inesperado:', err);
+    } finally {
+      setProfileLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -994,7 +999,7 @@ useEffect(() => {
           }
         });
     });
-  }, [isLoggedIn, userName]);
+  }, [isLoggedIn]); // userName excluido: cambia después del primer load y dispararía doble carga
 
   // Realtime + polling para detectar cambios del admin (onboarding_step, plan, acceso módulos)
   useEffect(() => {
