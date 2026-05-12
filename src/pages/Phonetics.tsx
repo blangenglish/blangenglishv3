@@ -86,6 +86,24 @@ const SOUNDS = [
         correct: 1,
         explanation: '"King" tiene el sonido [ɪ] corto, no [iː]. "Beach" y "people" sí tienen [iː].',
       },
+      {
+        id: 'i-long-4',
+        type: 'listen',
+        question: 'Escucha la palabra y selecciona lo que oyes:',
+        audio: 'sheep',
+        options: ['ship', 'sheep', 'shape', 'shop'],
+        correct: 1,
+        explanation: 'Se escucha "sheep" /ʃiːp/ con [iː] largo. "Ship" tendría [ɪ] corto.',
+      },
+      {
+        id: 'i-long-5',
+        type: 'listen',
+        question: 'Escucha y elige la palabra correcta:',
+        audio: 'beach',
+        options: ['bitch', 'beach', 'batch', 'botch'],
+        correct: 1,
+        explanation: '"Beach" /biːʧ/ tiene [iː]. Nota la diferencia con palabras que tienen otras vocales.',
+      },
     ],
   },
   {
@@ -132,6 +150,24 @@ const SOUNDS = [
         options: ['1', '2', '3'],
         correct: 2,
         explanation: 'Los tres: "this" /ðɪs/, "is" /ɪz/, "it" /ɪt/ — todos tienen [ɪ].',
+      },
+      {
+        id: 'i-short-4',
+        type: 'listen',
+        question: 'Escucha la palabra y selecciona lo que oyes:',
+        audio: 'ship',
+        options: ['sheep', 'shop', 'ship', 'shape'],
+        correct: 2,
+        explanation: 'Se escucha "ship" /ʃɪp/ con [ɪ] corto. "Sheep" tendría [iː] largo.',
+      },
+      {
+        id: 'i-short-5',
+        type: 'listen',
+        question: 'Escucha y elige la palabra correcta:',
+        audio: 'live',
+        options: ['leave', 'love', 'live', 'lave'],
+        correct: 2,
+        explanation: '"Live" (verbo) /lɪv/ tiene [ɪ]. "Leave" /liːv/ tiene [iː] largo.',
       },
     ],
   },
@@ -463,6 +499,8 @@ const SOUNDS = [
       { id: 't-d-1', question: 'En inglés americano, "better" y "butter" suenan casi igual porque la [t] entre vocales se pronuncia como…', options: ['[t] fuerte', '[d] suave', '[r]'], correct: 1, explanation: 'La [t] entre vocales en inglés americano se convierte en un "flap" que suena como [d]: better /ˈbɛdər/.' },
       { id: 't-d-2', question: '¿Cuál palabra tiene [t] con aspiración al inicio?', options: ['stop', 'top', 'step'], correct: 1, explanation: '"Top" /tʰɒp/ tiene [t] aspirada al inicio de sílaba. En "stop" no hay aspiración.' },
       { id: 't-d-3', question: '¿Cuál par son pares mínimos (solo cambia [t]/[d])?', options: ['tip / dip', 'ten / den', 'Ambas'], correct: 2, explanation: '"tip/dip" y "ten/den" son pares mínimos: solo difieren en [t] vs [d].' },
+      { id: 't-d-4', type: 'listen', question: 'Escucha y selecciona la palabra que oyes:', audio: 'tip', options: ['dip', 'tip', 'tap', 'top'], correct: 1, explanation: 'Se escucha "tip" /tɪp/ con [t] sorda. "Dip" tendría [d] sonora.' },
+      { id: 't-d-5', type: 'listen', question: 'Escucha y selecciona la palabra que oyes:', audio: 'day', options: ['say', 'bay', 'day', 'ray'], correct: 2, explanation: 'Se escucha "day" /deɪ/ que empieza con [d] sonora.' },
     ],
   },
   {
@@ -605,6 +643,8 @@ const SOUNDS = [
       { id: 'f-v-h-1', question: '¿Cómo se produce la [v] inglesa?', options: ['Labios juntos (como b/v española)', 'Dientes superiores en labio inferior', 'Igual a la f pero más fuerte'], correct: 1, explanation: 'La [v] es labiodental: los dientes superiores tocan ligeramente el labio inferior, con vibración.' },
       { id: 'f-v-h-2', question: '¿La [h] inglesa es…?', options: ['Muda siempre', 'Como la j española', 'Una aspiración suave'], correct: 2, explanation: 'La [h] inglesa es una suave aspiración de aire — mucho más suave que la "j" española.' },
       { id: 'f-v-h-3', question: '"Phone" tiene el sonido [f]. ¿Cómo se escribe?', options: ['f', 'ph', 'Cualquiera de las dos'], correct: 1, explanation: '"Phone" usa "ph" para representar [f]: /foʊn/.' },
+      { id: 'f-v-h-4', type: 'listen', question: 'Escucha y selecciona la palabra que oyes:', audio: 'fan', options: ['van', 'ban', 'fan', 'pan'], correct: 2, explanation: 'Se escucha "fan" /fæn/ con [f]. "Van" empezaría con [v] sonora.' },
+      { id: 'f-v-h-5', type: 'listen', question: 'Escucha y selecciona la palabra que oyes:', audio: 'vine', options: ['fine', 'wine', 'vine', 'mine'], correct: 2, explanation: 'Se escucha "vine" /vaɪn/ con [v] sonora (dientes en labio + vibración).' },
     ],
   },
   {
@@ -1099,27 +1139,15 @@ export default function Phonetics({ isLoggedIn, onOpenAuth, onLogout, userName }
                   <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-3">
                     📋 Patrones ortográficos
                   </h3>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-border/50">
-                          <th className="text-left py-2 pr-4 font-semibold text-muted-foreground w-20">Escritura</th>
-                          <th className="text-left py-2 font-semibold text-muted-foreground">Ejemplos</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border/30">
-                        {sound.patterns.map((p, i) => (
-                          <tr key={i}>
-                            <td className="py-2 pr-4">
-                              <code className={`px-2 py-0.5 rounded-md font-bold text-sm bg-gradient-to-r ${sound.color} text-white`}>
-                                {p.spelling}
-                              </code>
-                            </td>
-                            <td className="py-2 text-foreground">{p.examples}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  <div className="space-y-2">
+                    {sound.patterns.map((p, i) => (
+                      <div key={i} className="flex items-start gap-3 py-2 border-b border-border/30 last:border-0">
+                        <span className={`shrink-0 inline-block px-2.5 py-1 rounded-lg font-bold text-sm bg-gradient-to-r ${sound.color} text-white whitespace-nowrap`}>
+                          {p.spelling}
+                        </span>
+                        <span className="text-sm text-foreground pt-0.5 leading-relaxed">{p.examples}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
@@ -1139,6 +1167,7 @@ export default function Phonetics({ isLoggedIn, onOpenAuth, onLogout, userName }
                     const submitted = exerciseSubmitted[ex.id];
                     const selected = exerciseAnswers[ex.id];
                     const isCorrect = submitted && selected === ex.correct;
+                    const isListen = ex.type === 'listen';
 
                     return (
                       <div key={ex.id} className="bg-white rounded-2xl border border-border/50 shadow-sm p-5">
@@ -1150,7 +1179,18 @@ export default function Phonetics({ isLoggedIn, onOpenAuth, onLogout, userName }
                           }`}>
                             {idx + 1}
                           </span>
-                          <p className="font-medium text-sm leading-relaxed">{ex.question}</p>
+                          <div className="flex-1">
+                            <p className="font-medium text-sm leading-relaxed">{ex.question}</p>
+                            {isListen && ex.audio && (
+                              <button
+                                onClick={() => speak(ex.audio)}
+                                className={`mt-2 flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r ${sound.color} text-white text-sm font-semibold hover:opacity-90 transition-all hover:scale-105`}
+                              >
+                                <Volume2 className="w-4 h-4" />
+                                Escuchar
+                              </button>
+                            )}
+                          </div>
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
