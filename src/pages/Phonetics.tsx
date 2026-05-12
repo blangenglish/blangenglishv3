@@ -7,7 +7,18 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Layout } from '@/components/Layout';
 import { ROUTE_PATHS } from '@/lib/index';
-import { toast } from 'sonner';
+// Web Speech API — pronuncia palabras en inglés con la voz del navegador
+function speak(text) {
+  if (!('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.lang = 'en-US';
+  utt.rate = 0.82;
+  const voices = window.speechSynthesis.getVoices();
+  const eng = voices.find(v => v.lang.startsWith('en-US')) || voices.find(v => v.lang.startsWith('en'));
+  if (eng) utt.voice = eng;
+  window.speechSynthesis.speak(utt);
+}
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 
@@ -398,7 +409,172 @@ const SOUNDS = [
       { id: 'u-long-3', question: '¿Cuál NO tiene [uː]?', options: ['blue', 'clue', 'club'], correct: 2, explanation: '"Club" /klʌb/ tiene [ʌ], no [uː].' },
     ],
   },
-  // ── CONSONANTES PLACEHOLDER ───────────────────────────────────────────────
+  // ── CONSONANTES ──────────────────────────────────────────────────────────
+  {
+    id: 't-d',
+    symbol: 't / d',
+    display: '[t] [d]',
+    name: 'T and D',
+    nameEs: 'T y D',
+    category: 'consonant',
+    color: 'from-sky-500 to-blue-600',
+    light: 'bg-sky-50 border-sky-200',
+    examples: [
+      { word: 'ten', highlight: 't', translation: 'diez' },
+      { word: 'time', highlight: 't', translation: 'tiempo' },
+      { word: 'day', highlight: 'd', translation: 'día' },
+      { word: 'door', highlight: 'd', translation: 'puerta' },
+    ],
+    spanishNote: 'La [t] inglesa lleva un pequeño soplo de aire (aspiración) al inicio de sílaba. La [d] inglesa es más suave que en español. En posición media entre vocales, la [t] americana suena casi como una [d] rápida (better → "bedder").',
+    patterns: [
+      { spelling: 't', examples: 'ten, time, stop, cat, better' },
+      { spelling: 'tt', examples: 'butter, letter, little, bottle' },
+      { spelling: 'd', examples: 'day, door, hand, bad, word' },
+      { spelling: 'dd', examples: 'add, odd, middle, wedding' },
+    ],
+    exercises: [
+      { id: 't-d-1', question: 'En inglés americano, "better" y "butter" suenan casi igual porque la [t] entre vocales se pronuncia como…', options: ['[t] fuerte', '[d] suave', '[r]'], correct: 1, explanation: 'La [t] entre vocales en inglés americano se convierte en un "flap" que suena como [d]: better /ˈbɛdər/.' },
+      { id: 't-d-2', question: '¿Cuál palabra tiene [t] con aspiración al inicio?', options: ['stop', 'top', 'step'], correct: 1, explanation: '"Top" /tʰɒp/ tiene [t] aspirada al inicio de sílaba. En "stop" no hay aspiración.' },
+      { id: 't-d-3', question: '¿Cuál par son pares mínimos (solo cambia [t]/[d])?', options: ['tip / dip', 'ten / den', 'Ambas'], correct: 2, explanation: '"tip/dip" y "ten/den" son pares mínimos: solo difieren en [t] vs [d].' },
+    ],
+  },
+  {
+    id: 'ed-ending',
+    symbol: '-ed',
+    display: '[-ed]',
+    name: 'Past tense -ed',
+    nameEs: 'Pronunciación del -ed',
+    category: 'consonant',
+    color: 'from-violet-500 to-purple-600',
+    light: 'bg-violet-50 border-violet-200',
+    examples: [
+      { word: 'walked', highlight: 'ed', translation: 'caminó → /t/' },
+      { word: 'played', highlight: 'ed', translation: 'jugó → /d/' },
+      { word: 'wanted', highlight: 'ed', translation: 'quiso → /ɪd/' },
+      { word: 'needed', highlight: 'ed', translation: 'necesitó → /ɪd/' },
+    ],
+    spanishNote: 'El -ed del pasado NO siempre se pronuncia "ed". Tiene tres pronunciaciones distintas según el sonido final del verbo base.',
+    patterns: [
+      { spelling: '/t/ — después de sonidos sordos (p,k,f,s,ʃ,ʧ)', examples: 'walked, stopped, laughed, missed, watched' },
+      { spelling: '/d/ — después de sonidos sonoros (b,g,v,z,m,n,l,r + vocales)', examples: 'played, loved, called, rained, opened' },
+      { spelling: '/ɪd/ — después de [t] o [d]', examples: 'wanted, needed, waited, added, started' },
+    ],
+    exercises: [
+      { id: 'ed-1', question: '¿Cómo se pronuncia el -ed en "walked"?', options: ['/ɪd/', '/d/', '/t/'], correct: 2, explanation: '"Walk" termina en [k] sordo → -ed se pronuncia /t/: walked /wɔːkt/.' },
+      { id: 'ed-2', question: '¿Cómo se pronuncia el -ed en "played"?', options: ['/t/', '/d/', '/ɪd/'], correct: 1, explanation: '"Play" termina en vocal → -ed se pronuncia /d/: played /pleɪd/.' },
+      { id: 'ed-3', question: '¿Cómo se pronuncia el -ed en "wanted"?', options: ['/t/', '/ɪd/', '/d/'], correct: 1, explanation: '"Want" termina en [t] → -ed se pronuncia /ɪd/: wanted /ˈwɒntɪd/.' },
+    ],
+  },
+  {
+    id: 'stops',
+    symbol: 'p b k g',
+    display: '[p] [b] [k] [g]',
+    name: 'Stop Consonants',
+    nameEs: 'Oclusivas sordas y sonoras',
+    category: 'consonant',
+    color: 'from-orange-500 to-amber-600',
+    light: 'bg-orange-50 border-orange-200',
+    examples: [
+      { word: 'pen', highlight: 'p', translation: 'bolígrafo' },
+      { word: 'bag', highlight: 'b', translation: 'bolsa' },
+      { word: 'key', highlight: 'k', translation: 'llave' },
+      { word: 'go', highlight: 'g', translation: 'ir' },
+    ],
+    spanishNote: '[p], [k] se aspiran al inicio de sílaba (pequeño soplo de aire). [b] y [g] son más fuertes que en español — nunca se debilitan a sonidos fricativos como en "lobo" o "lago".',
+    patterns: [
+      { spelling: 'p / pp', examples: 'pen, stop, happy, wrap, cup' },
+      { spelling: 'b / bb', examples: 'bag, rob, rabbit, climb' },
+      { spelling: 'k / c / ck / qu', examples: 'key, cat, back, queen' },
+      { spelling: 'g / gg', examples: 'go, big, egg, ghost' },
+    ],
+    exercises: [
+      { id: 'stops-1', question: '¿En qué posición llevan aspiración [p] y [k]?', options: ['Final de sílaba', 'Inicio de sílaba acentuada', 'Entre vocales'], correct: 1, explanation: 'La aspiración ocurre al inicio de sílaba tónica: "pin" /pʰɪn/, "car" /kʰɑːr/.' },
+      { id: 'stops-2', question: '¿Cómo se escribe el sonido [k] en "queen"?', options: ['k', 'c', 'qu'], correct: 2, explanation: 'En "queen", el sonido [k] se escribe "qu": /kwiːn/.' },
+      { id: 'stops-3', question: 'La [b] inglesa en "bag" es…', options: ['Igual a la b española en "lobo"', 'Más fuerte, siempre oclusiva', 'Muda como en francés'], correct: 1, explanation: 'La [b] inglesa siempre es fuerte y oclusiva, nunca fricativa como la española en "lobo".' },
+    ],
+  },
+  {
+    id: 's-z',
+    symbol: 's / z',
+    display: '[s] [z]',
+    name: 'S and Z',
+    nameEs: 'S y Z',
+    category: 'consonant',
+    color: 'from-green-500 to-emerald-600',
+    light: 'bg-green-50 border-green-200',
+    examples: [
+      { word: 'sun', highlight: 's', translation: 'sol' },
+      { word: 'see', highlight: 's', translation: 'ver' },
+      { word: 'zoo', highlight: 'z', translation: 'zoológico' },
+      { word: 'zero', highlight: 'z', translation: 'cero' },
+    ],
+    spanishNote: '[s] es similar a la "s" española. [z] es la versión sonora — vibra. En español no existe [z] como fonema independiente. Muchas palabras con "s" entre vocales tienen [z] en inglés.',
+    patterns: [
+      { spelling: 's', examples: 'sun, see, stop, this, class' },
+      { spelling: 'ss', examples: 'miss, class, boss, grass' },
+      { spelling: 'z', examples: 'zoo, zero, zone, buzz, jazz' },
+      { spelling: 's (sonoro)', examples: 'easy, music, busy, because, his' },
+    ],
+    exercises: [
+      { id: 's-z-1', question: '¿La "s" en "easy" se pronuncia [s] o [z]?', options: ['[s]', '[z]', '[ʃ]'], correct: 1, explanation: '"Easy" /ˈiːzi/ tiene [z] — la "s" entre vocales se hace sonora.' },
+      { id: 's-z-2', question: '¿Cuál de estas palabras tiene [z]?', options: ['miss', 'his', 'this'], correct: 1, explanation: '"His" /hɪz/ termina en [z]. "Miss" y "this" terminan en [s].' },
+      { id: 's-z-3', question: '¿[s] y [z] se diferencian por…?', options: ['Posición de lengua', 'Vibración vocal', 'Forma de labios'], correct: 1, explanation: '[s] es sordo (sin vibración), [z] es sonoro (con vibración de cuerdas).' },
+    ],
+  },
+  {
+    id: 's-ending',
+    symbol: '-s',
+    display: '[-s final]',
+    name: 'Plural & 3rd person -s',
+    nameEs: 'Pronunciación del -s final',
+    category: 'consonant',
+    color: 'from-lime-500 to-green-600',
+    light: 'bg-lime-50 border-lime-200',
+    examples: [
+      { word: 'cats', highlight: 's', translation: 'gatos → /s/' },
+      { word: 'dogs', highlight: 's', translation: 'perros → /z/' },
+      { word: 'buses', highlight: 'es', translation: 'buses → /ɪz/' },
+      { word: 'runs', highlight: 's', translation: 'corre → /z/' },
+    ],
+    spanishNote: 'Como el -ed, el -s final tiene tres pronunciaciones. Depende del sonido final de la palabra base.',
+    patterns: [
+      { spelling: '/s/ — después de sonidos sordos (p,t,k,f,θ)', examples: 'cats, books, stops, laughs, months' },
+      { spelling: '/z/ — después de sonidos sonoros y vocales', examples: 'dogs, runs, plays, comes, girls' },
+      { spelling: '/ɪz/ — después de [s,z,ʃ,ʒ,ʧ,ʤ]', examples: 'buses, roses, watches, pages, dishes' },
+    ],
+    exercises: [
+      { id: 's-end-1', question: '¿Cómo se pronuncia la -s en "books"?', options: ['/z/', '/s/', '/ɪz/'], correct: 1, explanation: '"Book" termina en [k] sordo → -s = /s/: books /bʊks/.' },
+      { id: 's-end-2', question: '¿Cómo se pronuncia la -s en "dogs"?', options: ['/s/', '/ɪz/', '/z/'], correct: 2, explanation: '"Dog" termina en [g] sonoro → -s = /z/: dogs /dɒgz/.' },
+      { id: 's-end-3', question: '¿Por qué "watches" se pronuncia con /ɪz/?', options: ['Por costumbre', 'Porque termina en [ʧ]', 'Porque es irregular'], correct: 1, explanation: '"Watch" termina en [ʧ] → se añade /ɪz/ para separar dos sibilantes: watches /ˈwɒʧɪz/.' },
+    ],
+  },
+  {
+    id: 'f-v-h',
+    symbol: 'f v h',
+    display: '[f] [v] [h]',
+    name: 'F, V and H',
+    nameEs: 'F, V y H',
+    category: 'consonant',
+    color: 'from-fuchsia-500 to-pink-600',
+    light: 'bg-fuchsia-50 border-fuchsia-200',
+    examples: [
+      { word: 'fish', highlight: 'f', translation: 'pescado' },
+      { word: 'five', highlight: 'v', translation: 'cinco' },
+      { word: 'have', highlight: 'v', translation: 'tener' },
+      { word: 'house', highlight: 'h', translation: 'casa' },
+    ],
+    spanishNote: '[f] es igual a la española. [v] NO existe en español — los labios superiores tocan los dientes inferiores (labiodental), no como la "b/v" española. [h] es una aspiración suave — la "j" española pero mucho más suave.',
+    patterns: [
+      { spelling: 'f / ff / ph', examples: 'fish, off, phone, laugh, graph' },
+      { spelling: 'v', examples: 'five, very, have, love, river' },
+      { spelling: 'h', examples: 'house, hot, behind, who (muda en some words)' },
+    ],
+    exercises: [
+      { id: 'f-v-h-1', question: '¿Cómo se produce la [v] inglesa?', options: ['Labios juntos (como b/v española)', 'Dientes superiores en labio inferior', 'Igual a la f pero más fuerte'], correct: 1, explanation: 'La [v] es labiodental: los dientes superiores tocan ligeramente el labio inferior, con vibración.' },
+      { id: 'f-v-h-2', question: '¿La [h] inglesa es…?', options: ['Muda siempre', 'Como la j española', 'Una aspiración suave'], correct: 2, explanation: 'La [h] inglesa es una suave aspiración de aire — mucho más suave que la "j" española.' },
+      { id: 'f-v-h-3', question: '"Phone" tiene el sonido [f]. ¿Cómo se escribe?', options: ['f', 'ph', 'Cualquiera de las dos'], correct: 1, explanation: '"Phone" usa "ph" para representar [f]: /foʊn/.' },
+    ],
+  },
   {
     id: 'theta',
     symbol: 'θ',
@@ -501,6 +677,145 @@ const SOUNDS = [
       { id: 'r-1', question: '¿La "r" inglesa vibra como la española?', options: ['Sí', 'No', 'Solo en algunas palabras'], correct: 1, explanation: 'La [r] inglesa no vibra — la lengua se curva sin tocar el paladar.' },
       { id: 'r-2', question: '"write" se pronuncia…', options: ['/raɪt/', '/raɪt/ (la w es muda)', '/wraɪt/'], correct: 1, explanation: 'La "w" en "write" es muda: /raɪt/.' },
       { id: 'r-3', question: '¿Cuál es un error común de hispanohablantes con la [r] inglesa?', options: ['Hacerla muda', 'Hacerla vibrar como en español', 'Pronunciarla como [l]'], correct: 1, explanation: 'Muchos hispanohablantes vibran la [r] como en español, lo cual suena extraño en inglés.' },
+    ],
+  },
+  {
+    id: 'zh',
+    symbol: 'ʒ',
+    display: '[ʒ]',
+    name: 'ZH sound',
+    nameEs: 'S francesa (ZH)',
+    category: 'consonant',
+    color: 'from-indigo-500 to-violet-600',
+    light: 'bg-indigo-50 border-indigo-200',
+    examples: [
+      { word: 'measure', highlight: 'su', translation: 'medir/medida' },
+      { word: 'television', highlight: 'si', translation: 'televisión' },
+      { word: 'vision', highlight: 'si', translation: 'visión' },
+      { word: 'beige', highlight: 'ge', translation: 'beige' },
+    ],
+    spanishNote: 'No existe en español. Es como [ʃ] pero con vibración vocal. Similar a la "j" francesa en "je" o la "ll" rioplatense en "calle".',
+    patterns: [
+      { spelling: 'su/si', examples: 'measure, treasure, vision, decision, television' },
+      { spelling: 'ge/gi', examples: 'beige, garage, mirage' },
+      { spelling: 'zu', examples: 'azure' },
+    ],
+    exercises: [
+      { id: 'zh-1', question: '¿Cuál tiene [ʒ]?', options: ['she', 'measure', 'see'], correct: 1, explanation: '"Measure" /ˈmɛʒər/ tiene [ʒ]. "She" tiene [ʃ] (sin vibración).' },
+      { id: 'zh-2', question: '[ʒ] y [ʃ] se diferencian en…', options: ['Posición de labios', 'Vibración vocal', 'Posición de lengua'], correct: 1, explanation: '[ʒ] es sonoro (cuerdas vibran), [ʃ] es sordo.' },
+      { id: 'zh-3', question: '"television" — ¿dónde está [ʒ]?', options: ['"tele-"', '"-vi-"', '"-sion"'], correct: 2, explanation: 'El sufijo "-sion" se pronuncia /ʒən/ en palabras como television, vision.' },
+    ],
+  },
+  {
+    id: 'ch-j',
+    symbol: 'ʧ / ʤ',
+    display: '[ʧ] / [ʤ]',
+    name: 'CH and J sounds',
+    nameEs: 'CH y DY inglesas',
+    category: 'consonant',
+    color: 'from-orange-500 to-amber-600',
+    light: 'bg-orange-50 border-orange-200',
+    examples: [
+      { word: 'church', highlight: 'ch', translation: 'iglesia' },
+      { word: 'choose', highlight: 'ch', translation: 'elegir' },
+      { word: 'judge', highlight: 'j/dge', translation: 'juez' },
+      { word: 'June', highlight: 'J', translation: 'junio' },
+    ],
+    spanishNote: '[ʧ] existe en español como la "ch" en "mucho". [ʤ] es nueva — empieza como "d" y termina como la "ch" española, pero sonora.',
+    patterns: [
+      { spelling: 'ch', examples: 'church, choose, cheese, lunch, teach' },
+      { spelling: 'tch', examples: 'watch, match, kitchen, catch' },
+      { spelling: 'j', examples: 'judge, June, job, join, jump' },
+      { spelling: 'dge', examples: 'bridge, edge, lodge, fridge' },
+      { spelling: 'ge/gi', examples: 'age, page, giant, gym' },
+    ],
+    exercises: [
+      { id: 'chj-1', question: '"church" contiene [ʧ]…', options: ['Solo al inicio', 'Solo al final', 'Al inicio y al final'], correct: 2, explanation: '/ʧɜːrʧ/ — [ʧ] aparece dos veces: "ch-urch".' },
+      { id: 'chj-2', question: '¿Cuál tiene [ʤ]?', options: ['church', 'choose', 'judge'], correct: 2, explanation: '"Judge" /ʤʌʤ/ tiene [ʤ] al inicio y al final.' },
+      { id: 'chj-3', question: '"gym" empieza con…', options: ['[g] como en "go"', '[ʤ] como en "judge"', '[j] como en "yes"'], correct: 1, explanation: '"Gym" /ʤɪm/ — la letra "g" ante e/i/y se pronuncia [ʤ].' },
+    ],
+  },
+  {
+    id: 'nasals',
+    symbol: 'm / n / ŋ',
+    display: '[m] / [n] / [ŋ]',
+    name: 'Nasal sounds',
+    nameEs: 'Sonidos nasales',
+    category: 'consonant',
+    color: 'from-teal-500 to-emerald-600',
+    light: 'bg-teal-50 border-teal-200',
+    examples: [
+      { word: 'man', highlight: 'm', translation: 'hombre' },
+      { word: 'night', highlight: 'n', translation: 'noche' },
+      { word: 'sing', highlight: 'ng', translation: 'cantar' },
+      { word: 'ring', highlight: 'ng', translation: 'anillo' },
+    ],
+    spanishNote: '[m] y [n] son iguales al español. [ŋ] es nueva — es la "n" de "banco" o "tango" pero al final de sílaba, como en "sing". No hay [g] después.',
+    patterns: [
+      { spelling: 'm', examples: 'man, come, time, swim, dream' },
+      { spelling: 'n', examples: 'night, sun, ten, open, begin' },
+      { spelling: 'ng', examples: 'sing, ring, king, song, long' },
+      { spelling: 'nk', examples: 'think, drink, pink, thank, bank' },
+    ],
+    exercises: [
+      { id: 'nas-1', question: '"sing" termina en…', options: ['[n] + [g]', '[ŋ] solo', '[ng] dos sonidos'], correct: 1, explanation: '"Sing" /sɪŋ/ termina en [ŋ] — un solo sonido nasal velar, sin [g] separado.' },
+      { id: 'nas-2', question: '"think" — ¿qué sonido nasal hay?', options: ['[m]', '[n]', '[ŋ]'], correct: 2, explanation: '"Think" /θɪŋk/ — "nk" se pronuncia [ŋk], con nasal velar.' },
+      { id: 'nas-3', question: '¿Cuál tiene [ŋ]?', options: ['sun', 'sin', 'sing'], correct: 2, explanation: '"Sing" /sɪŋ/ tiene [ŋ]. "Sun" y "sin" tienen [n].' },
+    ],
+  },
+  {
+    id: 'l',
+    symbol: 'l',
+    display: '[l]',
+    name: 'English L',
+    nameEs: 'L inglesa (clara y oscura)',
+    category: 'consonant',
+    color: 'from-sky-500 to-cyan-600',
+    light: 'bg-sky-50 border-sky-200',
+    examples: [
+      { word: 'let', highlight: 'l', translation: 'dejar' },
+      { word: 'blue', highlight: 'l', translation: 'azul' },
+      { word: 'milk', highlight: 'l', translation: 'leche' },
+      { word: 'full', highlight: 'll', translation: 'lleno' },
+    ],
+    spanishNote: 'La "l" inicial (antes de vocal) es similar al español. La "l" final (después de vocal) es más oscura y resonante — la lengua sube pero la garganta resuena más.',
+    patterns: [
+      { spelling: 'l (inicial)', examples: 'let, like, look, play, blue, fly' },
+      { spelling: 'l (final)', examples: 'milk, full, ball, feel, cool, tall' },
+      { spelling: 'll', examples: 'full, bell, fill, sell, pull, well' },
+    ],
+    exercises: [
+      { id: 'l-1', question: '¿La "l" en "feel" suena igual que en "let"?', options: ['Sí, idéntica', 'No, es más oscura al final', 'No existe al final'], correct: 1, explanation: '"Feel" /fiːl/ — la [l] final es más oscura (velarizada) que la [l] inicial en "let".' },
+      { id: 'l-2', question: '"blue" — ¿la [l] es inicial o final?', options: ['Final', 'Inicial (antes de vocal)', 'Dentro de sílaba'], correct: 2, explanation: 'En "blue" /bluː/, la [l] va antes de la vocal [u], es [l] clara.' },
+      { id: 'l-3', question: '¿Cuál tiene la [l] oscura (final)?', options: ['let', 'like', 'milk'], correct: 2, explanation: '"Milk" /mɪlk/ — la [l] después de vocal es oscura o velarizada.' },
+    ],
+  },
+  {
+    id: 'j-w',
+    symbol: 'j / w',
+    display: '[j] / [w]',
+    name: 'Glides: Y and W',
+    nameEs: 'Semivocales Y y W',
+    category: 'consonant',
+    color: 'from-pink-500 to-rose-600',
+    light: 'bg-pink-50 border-pink-200',
+    examples: [
+      { word: 'yes', highlight: 'y', translation: 'sí' },
+      { word: 'year', highlight: 'y', translation: 'año' },
+      { word: 'we', highlight: 'w', translation: 'nosotros' },
+      { word: 'water', highlight: 'w', translation: 'agua' },
+    ],
+    spanishNote: '[j] es como la "y" en "yo" o la "i" en "bien". [w] es como la "u" en "bueno" o "huevo". Ambas son semivocales — la lengua/labios arrancan en posición vocálica y desllizan.',
+    patterns: [
+      { spelling: 'y', examples: 'yes, year, yellow, you, yet, yard' },
+      { spelling: 'j (en onsets)', examples: 'use /juːz/, few /fjuː/, cute /kjuːt/, new /njuː/' },
+      { spelling: 'w', examples: 'we, water, week, work, swim, twin' },
+      { spelling: 'wh', examples: 'what, where, when, white, why, which' },
+    ],
+    exercises: [
+      { id: 'jw-1', question: '"yes" empieza con…', options: ['[j] (semivocal)', '[i] (vocal)', '[dʒ] como judge'], correct: 0, explanation: '"Yes" /jɛs/ — comienza con [j], la semivocal palatal.' },
+      { id: 'jw-2', question: '"use" (verbo) se pronuncia…', options: ['/uːz/', '/juːz/', '/wuːz/'], correct: 1, explanation: '"Use" /juːz/ — la letra "u" incluye el sonido [j] antes de la vocal larga.' },
+      { id: 'jw-3', question: '¿Cuál tiene [w]?', options: ['year', 'you', 'water'], correct: 2, explanation: '"Water" /ˈwɔːtər/ tiene [w]. "Year" tiene [j] y "you" tiene [j] también.' },
     ],
   },
 ];
@@ -691,7 +1006,7 @@ export default function Phonetics({ isLoggedIn, onOpenAuth, onLogout, userName }
                       <p className="text-white/80 text-sm mt-0.5">{sound.nameEs}</p>
                     </div>
                     <button
-                      onClick={() => toast.info('🎵 Audio próximamente — estamos grabando con hablantes nativos')}
+                      onClick={() => speak(sound.examples[0]?.word || sound.name)}
                       className="shrink-0 w-12 h-12 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-all hover:scale-105"
                       title="Escuchar pronunciación"
                     >
@@ -709,7 +1024,7 @@ export default function Phonetics({ isLoggedIn, onOpenAuth, onLogout, userName }
                     {sound.examples.map((ex, i) => (
                       <div key={i} className={`rounded-xl border ${sound.light} p-3 text-center`}>
                         <button
-                          onClick={() => toast.info(`🎵 Audio de "${ex.word}" próximamente`)}
+                          onClick={() => speak(ex.word)}
                           className="w-full"
                         >
                           <div className="font-bold text-base text-foreground flex items-center justify-center gap-1">
