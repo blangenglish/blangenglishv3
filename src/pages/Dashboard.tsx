@@ -35,7 +35,7 @@ interface DashboardProps {
   userName?: string;
 }
 
-type TabId = 'cursos' | 'mundo-real' | 'cuenta' | 'pagos' | 'progreso' | 'sesion' | 'ayuda' | 'english';
+type TabId = 'cursos' | 'cuenta' | 'pagos' | 'progreso' | 'sesion' | 'ayuda' | 'english';
 
 const LEVEL_COLORS: Record<string, { color: string; badge: string }> = {
   A1: { color: 'from-green-400/20 to-emerald-400/20 border-green-200', badge: 'bg-green-100 text-green-700' },
@@ -807,6 +807,7 @@ const [loadingUnits, setLoadingUnits] = useState<string | null>(null);
   const [modalCopied, setModalCopied] = useState(false);
 
   // Mundo Real state
+  const [showMundoReal, setShowMundoReal] = useState(false);
   const [mundoRealTopic, setMundoRealTopic] = useState<string | null>(null);
   const [mundoRealTab, setMundoRealTab] = useState<'vocab'|'frases'|'estructura'|'dialogo'>('vocab');
   const [mrAnswers, setMrAnswers] = useState<Record<string, number>>({});
@@ -822,6 +823,13 @@ const [loadingUnits, setLoadingUnits] = useState<string | null>(null);
     setMrWordOrder([]);
     setMrWordSubmitted(false);
   }
+
+  useEffect(() => {
+    if (activeTab !== 'english') {
+      setShowMundoReal(false);
+      openMRTopic(null);
+    }
+  }, [activeTab]);
 
 useEffect(() => {
     // Load payment config
@@ -1405,7 +1413,6 @@ useEffect(() => {
               <nav className="p-2">
                 {([
                   { id: 'cursos',      icon: BookOpen, label: 'Mis Cursos' },
-                  { id: 'mundo-real', icon: Globe,     label: 'Inglés para el Mundo Real' },
                   { id: 'english',    icon: Sparkles,  label: 'English for you!' },
                   { id: 'sesion',   icon: Video,       label: 'Sesión con Profesor' },
                   { id: 'cuenta',   icon: User,        label: 'Cuenta' },
@@ -2578,8 +2585,8 @@ useEffect(() => {
                 </motion.div>
               )}
 
-              {/* ─── INGLÉS PARA EL MUNDO REAL ─── */}
-              {activeTab === 'mundo-real' && (() => {
+              {/* ─── INGLÉS PARA EL MUNDO REAL (dentro de English for you!) ─── */}
+              {activeTab === 'english' && showMundoReal && (() => {
                 const topic = mundoRealTopic ? MUNDO_REAL_TOPICS.find(t => t.id === mundoRealTopic) : null;
                 const categories = MR_CATEGORIES;
                 const filtered = MUNDO_REAL_TOPICS.filter(t => {
@@ -2592,6 +2599,9 @@ useEffect(() => {
                   // ── LIST VIEW ──
                   return (
                     <motion.div key="mundo-real-list" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-5">
+                      <button onClick={() => { setShowMundoReal(false); openMRTopic(null); }} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors">
+                        ← English for you!
+                      </button>
                       <div>
                         <div className="flex items-center gap-2 mb-1">
                           <Globe className="w-6 h-6 text-primary" />
@@ -2918,7 +2928,9 @@ useEffect(() => {
               })()}
 
               {/* ─── ENGLISH FOR YOU ─── */}
-              {activeTab === 'english' && <EnglishForYou />}
+              {activeTab === 'english' && !showMundoReal && (
+                <EnglishForYou onMundoReal={() => { setShowMundoReal(true); openMRTopic(null); }} />
+              )}
 
               {/* ─── AYUDA ─── */}
               {activeTab === 'ayuda' && (
