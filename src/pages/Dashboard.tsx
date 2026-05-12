@@ -1224,25 +1224,20 @@ useEffect(() => {
   const handleLogout = async () => {
     try { await supabase.auth.signOut(); } catch (_) {}
     localStorage.clear();
-    window.location.replace(window.location.origin);
+    sessionStorage.clear();
+    // Llamar prop del padre si existe (actualiza estado React en App.tsx)
+    if (onLogout) { onLogout(); return; }
+    // Fallback: recarga forzada en la ruta raíz
+    window.location.replace(window.location.origin + '/#/');
   };
 
-  // Not logged in guard
+  // Not logged in guard — redirigir al home en vez de mostrar pantalla bloqueada
   if (!isLoggedIn) {
+    navigate(ROUTE_PATHS.HOME, { replace: true });
     return (
-      <Layout isLoggedIn={false} onOpenAuth={onOpenAuth} onLogout={onLogout}>
-        <div className="min-h-[80vh] flex items-center justify-center px-4">
-          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center max-w-md">
-            <p className="text-6xl mb-6">🔐</p>
-            <h2 className="text-3xl font-bold mb-3">Accede a tu cuenta</h2>
-            <p className="text-muted-foreground mb-8">Inicia sesión o regístrate para ver tu perfil de estudiante.</p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Button className="rounded-full bg-primary text-primary-foreground px-8" onClick={() => onOpenAuth?.('register')}>Registrarse gratis 🎉</Button>
-              <Button variant="outline" className="rounded-full px-8" onClick={() => onOpenAuth?.('login')}>Iniciar sesión</Button>
-            </div>
-          </motion.div>
-        </div>
-      </Layout>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
     );
   }
 
