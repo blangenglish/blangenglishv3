@@ -21,6 +21,7 @@ import Terms from '@/pages/Terms';
 import Privacy from '@/pages/Privacy';
 import ResetPassword from '@/pages/ResetPassword';
 import EnglishModule from '@/pages/EnglishModule';
+import Phonetics from '@/pages/Phonetics';
 import { AuthModals } from '@/components/AuthModals';
 import { OnboardingFlow } from '@/components/OnboardingFlow';
 import AdminLogin from '@/pages/admin/AdminLogin';
@@ -190,6 +191,7 @@ function AppRoutes() {
         <Route path={ROUTE_PATHS.PRIVACY} element={<Privacy {...sharedProps} />} />
         <Route path={ROUTE_PATHS.RESET_PASSWORD} element={<ResetPassword />} />
         <Route path={ROUTE_PATHS.ENGLISH_MODULE} element={<EnglishModule {...sharedProps} />} />
+        <Route path={ROUTE_PATHS.PHONETICS} element={<Phonetics {...sharedProps} />} />
       </Routes>
 
       <AuthModals

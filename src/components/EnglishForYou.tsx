@@ -133,7 +133,7 @@ export function EnglishForYou() {
               ring-1 ${mod.ring} ring-offset-0
               flex flex-col cursor-pointer
             `}
-            onClick={() => navigate(`/english/${mod.slug}`)}
+            onClick={() => navigate(mod.slug === 'fonetica' ? '/phonetics' : `/english/${mod.slug}`)}
           >
             {/* Imagen / gradiente superior */}
             <div className={`relative h-36 bg-gradient-to-br ${mod.gradient} flex items-center justify-center overflow-hidden`}>
@@ -167,7 +167,7 @@ export function EnglishForYou() {
                 className={`mt-2 w-full rounded-xl bg-gradient-to-r ${mod.gradient} text-white font-semibold shadow-sm hover:shadow-md hover:opacity-90 transition-all border-0`}
                 onClick={(e) => {
                   e.stopPropagation();
-                  navigate(`/english/${mod.slug}`);
+                  navigate(mod.slug === 'fonetica' ? '/phonetics' : `/english/${mod.slug}`);
                 }}
               >
                 Ingresa
