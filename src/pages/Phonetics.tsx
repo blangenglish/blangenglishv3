@@ -489,7 +489,7 @@ const SOUNDS = [
     name: 'T and D',
     nameEs: 'T y D',
     demos: [{ label: '[t]', text: 'tea' }, { label: '[d]', text: 'do' }],
-    videoIds: [{ label: '[d]', id: 'qA5ZYC89oso' }],
+    videoIds: [{ label: '[t]', id: '0T1QYByMxrs' }, { label: '[d]', id: 'qA5ZYC89oso' }],
     category: 'consonant',
     color: 'from-sky-500 to-blue-600',
     light: 'bg-sky-50 border-sky-200',
@@ -1107,19 +1107,6 @@ export default function Phonetics({ isLoggedIn, onOpenAuth, onLogout, userName }
                     </div>
                     <h2 className="text-xl font-bold">{sound.name}</h2>
                     <p className="text-white/80 text-sm mt-0.5">{sound.nameEs}</p>
-                  </div>
-                  <div className="flex flex-wrap gap-2 mt-4">
-                    {(sound.demos || [{ label: sound.display, text: sound.examples[0]?.word }]).map((d, i) => (
-                      <button
-                        key={i}
-                        onClick={() => speakDemo(d.text)}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/20 hover:bg-white/30 transition-all hover:scale-105 text-sm font-semibold"
-                        title={`Escuchar ${d.label}`}
-                      >
-                        <Volume2 className="w-4 h-4" />
-                        {d.label}
-                      </button>
-                    ))}
                   </div>
                 </div>
 
