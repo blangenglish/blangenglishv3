@@ -489,7 +489,7 @@ const SOUNDS = [
     name: 'T and D',
     nameEs: 'T y D',
     demos: [{ label: '[t]', text: 'tea' }, { label: '[d]', text: 'do' }],
-    videoId: 'qA5ZYC89oso',
+    videoIds: [{ label: '[d]', id: 'qA5ZYC89oso' }],
     category: 'consonant',
     color: 'from-sky-500 to-blue-600',
     light: 'bg-sky-50 border-sky-200',
@@ -549,7 +549,7 @@ const SOUNDS = [
     name: 'Stop Consonants',
     nameEs: 'Oclusivas sordas y sonoras',
     demos: [{ label: '[p]', text: 'pay' }, { label: '[b]', text: 'bay' }, { label: '[k]', text: 'key' }, { label: '[g]', text: 'go' }],
-    videoId: 'AZRREr7DqqM',
+    videoIds: [{ label: '[p]', id: 'AZRREr7DqqM' }, { label: '[b]', id: 'yP7aCKO6bTE' }, { label: '[k]', id: 'd1jyIpAmLe8' }, { label: '[g]', id: '9eAqj9EfeK0' }],
     category: 'consonant',
     color: 'from-orange-500 to-amber-600',
     light: 'bg-orange-50 border-orange-200',
@@ -579,7 +579,7 @@ const SOUNDS = [
     name: 'S and Z',
     nameEs: 'S y Z',
     demos: [{ label: '[s]', text: 'sea' }, { label: '[z]', text: 'zoo' }],
-    videoId: 'QtH3vRXmvvo',
+    videoIds: [{ label: '[s]', id: 'QtH3vRXmvvo' }, { label: '[z]', id: 'o1ZvmX80t7Q' }],
     category: 'consonant',
     color: 'from-green-500 to-emerald-600',
     light: 'bg-green-50 border-green-200',
@@ -637,7 +637,7 @@ const SOUNDS = [
     name: 'F, V and H',
     nameEs: 'F, V y H',
     demos: [{ label: '[f]', text: 'fee' }, { label: '[v]', text: 'view' }, { label: '[h]', text: 'hay' }],
-    videoId: 'vE12RFyH-hY',
+    videoIds: [{ label: '[f]', id: 'vE12RFyH-hY' }, { label: '[v]', id: 'mO04G0v5a_c' }, { label: '[h]', id: 'DM_gN6imoC8' }],
     category: 'consonant',
     color: 'from-fuchsia-500 to-pink-600',
     light: 'bg-fuchsia-50 border-fuchsia-200',
@@ -809,7 +809,7 @@ const SOUNDS = [
     name: 'CH and J sounds',
     nameEs: 'CH y DY inglesas',
     demos: [{ label: '[ʧ]', text: 'church' }, { label: '[ʤ]', text: 'judge' }],
-    videoId: 'PykxZ5kkrjs',
+    videoIds: [{ label: '[ʧ]', id: 'PykxZ5kkrjs' }, { label: '[ʤ]', id: '0IeQmGdo7gQ' }],
     category: 'consonant',
     color: 'from-orange-500 to-amber-600',
     light: 'bg-orange-50 border-orange-200',
@@ -899,7 +899,7 @@ const SOUNDS = [
     name: 'Glides: Y and W',
     nameEs: 'Semivocales Y y W',
     demos: [{ label: '[j]', text: 'yes' }, { label: '[w]', text: 'way' }],
-    videoId: '_Fi9E6Yw-qg',
+    videoIds: [{ label: '[j]', id: '_Fi9E6Yw-qg' }, { label: '[w]', id: 'HzhPB1hXG-o' }],
     category: 'consonant',
     color: 'from-pink-500 to-rose-600',
     light: 'bg-pink-50 border-pink-200',
@@ -1124,21 +1124,42 @@ export default function Phonetics({ isLoggedIn, onOpenAuth, onLogout, userName }
                 </div>
 
                 {/* ── BBC Video ── */}
-                {sound.videoId && (
+                {(sound.videoId || sound.videoIds?.length > 0) && (
                   <div className="rounded-2xl overflow-hidden border border-border/50 shadow-sm">
                     <div className="bg-muted/30 px-4 py-2 flex items-center gap-2 border-b border-border/30">
                       <span className="text-lg">📺</span>
                       <span className="text-sm font-semibold text-muted-foreground">Video BBC — Pronunciación</span>
                     </div>
-                    <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
-                      <iframe
-                        src={`https://www.youtube.com/embed/${sound.videoId}?rel=0&modestbranding=1`}
-                        title={`BBC pronunciation: ${sound.name}`}
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                        className="absolute inset-0 w-full h-full"
-                      />
-                    </div>
+                    {sound.videoIds?.length > 0 ? (
+                      <div className={`grid gap-0.5 bg-border/20 ${sound.videoIds.length >= 4 ? 'grid-cols-2' : sound.videoIds.length === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                        {sound.videoIds.map((v) => (
+                          <div key={v.id} className="flex flex-col bg-background">
+                            <div className="bg-muted/40 text-center text-xs font-bold py-1 text-muted-foreground border-b border-border/20">
+                              {v.label}
+                            </div>
+                            <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+                              <iframe
+                                src={`https://www.youtube.com/embed/${v.id}?rel=0&modestbranding=1`}
+                                title={`BBC pronunciation: ${v.label}`}
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                                className="absolute inset-0 w-full h-full"
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+                        <iframe
+                          src={`https://www.youtube.com/embed/${sound.videoId}?rel=0&modestbranding=1`}
+                          title={`BBC pronunciation: ${sound.name}`}
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          className="absolute inset-0 w-full h-full"
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
 
