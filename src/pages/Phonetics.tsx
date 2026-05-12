@@ -24,13 +24,12 @@ function speak(text) {
   window.speechSynthesis.speak(utt);
 }
 
-// Reproduce el demo del fonema: más lento para que suene aislado
-function speakDemo(demo) {
+function speakDemo(text) {
   if (!('speechSynthesis' in window)) return;
   window.speechSynthesis.cancel();
-  const utt = new SpeechSynthesisUtterance(demo);
+  const utt = new SpeechSynthesisUtterance(text);
   utt.lang = 'en-US';
-  utt.rate = 0.45;
+  utt.rate = 0.75;
   utt.pitch = 1;
   const eng = getEnglishVoice();
   if (eng) utt.voice = eng;
@@ -47,7 +46,7 @@ const SOUNDS = [
     display: '[iː]',
     name: 'Long EE',
     nameEs: 'I larga',
-    demo: 'eeeee',
+    demos: [{ label: '[iː]', text: 'ee' }],
     category: 'vowel',
     color: 'from-violet-500 to-purple-600',
     light: 'bg-violet-50 border-violet-200',
@@ -94,7 +93,7 @@ const SOUNDS = [
     symbol: 'ɪ',
     display: '[ɪ]',
     name: 'Short I',
-    demo: 'ih',
+    demos: [{ label: '[ɪ]', text: 'ih' }],
     nameEs: 'I corta',
     category: 'vowel',
     color: 'from-blue-500 to-indigo-600',
@@ -142,7 +141,7 @@ const SOUNDS = [
     display: '[eɪ]',
     name: 'Long A',
     nameEs: 'A larga (diptongo)',
-    demo: 'ayyyy',
+    demos: [{ label: '[eɪ]', text: 'ay' }],
     category: 'vowel',
     color: 'from-amber-500 to-orange-500',
     light: 'bg-amber-50 border-amber-200',
@@ -189,7 +188,7 @@ const SOUNDS = [
     display: '[ε]',
     name: 'Short E',
     nameEs: 'E corta',
-    demo: 'ehh',
+    demos: [{ label: '[ε]', text: 'eh' }],
     category: 'vowel',
     color: 'from-green-500 to-emerald-600',
     light: 'bg-green-50 border-green-200',
@@ -236,7 +235,7 @@ const SOUNDS = [
     display: '[æ]',
     name: 'Short A',
     nameEs: 'A abierta',
-    demo: 'aaa',
+    demos: [{ label: '[æ]', text: 'ah' }],
     category: 'vowel',
     color: 'from-pink-500 to-rose-600',
     light: 'bg-pink-50 border-pink-200',
@@ -280,7 +279,7 @@ const SOUNDS = [
     display: '[ɑː]',
     name: 'Long AH',
     nameEs: 'A profunda',
-    demo: 'ahhhh',
+    demos: [{ label: '[ɑː]', text: 'ah' }],
     category: 'vowel',
     color: 'from-teal-500 to-cyan-600',
     light: 'bg-teal-50 border-teal-200',
@@ -327,7 +326,7 @@ const SOUNDS = [
     display: '[ʌ]',
     name: 'Short U',
     nameEs: 'U corta (schwa tónica)',
-    demo: 'uh',
+    demos: [{ label: '[ʌ]', text: 'uh' }],
     category: 'vowel',
     color: 'from-orange-500 to-amber-600',
     light: 'bg-orange-50 border-orange-200',
@@ -355,7 +354,7 @@ const SOUNDS = [
     display: '[ə]',
     name: 'Schwa',
     nameEs: 'Schwa (vocal reducida)',
-    demo: 'uh',
+    demos: [{ label: '[ə]', text: 'uh' }],
     category: 'vowel',
     color: 'from-slate-500 to-gray-600',
     light: 'bg-slate-50 border-slate-200',
@@ -384,7 +383,7 @@ const SOUNDS = [
     display: '[oʊ]',
     name: 'Long O',
     nameEs: 'O larga (diptongo)',
-    demo: 'ohhh',
+    demos: [{ label: '[oʊ]', text: 'oh' }],
     category: 'vowel',
     color: 'from-indigo-500 to-blue-600',
     light: 'bg-indigo-50 border-indigo-200',
@@ -413,7 +412,7 @@ const SOUNDS = [
     display: '[uː]',
     name: 'Long OO',
     nameEs: 'U larga',
-    demo: 'ooooo',
+    demos: [{ label: '[uː]', text: 'oo' }],
     category: 'vowel',
     color: 'from-purple-500 to-violet-600',
     light: 'bg-purple-50 border-purple-200',
@@ -443,7 +442,7 @@ const SOUNDS = [
     display: '[t] [d]',
     name: 'T and D',
     nameEs: 'T y D',
-    demo: 't... d',
+    demos: [{ label: '[t]', text: 'tah' }, { label: '[d]', text: 'dah' }],
     category: 'consonant',
     color: 'from-sky-500 to-blue-600',
     light: 'bg-sky-50 border-sky-200',
@@ -472,7 +471,7 @@ const SOUNDS = [
     display: '[-ed]',
     name: 'Past tense -ed',
     nameEs: 'Pronunciación del -ed',
-    demo: 'talked. played. wanted',
+    demos: [{ label: '/t/ talked', text: 'talked' }, { label: '/d/ played', text: 'played' }, { label: '/ɪd/ wanted', text: 'wanted' }],
     category: 'consonant',
     color: 'from-violet-500 to-purple-600',
     light: 'bg-violet-50 border-violet-200',
@@ -500,7 +499,7 @@ const SOUNDS = [
     display: '[p] [b] [k] [g]',
     name: 'Stop Consonants',
     nameEs: 'Oclusivas sordas y sonoras',
-    demo: 'p... b... k... g',
+    demos: [{ label: '[p]', text: 'pah' }, { label: '[b]', text: 'bah' }, { label: '[k]', text: 'kah' }, { label: '[g]', text: 'gah' }],
     category: 'consonant',
     color: 'from-orange-500 to-amber-600',
     light: 'bg-orange-50 border-orange-200',
@@ -529,7 +528,7 @@ const SOUNDS = [
     display: '[s] [z]',
     name: 'S and Z',
     nameEs: 'S y Z',
-    demo: 'sssss... zzzzz',
+    demos: [{ label: '[s]', text: 'sah' }, { label: '[z]', text: 'zah' }],
     category: 'consonant',
     color: 'from-green-500 to-emerald-600',
     light: 'bg-green-50 border-green-200',
@@ -558,7 +557,7 @@ const SOUNDS = [
     display: '[-s final]',
     name: 'Plural & 3rd person -s',
     nameEs: 'Pronunciación del -s final',
-    demo: 'cats. dogs. watches',
+    demos: [{ label: '/s/ cats', text: 'cats' }, { label: '/z/ dogs', text: 'dogs' }, { label: '/ɪz/ watches', text: 'watches' }],
     category: 'consonant',
     color: 'from-lime-500 to-green-600',
     light: 'bg-lime-50 border-lime-200',
@@ -586,7 +585,7 @@ const SOUNDS = [
     display: '[f] [v] [h]',
     name: 'F, V and H',
     nameEs: 'F, V y H',
-    demo: 'ffffff... vvvvv... hhhhh',
+    demos: [{ label: '[f]', text: 'fah' }, { label: '[v]', text: 'vah' }, { label: '[h]', text: 'hah' }],
     category: 'consonant',
     color: 'from-fuchsia-500 to-pink-600',
     light: 'bg-fuchsia-50 border-fuchsia-200',
@@ -614,7 +613,7 @@ const SOUNDS = [
     display: '[θ]',
     name: 'Voiceless TH',
     nameEs: 'TH sorda',
-    demo: 'thhhhh',
+    demos: [{ label: '[θ]', text: 'think' }],
     category: 'consonant',
     color: 'from-rose-500 to-pink-600',
     light: 'bg-rose-50 border-rose-200',
@@ -640,7 +639,7 @@ const SOUNDS = [
     display: '[ð]',
     name: 'Voiced TH',
     nameEs: 'TH sonora',
-    demo: 'the... this... that',
+    demos: [{ label: '[ð]', text: 'the' }],
     category: 'consonant',
     color: 'from-red-500 to-rose-600',
     light: 'bg-red-50 border-red-200',
@@ -666,7 +665,7 @@ const SOUNDS = [
     display: '[ʃ]',
     name: 'SH sound',
     nameEs: 'CH inglesa (SH)',
-    demo: 'shhhhh',
+    demos: [{ label: '[ʃ]', text: 'sh' }],
     category: 'consonant',
     color: 'from-emerald-500 to-teal-600',
     light: 'bg-emerald-50 border-emerald-200',
@@ -694,7 +693,7 @@ const SOUNDS = [
     display: '[r]',
     name: 'English R',
     nameEs: 'R inglesa',
-    demo: 'rrrr',
+    demos: [{ label: '[r]', text: 'rah' }],
     category: 'consonant',
     color: 'from-cyan-500 to-blue-600',
     light: 'bg-cyan-50 border-cyan-200',
@@ -722,7 +721,7 @@ const SOUNDS = [
     display: '[ʒ]',
     name: 'ZH sound',
     nameEs: 'S francesa (ZH)',
-    demo: 'measure... vision... beige',
+    demos: [{ label: '[ʒ]', text: 'measure' }],
     category: 'consonant',
     color: 'from-indigo-500 to-violet-600',
     light: 'bg-indigo-50 border-indigo-200',
@@ -750,7 +749,7 @@ const SOUNDS = [
     display: '[ʧ] / [ʤ]',
     name: 'CH and J sounds',
     nameEs: 'CH y DY inglesas',
-    demo: 'ch... church. j... judge',
+    demos: [{ label: '[ʧ]', text: 'church' }, { label: '[ʤ]', text: 'judge' }],
     category: 'consonant',
     color: 'from-orange-500 to-amber-600',
     light: 'bg-orange-50 border-orange-200',
@@ -780,7 +779,7 @@ const SOUNDS = [
     display: '[m] / [n] / [ŋ]',
     name: 'Nasal sounds',
     nameEs: 'Sonidos nasales',
-    demo: 'mmmmm... nnnnn... sing... ring',
+    demos: [{ label: '[m]', text: 'mah' }, { label: '[n]', text: 'nah' }, { label: '[ŋ]', text: 'sing' }],
     category: 'consonant',
     color: 'from-teal-500 to-emerald-600',
     light: 'bg-teal-50 border-teal-200',
@@ -809,7 +808,7 @@ const SOUNDS = [
     display: '[l]',
     name: 'English L',
     nameEs: 'L inglesa (clara y oscura)',
-    demo: 'llll... lll',
+    demos: [{ label: '[l]', text: 'lah' }],
     category: 'consonant',
     color: 'from-sky-500 to-cyan-600',
     light: 'bg-sky-50 border-sky-200',
@@ -837,7 +836,7 @@ const SOUNDS = [
     display: '[j] / [w]',
     name: 'Glides: Y and W',
     nameEs: 'Semivocales Y y W',
-    demo: 'y... yes... w... we',
+    demos: [{ label: '[j]', text: 'yah' }, { label: '[w]', text: 'wah' }],
     category: 'consonant',
     color: 'from-pink-500 to-rose-600',
     light: 'bg-pink-50 border-pink-200',
@@ -1039,21 +1038,25 @@ export default function Phonetics({ isLoggedIn, onOpenAuth, onLogout, userName }
 
                 {/* ── Hero card ── */}
                 <div className={`rounded-2xl bg-gradient-to-br ${sound.color} p-6 text-white shadow-lg`}>
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <div className="text-6xl sm:text-7xl font-bold font-mono leading-none mb-3 drop-shadow-sm">
-                        {sound.display}
-                      </div>
-                      <h2 className="text-xl font-bold">{sound.name}</h2>
-                      <p className="text-white/80 text-sm mt-0.5">{sound.nameEs}</p>
+                  <div className="mb-3">
+                    <div className="text-6xl sm:text-7xl font-bold font-mono leading-none mb-3 drop-shadow-sm">
+                      {sound.display}
                     </div>
-                    <button
-                      onClick={() => speakDemo(sound.demo || sound.examples[0]?.word)}
-                      className="shrink-0 w-12 h-12 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-all hover:scale-105"
-                      title="Escuchar pronunciación"
-                    >
-                      <Volume2 className="w-5 h-5 text-white" />
-                    </button>
+                    <h2 className="text-xl font-bold">{sound.name}</h2>
+                    <p className="text-white/80 text-sm mt-0.5">{sound.nameEs}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2 mt-4">
+                    {(sound.demos || [{ label: sound.display, text: sound.examples[0]?.word }]).map((d, i) => (
+                      <button
+                        key={i}
+                        onClick={() => speakDemo(d.text)}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/20 hover:bg-white/30 transition-all hover:scale-105 text-sm font-semibold"
+                        title={`Escuchar ${d.label}`}
+                      >
+                        <Volume2 className="w-4 h-4" />
+                        {d.label}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
