@@ -8,14 +8,31 @@ import { Badge } from '@/components/ui/badge';
 import { Layout } from '@/components/Layout';
 import { ROUTE_PATHS } from '@/lib/index';
 // Web Speech API — pronuncia palabras en inglés con la voz del navegador
+function getEnglishVoice() {
+  const voices = window.speechSynthesis.getVoices();
+  return voices.find(v => v.lang.startsWith('en-US')) || voices.find(v => v.lang.startsWith('en')) || null;
+}
+
 function speak(text) {
   if (!('speechSynthesis' in window)) return;
   window.speechSynthesis.cancel();
   const utt = new SpeechSynthesisUtterance(text);
   utt.lang = 'en-US';
   utt.rate = 0.82;
-  const voices = window.speechSynthesis.getVoices();
-  const eng = voices.find(v => v.lang.startsWith('en-US')) || voices.find(v => v.lang.startsWith('en'));
+  const eng = getEnglishVoice();
+  if (eng) utt.voice = eng;
+  window.speechSynthesis.speak(utt);
+}
+
+// Reproduce el demo del fonema: más lento para que suene aislado
+function speakDemo(demo) {
+  if (!('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
+  const utt = new SpeechSynthesisUtterance(demo);
+  utt.lang = 'en-US';
+  utt.rate = 0.45;
+  utt.pitch = 1;
+  const eng = getEnglishVoice();
   if (eng) utt.voice = eng;
   window.speechSynthesis.speak(utt);
 }
@@ -30,6 +47,7 @@ const SOUNDS = [
     display: '[iː]',
     name: 'Long EE',
     nameEs: 'I larga',
+    demo: 'eeeee',
     category: 'vowel',
     color: 'from-violet-500 to-purple-600',
     light: 'bg-violet-50 border-violet-200',
@@ -76,6 +94,7 @@ const SOUNDS = [
     symbol: 'ɪ',
     display: '[ɪ]',
     name: 'Short I',
+    demo: 'ih',
     nameEs: 'I corta',
     category: 'vowel',
     color: 'from-blue-500 to-indigo-600',
@@ -123,6 +142,7 @@ const SOUNDS = [
     display: '[eɪ]',
     name: 'Long A',
     nameEs: 'A larga (diptongo)',
+    demo: 'ayyyy',
     category: 'vowel',
     color: 'from-amber-500 to-orange-500',
     light: 'bg-amber-50 border-amber-200',
@@ -169,6 +189,7 @@ const SOUNDS = [
     display: '[ε]',
     name: 'Short E',
     nameEs: 'E corta',
+    demo: 'ehh',
     category: 'vowel',
     color: 'from-green-500 to-emerald-600',
     light: 'bg-green-50 border-green-200',
@@ -215,6 +236,7 @@ const SOUNDS = [
     display: '[æ]',
     name: 'Short A',
     nameEs: 'A abierta',
+    demo: 'aaa',
     category: 'vowel',
     color: 'from-pink-500 to-rose-600',
     light: 'bg-pink-50 border-pink-200',
@@ -258,6 +280,7 @@ const SOUNDS = [
     display: '[ɑː]',
     name: 'Long AH',
     nameEs: 'A profunda',
+    demo: 'ahhhh',
     category: 'vowel',
     color: 'from-teal-500 to-cyan-600',
     light: 'bg-teal-50 border-teal-200',
@@ -304,6 +327,7 @@ const SOUNDS = [
     display: '[ʌ]',
     name: 'Short U',
     nameEs: 'U corta (schwa tónica)',
+    demo: 'uh',
     category: 'vowel',
     color: 'from-orange-500 to-amber-600',
     light: 'bg-orange-50 border-orange-200',
@@ -331,6 +355,7 @@ const SOUNDS = [
     display: '[ə]',
     name: 'Schwa',
     nameEs: 'Schwa (vocal reducida)',
+    demo: 'uh',
     category: 'vowel',
     color: 'from-slate-500 to-gray-600',
     light: 'bg-slate-50 border-slate-200',
@@ -359,6 +384,7 @@ const SOUNDS = [
     display: '[oʊ]',
     name: 'Long O',
     nameEs: 'O larga (diptongo)',
+    demo: 'ohhh',
     category: 'vowel',
     color: 'from-indigo-500 to-blue-600',
     light: 'bg-indigo-50 border-indigo-200',
@@ -387,6 +413,7 @@ const SOUNDS = [
     display: '[uː]',
     name: 'Long OO',
     nameEs: 'U larga',
+    demo: 'ooooo',
     category: 'vowel',
     color: 'from-purple-500 to-violet-600',
     light: 'bg-purple-50 border-purple-200',
@@ -416,6 +443,7 @@ const SOUNDS = [
     display: '[t] [d]',
     name: 'T and D',
     nameEs: 'T y D',
+    demo: 't... d',
     category: 'consonant',
     color: 'from-sky-500 to-blue-600',
     light: 'bg-sky-50 border-sky-200',
@@ -444,6 +472,7 @@ const SOUNDS = [
     display: '[-ed]',
     name: 'Past tense -ed',
     nameEs: 'Pronunciación del -ed',
+    demo: 'talked. played. wanted',
     category: 'consonant',
     color: 'from-violet-500 to-purple-600',
     light: 'bg-violet-50 border-violet-200',
@@ -471,6 +500,7 @@ const SOUNDS = [
     display: '[p] [b] [k] [g]',
     name: 'Stop Consonants',
     nameEs: 'Oclusivas sordas y sonoras',
+    demo: 'p... b... k... g',
     category: 'consonant',
     color: 'from-orange-500 to-amber-600',
     light: 'bg-orange-50 border-orange-200',
@@ -499,6 +529,7 @@ const SOUNDS = [
     display: '[s] [z]',
     name: 'S and Z',
     nameEs: 'S y Z',
+    demo: 'sssss... zzzzz',
     category: 'consonant',
     color: 'from-green-500 to-emerald-600',
     light: 'bg-green-50 border-green-200',
@@ -527,6 +558,7 @@ const SOUNDS = [
     display: '[-s final]',
     name: 'Plural & 3rd person -s',
     nameEs: 'Pronunciación del -s final',
+    demo: 'cats. dogs. watches',
     category: 'consonant',
     color: 'from-lime-500 to-green-600',
     light: 'bg-lime-50 border-lime-200',
@@ -554,6 +586,7 @@ const SOUNDS = [
     display: '[f] [v] [h]',
     name: 'F, V and H',
     nameEs: 'F, V y H',
+    demo: 'ffffff... vvvvv... hhhhh',
     category: 'consonant',
     color: 'from-fuchsia-500 to-pink-600',
     light: 'bg-fuchsia-50 border-fuchsia-200',
@@ -581,6 +614,7 @@ const SOUNDS = [
     display: '[θ]',
     name: 'Voiceless TH',
     nameEs: 'TH sorda',
+    demo: 'thhhhh',
     category: 'consonant',
     color: 'from-rose-500 to-pink-600',
     light: 'bg-rose-50 border-rose-200',
@@ -606,6 +640,7 @@ const SOUNDS = [
     display: '[ð]',
     name: 'Voiced TH',
     nameEs: 'TH sonora',
+    demo: 'the... this... that',
     category: 'consonant',
     color: 'from-red-500 to-rose-600',
     light: 'bg-red-50 border-red-200',
@@ -631,6 +666,7 @@ const SOUNDS = [
     display: '[ʃ]',
     name: 'SH sound',
     nameEs: 'CH inglesa (SH)',
+    demo: 'shhhhh',
     category: 'consonant',
     color: 'from-emerald-500 to-teal-600',
     light: 'bg-emerald-50 border-emerald-200',
@@ -658,6 +694,7 @@ const SOUNDS = [
     display: '[r]',
     name: 'English R',
     nameEs: 'R inglesa',
+    demo: 'rrrr',
     category: 'consonant',
     color: 'from-cyan-500 to-blue-600',
     light: 'bg-cyan-50 border-cyan-200',
@@ -685,6 +722,7 @@ const SOUNDS = [
     display: '[ʒ]',
     name: 'ZH sound',
     nameEs: 'S francesa (ZH)',
+    demo: 'measure... vision... beige',
     category: 'consonant',
     color: 'from-indigo-500 to-violet-600',
     light: 'bg-indigo-50 border-indigo-200',
@@ -712,6 +750,7 @@ const SOUNDS = [
     display: '[ʧ] / [ʤ]',
     name: 'CH and J sounds',
     nameEs: 'CH y DY inglesas',
+    demo: 'ch... church. j... judge',
     category: 'consonant',
     color: 'from-orange-500 to-amber-600',
     light: 'bg-orange-50 border-orange-200',
@@ -741,6 +780,7 @@ const SOUNDS = [
     display: '[m] / [n] / [ŋ]',
     name: 'Nasal sounds',
     nameEs: 'Sonidos nasales',
+    demo: 'mmmmm... nnnnn... sing... ring',
     category: 'consonant',
     color: 'from-teal-500 to-emerald-600',
     light: 'bg-teal-50 border-teal-200',
@@ -769,6 +809,7 @@ const SOUNDS = [
     display: '[l]',
     name: 'English L',
     nameEs: 'L inglesa (clara y oscura)',
+    demo: 'llll... lll',
     category: 'consonant',
     color: 'from-sky-500 to-cyan-600',
     light: 'bg-sky-50 border-sky-200',
@@ -796,6 +837,7 @@ const SOUNDS = [
     display: '[j] / [w]',
     name: 'Glides: Y and W',
     nameEs: 'Semivocales Y y W',
+    demo: 'y... yes... w... we',
     category: 'consonant',
     color: 'from-pink-500 to-rose-600',
     light: 'bg-pink-50 border-pink-200',
@@ -1006,7 +1048,7 @@ export default function Phonetics({ isLoggedIn, onOpenAuth, onLogout, userName }
                       <p className="text-white/80 text-sm mt-0.5">{sound.nameEs}</p>
                     </div>
                     <button
-                      onClick={() => speak(sound.examples.map(e => e.word).join('. '))}
+                      onClick={() => speakDemo(sound.demo || sound.examples[0]?.word)}
                       className="shrink-0 w-12 h-12 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-all hover:scale-105"
                       title="Escuchar pronunciación"
                     >
