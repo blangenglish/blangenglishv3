@@ -1006,7 +1006,7 @@ export default function Phonetics({ isLoggedIn, onOpenAuth, onLogout, userName }
                       <p className="text-white/80 text-sm mt-0.5">{sound.nameEs}</p>
                     </div>
                     <button
-                      onClick={() => speak(sound.examples[0]?.word || sound.name)}
+                      onClick={() => speak(sound.examples.map(e => e.word).join('. '))}
                       className="shrink-0 w-12 h-12 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-all hover:scale-105"
                       title="Escuchar pronunciación"
                     >
