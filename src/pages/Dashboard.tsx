@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { usePricingPlans } from '@/hooks/useSupabaseData';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
@@ -1233,12 +1233,7 @@ useEffect(() => {
 
   // Not logged in guard — redirigir al home en vez de mostrar pantalla bloqueada
   if (!isLoggedIn) {
-    navigate(ROUTE_PATHS.HOME, { replace: true });
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
+    return <Navigate to={ROUTE_PATHS.HOME} replace />;
   }
 
   // Use profile name from DB (more up-to-date) or fall back to prop
