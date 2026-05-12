@@ -521,6 +521,7 @@ const SOUNDS = [
     name: 'Past tense -ed',
     nameEs: 'Pronunciación del -ed',
     demos: [{ label: '/t/ talked', text: 'talked' }, { label: '/d/ played', text: 'played' }, { label: '/ɪd/ wanted', text: 'wanted' }],
+    videoId: 'I-nMqycHubU',
     category: 'consonant',
     color: 'from-violet-500 to-purple-600',
     light: 'bg-violet-50 border-violet-200',
