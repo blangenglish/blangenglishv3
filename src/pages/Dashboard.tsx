@@ -23,8 +23,9 @@ import {
   AlertCircle, Flame, Star, Award, ChevronDown, ChevronUp,
   FlaskConical, Calendar, GraduationCap, MapPin, Phone,
   Video, Plus, Trash2, Clock, Mail, History, CheckCircle2,
-  ExternalLink, Copy, MessageSquare,
+  ExternalLink, Copy, MessageSquare, Sparkles,
 } from 'lucide-react';
+import { EnglishForYou } from '@/components/EnglishForYou';
 
 interface DashboardProps {
   isLoggedIn?: boolean;
@@ -33,7 +34,7 @@ interface DashboardProps {
   userName?: string;
 }
 
-type TabId = 'cursos' | 'cuenta' | 'pagos' | 'progreso' | 'sesion' | 'ayuda';
+type TabId = 'cursos' | 'cuenta' | 'pagos' | 'progreso' | 'sesion' | 'ayuda' | 'english';
 
 const LEVEL_COLORS: Record<string, { color: string; badge: string }> = {
   A1: { color: 'from-green-400/20 to-emerald-400/20 border-green-200', badge: 'bg-green-100 text-green-700' },
@@ -1391,6 +1392,7 @@ useEffect(() => {
               <nav className="p-2">
                 {([
                   { id: 'cursos',   icon: BookOpen,    label: 'Mis Cursos' },
+                  { id: 'english',  icon: Sparkles,    label: 'English for you!' },
                   { id: 'sesion',   icon: Video,       label: 'Sesión con Profesor' },
                   { id: 'cuenta',   icon: User,        label: 'Cuenta' },
                   { id: 'pagos',    icon: CreditCard,  label: 'Pagos' },
@@ -2561,6 +2563,9 @@ useEffect(() => {
               )}
                 </motion.div>
               )}
+
+              {/* ─── ENGLISH FOR YOU ─── */}
+              {activeTab === 'english' && <EnglishForYou />}
 
               {/* ─── AYUDA ─── */}
               {activeTab === 'ayuda' && (

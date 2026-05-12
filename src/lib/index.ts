@@ -10,6 +10,8 @@ export const ROUTE_PATHS = {
   TERMS: '/terms',
   PRIVACY: '/privacy',
   RESET_PASSWORD: '/reset-password',
+  ENGLISH_MODULE: '/english/:moduleSlug',
+  ENGLISH: '/english',
 } as const;
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
