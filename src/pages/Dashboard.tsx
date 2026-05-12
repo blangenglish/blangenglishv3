@@ -23,9 +23,10 @@ import {
   AlertCircle, Flame, Star, Award, ChevronDown, ChevronUp,
   FlaskConical, Calendar, GraduationCap, MapPin, Phone,
   Video, Plus, Trash2, Clock, Mail, History, CheckCircle2,
-  ExternalLink, Copy, MessageSquare, Sparkles,
+  ExternalLink, Copy, MessageSquare, Sparkles, Globe,
 } from 'lucide-react';
 import { EnglishForYou } from '@/components/EnglishForYou';
+import { MUNDO_REAL_TOPICS, MR_CATEGORIES } from '@/pages/MundoRealData';
 
 interface DashboardProps {
   isLoggedIn?: boolean;
@@ -34,7 +35,7 @@ interface DashboardProps {
   userName?: string;
 }
 
-type TabId = 'cursos' | 'cuenta' | 'pagos' | 'progreso' | 'sesion' | 'ayuda' | 'english';
+type TabId = 'cursos' | 'mundo-real' | 'cuenta' | 'pagos' | 'progreso' | 'sesion' | 'ayuda' | 'english';
 
 const LEVEL_COLORS: Record<string, { color: string; badge: string }> = {
   A1: { color: 'from-green-400/20 to-emerald-400/20 border-green-200', badge: 'bg-green-100 text-green-700' },
@@ -805,6 +806,23 @@ const [loadingUnits, setLoadingUnits] = useState<string | null>(null);
   const [modalTab, setModalTab] = useState<'paypal'|'pse'>('paypal');
   const [modalCopied, setModalCopied] = useState(false);
 
+  // Mundo Real state
+  const [mundoRealTopic, setMundoRealTopic] = useState<string | null>(null);
+  const [mundoRealTab, setMundoRealTab] = useState<'vocab'|'frases'|'estructura'|'dialogo'>('vocab');
+  const [mrAnswers, setMrAnswers] = useState<Record<string, number>>({});
+  const [mrWordOrder, setMrWordOrder] = useState<string[]>([]);
+  const [mrWordSubmitted, setMrWordSubmitted] = useState(false);
+  const [mrCategoryFilter, setMrCategoryFilter] = useState('Todos');
+  const [mrSearch, setMrSearch] = useState('');
+
+  function openMRTopic(id: string | null) {
+    setMundoRealTopic(id);
+    setMundoRealTab('vocab');
+    setMrAnswers({});
+    setMrWordOrder([]);
+    setMrWordSubmitted(false);
+  }
+
 useEffect(() => {
     // Load payment config
     supabase.from('payment_config').select('key, value').then(({ data }) => {
@@ -1386,8 +1404,9 @@ useEffect(() => {
               {/* Nav items */}
               <nav className="p-2">
                 {([
-                  { id: 'cursos',   icon: BookOpen,    label: 'Mis Cursos' },
-                  { id: 'english',  icon: Sparkles,    label: 'English for you!' },
+                  { id: 'cursos',      icon: BookOpen, label: 'Mis Cursos' },
+                  { id: 'mundo-real', icon: Globe,     label: 'Inglés para el Mundo Real' },
+                  { id: 'english',    icon: Sparkles,  label: 'English for you!' },
                   { id: 'sesion',   icon: Video,       label: 'Sesión con Profesor' },
                   { id: 'cuenta',   icon: User,        label: 'Cuenta' },
                   { id: 'pagos',    icon: CreditCard,  label: 'Pagos' },
@@ -2558,6 +2577,345 @@ useEffect(() => {
               )}
                 </motion.div>
               )}
+
+              {/* ─── INGLÉS PARA EL MUNDO REAL ─── */}
+              {activeTab === 'mundo-real' && (() => {
+                const topic = mundoRealTopic ? MUNDO_REAL_TOPICS.find(t => t.id === mundoRealTopic) : null;
+                const categories = MR_CATEGORIES;
+                const filtered = MUNDO_REAL_TOPICS.filter(t => {
+                  const matchCat = mrCategoryFilter === 'Todos' || t.category === mrCategoryFilter;
+                  const matchSearch = t.title.toLowerCase().includes(mrSearch.toLowerCase()) || t.category.toLowerCase().includes(mrSearch.toLowerCase());
+                  return matchCat && matchSearch;
+                });
+
+                if (!topic) {
+                  // ── LIST VIEW ──
+                  return (
+                    <motion.div key="mundo-real-list" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-5">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <Globe className="w-6 h-6 text-primary" />
+                          <h1 className="text-2xl md:text-3xl font-extrabold">Inglés para el Mundo Real</h1>
+                        </div>
+                        <p className="text-muted-foreground text-sm">Aprende inglés en situaciones cotidianas reales. Elige un tema y practica vocabulario, frases y conversaciones.</p>
+                      </div>
+                      {/* Search */}
+                      <input
+                        type="text"
+                        placeholder="Buscar tema..."
+                        value={mrSearch}
+                        onChange={e => setMrSearch(e.target.value)}
+                        className="w-full border border-border/60 bg-background rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                      />
+                      {/* Category filter */}
+                      <div className="flex flex-wrap gap-2">
+                        {categories.map(cat => (
+                          <button
+                            key={cat}
+                            onClick={() => setMrCategoryFilter(cat)}
+                            className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all ${mrCategoryFilter === cat ? 'bg-primary text-primary-foreground border-primary' : 'bg-background border-border/60 text-muted-foreground hover:border-primary/60'}`}
+                          >{cat}</button>
+                        ))}
+                      </div>
+                      {/* Grid */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {filtered.map((t, i) => (
+                          <motion.div
+                            key={t.id}
+                            initial={{ opacity: 0, y: 12 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: i * 0.03 }}
+                            className={`rounded-2xl border border-border/50 bg-gradient-to-br ${t.cardBg} shadow-sm hover:shadow-md transition-shadow cursor-pointer p-4 flex gap-3 items-start`}
+                            onClick={() => openMRTopic(t.id)}
+                          >
+                            <span className="text-3xl mt-0.5">{t.emoji}</span>
+                            <div className="flex-1 min-w-0">
+                              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${t.badge}`}>{t.category}</span>
+                              <h3 className="font-bold text-sm mt-1 leading-snug">{t.title}</h3>
+                            </div>
+                            <button
+                              className={`shrink-0 mt-1 px-3 py-1 rounded-xl text-xs font-bold bg-gradient-to-r ${t.color} text-white shadow-sm`}
+                              onClick={e => { e.stopPropagation(); openMRTopic(t.id); }}
+                            >Explorar</button>
+                          </motion.div>
+                        ))}
+                        {filtered.length === 0 && (
+                          <p className="col-span-2 text-center text-muted-foreground text-sm py-8">No se encontraron temas.</p>
+                        )}
+                      </div>
+                    </motion.div>
+                  );
+                }
+
+                // ── DETAIL VIEW ──
+                const tabs = [
+                  { id: 'vocab', label: '📖 Vocabulario' },
+                  { id: 'frases', label: '💬 Frases' },
+                  { id: 'estructura', label: '🏗️ Estructura' },
+                  { id: 'dialogo', label: '🎭 Diálogo' },
+                ] as const;
+
+                const speak = (text: string) => {
+                  const u = new SpeechSynthesisUtterance(text);
+                  u.lang = 'en-US'; u.rate = 0.85;
+                  window.speechSynthesis.cancel();
+                  window.speechSynthesis.speak(u);
+                };
+
+                return (
+                  <motion.div key={`mr-detail-${topic.id}`} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-5">
+                    {/* Back + header */}
+                    <div>
+                      <button onClick={() => openMRTopic(null)} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary mb-3 transition-colors">
+                        ← Volver a temas
+                      </button>
+                      <div className="flex items-center gap-3">
+                        <span className="text-4xl">{topic.emoji}</span>
+                        <div>
+                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${topic.badge}`}>{topic.category}</span>
+                          <h1 className="text-xl md:text-2xl font-extrabold mt-0.5">{topic.title}</h1>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Sub-tabs */}
+                    <div className="flex gap-2 flex-wrap">
+                      {tabs.map(tb => (
+                        <button
+                          key={tb.id}
+                          onClick={() => setMundoRealTab(tb.id)}
+                          className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all ${mundoRealTab === tb.id ? `bg-gradient-to-r ${topic.color} text-white shadow-sm` : 'bg-muted/60 text-muted-foreground hover:bg-muted'}`}
+                        >{tb.label}</button>
+                      ))}
+                    </div>
+
+                    {/* ── VOCABULARY TAB ── */}
+                    {mundoRealTab === 'vocab' && (
+                      <div className="space-y-4">
+                        <div className="rounded-2xl border border-border/50 bg-card shadow-sm divide-y divide-border/40">
+                          {topic.vocabulary.map((v, i) => (
+                            <div key={i} className="flex items-center gap-3 p-4">
+                              <button onClick={() => speak(v.word)} className="p-1.5 rounded-lg hover:bg-muted transition-colors text-primary" title="Escuchar">🔊</button>
+                              <div className="flex-1">
+                                <span className="font-bold text-base">{v.word}</span>
+                                <span className="mx-2 text-muted-foreground">→</span>
+                                <span className="text-muted-foreground text-sm">{v.translation}</span>
+                                <p className="text-xs text-muted-foreground/80 italic mt-0.5">"{v.example}"</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        {/* Vocab exercise */}
+                        <div className="rounded-2xl border border-border/50 bg-card shadow-sm p-4 space-y-3">
+                          <h3 className="font-bold text-sm">🎯 Ejercicio: ¿Cuál es la traducción?</h3>
+                          {topic.vocabulary.map((v, i) => {
+                            const key = `vocab-${i}`;
+                            const chosen = mrAnswers[key];
+                            const correct = v.options.indexOf(v.translation);
+                            return (
+                              <div key={key} className={`rounded-xl border p-3 ${chosen !== undefined ? (chosen === correct ? 'border-green-400 bg-green-50 dark:bg-green-950/20' : 'border-red-400 bg-red-50 dark:bg-red-950/20') : 'border-border/40'}`}>
+                                <p className="font-semibold text-sm mb-2">"{v.word}"</p>
+                                <div className="grid grid-cols-2 gap-1.5">
+                                  {v.options.map((opt, oi) => (
+                                    <button
+                                      key={oi}
+                                      disabled={chosen !== undefined}
+                                      onClick={() => setMrAnswers(a => ({ ...a, [key]: oi }))}
+                                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                                        chosen !== undefined
+                                          ? oi === correct ? 'bg-green-500 text-white border-green-500' : chosen === oi ? 'bg-red-400 text-white border-red-400' : 'bg-muted/40 text-muted-foreground border-border/40'
+                                          : 'bg-background border-border/60 hover:border-primary/60 hover:bg-primary/5'
+                                      }`}
+                                    >{opt}</button>
+                                  ))}
+                                </div>
+                                {chosen !== undefined && (
+                                  <p className={`text-xs mt-1.5 font-semibold ${chosen === correct ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
+                                    {chosen === correct ? '✅ ¡Correcto!' : `❌ Era: ${v.translation}`}
+                                  </p>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ── PHRASES TAB ── */}
+                    {mundoRealTab === 'frases' && (
+                      <div className="space-y-4">
+                        <div className="rounded-2xl border border-border/50 bg-card shadow-sm divide-y divide-border/40">
+                          {topic.phrases.map((p, i) => (
+                            <div key={i} className="p-4 flex gap-3 items-start">
+                              <button onClick={() => speak(p.phrase.replace('___', p.missing))} className="p-1.5 rounded-lg hover:bg-muted transition-colors text-primary mt-0.5" title="Escuchar">🔊</button>
+                              <div>
+                                <p className="font-bold text-sm">{p.phrase.replace('___', p.missing)}</p>
+                                <p className="text-muted-foreground text-xs mt-0.5">{p.meaning}</p>
+                                <span className="inline-block mt-1 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">Cuándo: {p.when}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        {/* Phrases exercise */}
+                        <div className="rounded-2xl border border-border/50 bg-card shadow-sm p-4 space-y-3">
+                          <h3 className="font-bold text-sm">🎯 Ejercicio: Completa la frase</h3>
+                          {topic.phrases.map((p, i) => {
+                            const key = `phrase-${i}`;
+                            const chosen = mrAnswers[key];
+                            return (
+                              <div key={key} className={`rounded-xl border p-3 ${chosen !== undefined ? (chosen === p.correct ? 'border-green-400 bg-green-50 dark:bg-green-950/20' : 'border-red-400 bg-red-50 dark:bg-red-950/20') : 'border-border/40'}`}>
+                                <p className="font-semibold text-sm mb-2">{p.phrase}</p>
+                                <div className="grid grid-cols-2 gap-1.5">
+                                  {p.options.map((opt, oi) => (
+                                    <button
+                                      key={oi}
+                                      disabled={chosen !== undefined}
+                                      onClick={() => setMrAnswers(a => ({ ...a, [key]: oi }))}
+                                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                                        chosen !== undefined
+                                          ? oi === p.correct ? 'bg-green-500 text-white border-green-500' : chosen === oi ? 'bg-red-400 text-white border-red-400' : 'bg-muted/40 text-muted-foreground border-border/40'
+                                          : 'bg-background border-border/60 hover:border-primary/60 hover:bg-primary/5'
+                                      }`}
+                                    >{opt}</button>
+                                  ))}
+                                </div>
+                                {chosen !== undefined && (
+                                  <p className={`text-xs mt-1.5 font-semibold ${chosen === p.correct ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
+                                    {chosen === p.correct ? '✅ ¡Correcto!' : `❌ Era: ${p.options[p.correct]}`}
+                                  </p>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ── STRUCTURE TAB ── */}
+                    {mundoRealTab === 'estructura' && (
+                      <div className="space-y-4">
+                        <div className="rounded-2xl border border-border/50 bg-card shadow-sm p-5 space-y-3">
+                          <h2 className="font-extrabold text-base">{topic.structure.title}</h2>
+                          <p className="text-sm text-muted-foreground">{topic.structure.explanation}</p>
+                          <div className="space-y-1.5">
+                            {topic.structure.examples.map((ex, i) => (
+                              <div key={i} className="flex items-center gap-2">
+                                <button onClick={() => speak(ex)} className="text-primary hover:opacity-70 transition-opacity" title="Escuchar">🔊</button>
+                                <p className="text-sm font-medium italic">"{ex}"</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        {/* Word order exercise */}
+                        <div className="rounded-2xl border border-border/50 bg-card shadow-sm p-4 space-y-3">
+                          <h3 className="font-bold text-sm">🎯 Ejercicio: Ordena las palabras</h3>
+                          <p className="text-xs text-muted-foreground">Forma la frase: <span className="font-semibold text-foreground">"{topic.structure.examples[2]}"</span></p>
+                          {/* Available words */}
+                          <div className="flex flex-wrap gap-2">
+                            {topic.structure.words.filter(w => !mrWordOrder.includes(w) || topic.structure.words.filter(x => x === w).length > mrWordOrder.filter(x => x === w).length).map((w, i) => (
+                              <button
+                                key={`avail-${i}-${w}`}
+                                disabled={mrWordSubmitted}
+                                onClick={() => setMrWordOrder(o => [...o, w])}
+                                className="px-3 py-1 rounded-lg border border-border/60 bg-background text-sm font-medium hover:border-primary/60 hover:bg-primary/5 transition-all disabled:opacity-40"
+                              >{w}</button>
+                            ))}
+                          </div>
+                          {/* Current order */}
+                          <div className="min-h-[40px] flex flex-wrap gap-2 rounded-xl border border-dashed border-border/60 bg-muted/30 p-2">
+                            {mrWordOrder.map((w, i) => (
+                              <button
+                                key={`order-${i}`}
+                                disabled={mrWordSubmitted}
+                                onClick={() => setMrWordOrder(o => { const n = [...o]; n.splice(i, 1); return n; })}
+                                className={`px-3 py-1 rounded-lg text-sm font-medium border transition-all ${mrWordSubmitted ? (mrWordOrder.join(' ') === topic.structure.examples[2] ? 'bg-green-500 text-white border-green-500' : 'bg-red-400 text-white border-red-400') : 'bg-primary/10 text-primary border-primary/40 hover:bg-red-50 hover:border-red-300'}`}
+                              >{w}</button>
+                            ))}
+                            {mrWordOrder.length === 0 && <span className="text-xs text-muted-foreground/60 self-center">Haz clic en las palabras para ordenarlas</span>}
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              disabled={mrWordOrder.length === 0 || mrWordSubmitted}
+                              onClick={() => setMrWordSubmitted(true)}
+                              className="px-4 py-1.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold disabled:opacity-40"
+                            >Verificar</button>
+                            <button
+                              onClick={() => { setMrWordOrder([]); setMrWordSubmitted(false); }}
+                              className="px-4 py-1.5 rounded-xl border border-border/60 text-xs font-medium hover:bg-muted"
+                            >Reiniciar</button>
+                          </div>
+                          {mrWordSubmitted && (
+                            <p className={`text-sm font-semibold ${mrWordOrder.join(' ') === topic.structure.examples[2] ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
+                              {mrWordOrder.join(' ') === topic.structure.examples[2] ? '✅ ¡Perfecto!' : `❌ La respuesta correcta es: "${topic.structure.examples[2]}"`}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ── DIALOGUE TAB ── */}
+                    {mundoRealTab === 'dialogo' && (() => {
+                      const bTurns = topic.dialogue.filter(l => l.speaker === 'B' && l.options);
+                      const totalB = bTurns.length;
+                      const answeredB = bTurns.filter((_, bi) => mrAnswers[`dial-${bi}`] !== undefined).length;
+                      const allDone = answeredB === totalB;
+                      let bIndex = 0;
+                      return (
+                        <div className="space-y-4">
+                          <div className="rounded-2xl border border-border/50 bg-card shadow-sm p-4 space-y-3">
+                            {topic.dialogue.map((line, li) => {
+                              const isB = line.speaker === 'B';
+                              const isInteractive = isB && line.options;
+                              const thisBIdx = isInteractive ? bIndex++ : -1;
+                              const key = `dial-${thisBIdx}`;
+                              const chosen = mrAnswers[key];
+                              const prevAnswered = thisBIdx === 0 || mrAnswers[`dial-${thisBIdx - 1}`] !== undefined;
+
+                              if (isInteractive && !prevAnswered) return null;
+
+                              return (
+                                <div key={li} className={`flex ${isB ? 'justify-end' : 'justify-start'}`}>
+                                  <div className={`max-w-[85%] ${isB ? 'items-end' : 'items-start'} flex flex-col gap-1`}>
+                                    <span className="text-xs text-muted-foreground px-1">{isB ? 'Tú' : 'A'}</span>
+                                    {!isInteractive ? (
+                                      <div className={`px-4 py-2.5 rounded-2xl text-sm font-medium ${isB ? 'bg-primary text-primary-foreground rounded-br-sm' : 'bg-muted text-foreground rounded-bl-sm'}`}>
+                                        {line.text}
+                                      </div>
+                                    ) : chosen !== undefined ? (
+                                      <div className={`px-4 py-2.5 rounded-2xl text-sm font-medium ${chosen === line.correct ? 'bg-green-500 text-white' : 'bg-red-400 text-white'} rounded-br-sm`}>
+                                        {line.options[chosen]}
+                                        {chosen !== line.correct && <span className="block text-xs mt-0.5 opacity-80">✓ {line.options[line.correct]}</span>}
+                                      </div>
+                                    ) : (
+                                      <div className="space-y-1.5">
+                                        {line.options.map((opt, oi) => (
+                                          <button
+                                            key={oi}
+                                            onClick={() => setMrAnswers(a => ({ ...a, [key]: oi }))}
+                                            className="block w-full text-left px-4 py-2 rounded-xl border border-border/60 bg-background text-sm hover:border-primary/60 hover:bg-primary/5 transition-all"
+                                          >{opt}</button>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          {allDone && (
+                            <div className="rounded-2xl border border-green-400 bg-green-50 dark:bg-green-950/20 p-4 text-center">
+                              <p className="font-bold text-green-700 dark:text-green-400">
+                                🎉 ¡Diálogo completado! Acertaste {bTurns.filter((t, bi) => mrAnswers[`dial-${bi}`] === t.correct).length} de {totalB} respuestas.
+                              </p>
+                              <button onClick={() => { const reset = {}; bTurns.forEach((_, bi) => { delete reset[`dial-${bi}`]; }); setMrAnswers(a => { const n = { ...a }; bTurns.forEach((_, bi) => delete n[`dial-${bi}`]); return n; }); }} className="mt-2 text-xs text-green-700 dark:text-green-400 underline">Intentar de nuevo</button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </motion.div>
+                );
+              })()}
 
               {/* ─── ENGLISH FOR YOU ─── */}
               {activeTab === 'english' && <EnglishForYou />}
