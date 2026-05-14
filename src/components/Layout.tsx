@@ -109,7 +109,7 @@ export function Layout({ children, isLoggedIn = false, onOpenAuth, onLogout, use
                 <>
                   <Button variant="ghost" size="sm" onClick={() => onOpenAuth?.('login')} className="gap-1.5">
                     <LogIn className="w-4 h-4" />
-                    Iniciar sesion 1
+                    Iniciar sesión
                   </Button>
                   <Button size="sm" onClick={() => onOpenAuth?.('register')} className="gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-full px-5">
                     <UserPlus className="w-4 h-4" />
