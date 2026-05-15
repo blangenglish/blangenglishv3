@@ -2929,7 +2929,7 @@ useEffect(() => {
 
               {/* ─── ENGLISH FOR YOU ─── */}
               {activeTab === 'english' && !showMundoReal && (
-                <EnglishForYou onMundoReal={() => { setShowMundoReal(true); openMRTopic(null); }} />
+                <EnglishForYou onMundoReal={() => { setShowMundoReal(true); openMRTopic(null); }} onClasesEnVivo={() => setActiveTab('sesion')} />
               )}
 
               {/* ─── AYUDA ─── */}

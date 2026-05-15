@@ -95,12 +95,13 @@ const MODULES = [
   },
 ];
 
-export function EnglishForYou({ onMundoReal }: { onMundoReal?: () => void }) {
+export function EnglishForYou({ onMundoReal, onClasesEnVivo }: { onMundoReal?: () => void; onClasesEnVivo?: () => void }) {
   const navigate = useNavigate();
 
   const handleClick = (slug: string) => {
     if (slug === 'fonetica') { navigate('/phonetics'); return; }
     if (slug === 'mundo-real' && onMundoReal) { onMundoReal(); return; }
+    if (slug === 'clases-en-vivo' && onClasesEnVivo) { onClasesEnVivo(); return; }
     navigate(`/english/${slug}`);
   };
 
