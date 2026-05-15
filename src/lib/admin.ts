@@ -9,6 +9,7 @@ export const ADMIN_ROUTES = {
   STUDENTS: '/adminblang/estudiantes',
   REVENUE: '/adminblang/ingresos',
   SITE_EDITOR: '/adminblang/sitio',
+  ENGLISH_FOR_STUDENTS: '/adminblang/english-students',
 } as const;
 
 export interface DBCourse {
