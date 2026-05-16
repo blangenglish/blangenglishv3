@@ -816,6 +816,13 @@ const [loadingUnits, setLoadingUnits] = useState<string | null>(null);
   const [mrCategoryFilter, setMrCategoryFilter] = useState('Todos');
   const [mrSearch, setMrSearch] = useState('');
 
+  // Review state
+  const [existingReview, setExistingReview] = useState<{ rating: number; comment: string } | null | 'loading'>('loading');
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState('');
+  const [reviewHover, setReviewHover] = useState(0);
+  const [reviewSending, setReviewSending] = useState(false);
+
   function openMRTopic(id: string | null) {
     setMundoRealTopic(id);
     setMundoRealTab('vocab');
@@ -1026,6 +1033,32 @@ useEffect(() => {
         });
     });
   }, [isLoggedIn]); // userName excluido: cambia después del primer load y dispararía doble carga
+
+  // Cargar reseña existente del estudiante
+  useEffect(() => {
+    if (!currentUserId) return;
+    supabase
+      .from('student_reviews')
+      .select('rating, comment')
+      .eq('user_id', currentUserId)
+      .maybeSingle()
+      .then(({ data }) => setExistingReview(data ?? null));
+  }, [currentUserId]);
+
+  const handleSubmitReview = async () => {
+    if (!reviewRating || !reviewComment.trim() || !currentUserId) return;
+    setReviewSending(true);
+    const { error } = await supabase.from('student_reviews').insert({
+      user_id: currentUserId,
+      full_name: profileForm.name || userName || 'Estudiante',
+      rating: reviewRating,
+      comment: reviewComment.trim(),
+    });
+    if (!error) {
+      setExistingReview({ rating: reviewRating, comment: reviewComment.trim() });
+    }
+    setReviewSending(false);
+  };
 
   // Realtime + polling para detectar cambios del admin (onboarding_step, plan, acceso módulos)
   useEffect(() => {
@@ -2159,6 +2192,84 @@ useEffect(() => {
                       </Button>
                     </form>
                   </div>
+
+                  {/* ─── RESEÑA ─── */}
+                  <div className="bg-card rounded-2xl border border-border/60 p-5 shadow-sm space-y-4">
+                    <h2 className="font-bold text-base flex items-center gap-2">
+                      <Star className="w-4 h-4 text-amber-400 fill-amber-400" /> Califica tu experiencia
+                    </h2>
+
+                    {existingReview === 'loading' ? (
+                      <div className="flex justify-center py-4">
+                        <span className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                      </div>
+                    ) : existingReview !== null ? (
+                      <div className="space-y-3">
+                        <div className="flex gap-1">
+                          {[1,2,3,4,5].map(s => (
+                            <Star key={s} className={`w-6 h-6 ${s <= existingReview.rating ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground/30'}`} />
+                          ))}
+                        </div>
+                        <p className="text-sm bg-muted/50 rounded-xl p-3 text-foreground leading-relaxed">
+                          "{existingReview.comment}"
+                        </p>
+                        <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                          <Check className="w-3.5 h-3.5 text-green-500" /> Tu reseña ya fue enviada. ¡Gracias!
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {/* Selector de estrellas */}
+                        <div>
+                          <p className="text-sm text-muted-foreground mb-2">¿Cómo calificarías tu experiencia?</p>
+                          <div className="flex gap-1.5">
+                            {[1,2,3,4,5].map(s => (
+                              <button
+                                key={s}
+                                onClick={() => setReviewRating(s)}
+                                onMouseEnter={() => setReviewHover(s)}
+                                onMouseLeave={() => setReviewHover(0)}
+                                className="transition-transform hover:scale-110 focus:outline-none"
+                              >
+                                <Star className={`w-8 h-8 transition-colors ${s <= (reviewHover || reviewRating) ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground/30 hover:text-amber-300'}`} />
+                              </button>
+                            ))}
+                          </div>
+                          {reviewRating > 0 && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {['', 'Muy malo 😞', 'Malo 😕', 'Regular 😐', 'Bueno 😊', '¡Excelente! 🌟'][reviewRating]}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Comentario */}
+                        <div className="space-y-1.5">
+                          <label className="text-sm text-muted-foreground">Deja un comentario (opcional pero muy valioso 💬)</label>
+                          <textarea
+                            value={reviewComment}
+                            onChange={e => setReviewComment(e.target.value)}
+                            placeholder="Cuéntanos tu experiencia aprendiendo inglés con BLANG..."
+                            rows={3}
+                            className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
+                          />
+                        </div>
+
+                        <Button
+                          onClick={handleSubmitReview}
+                          disabled={reviewSending || !reviewRating || !reviewComment.trim()}
+                          className="rounded-xl px-6 h-9 text-sm"
+                        >
+                          {reviewSending ? (
+                            <span className="flex items-center gap-2">
+                              <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                              Enviando...
+                            </span>
+                          ) : 'Enviar reseña ⭐'}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
                 </motion.div>
               )}
 

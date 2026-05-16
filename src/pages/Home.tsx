@@ -5,10 +5,11 @@ import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Star } from 'lucide-react';
 import { ROUTE_PATHS } from '@/lib/index';
 import type { AuthModal } from '@/lib/index';
 import { IMAGES } from '@/assets/images';
+import { supabase } from '@/integrations/supabase/client';
 
 const staggerContainer = {
   hidden: { opacity: 0 },
@@ -47,6 +48,17 @@ const METHODOLOGY_STEPS = [
 export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
   const [ctaEmail, setCtaEmail] = useState('');
   const navigate = useNavigate();
+  const [reviews, setReviews] = useState<{ full_name: string; rating: number; comment: string }[]>([]);
+
+  useEffect(() => {
+    supabase
+      .from('student_reviews')
+      .select('full_name, rating, comment')
+      .eq('is_published', true)
+      .order('created_at', { ascending: false })
+      .limit(12)
+      .then(({ data }) => { if (data?.length) setReviews(data); });
+  }, []);
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -509,6 +521,64 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
           </motion.div>
         </div>
       </section>
+
+      {/* ── RESEÑAS DE ESTUDIANTES ── */}
+      {reviews.length > 0 && (
+        <section id="reviews" className="py-14 sm:py-20">
+          <div className="container mx-auto px-4">
+            <motion.div
+              initial="hidden" whileInView="visible" viewport={{ once: true }} variants={staggerContainer}
+            >
+              {/* Encabezado */}
+              <motion.div variants={staggerItem} className="text-center mb-10 sm:mb-14">
+                <span className="inline-flex items-center gap-2 bg-amber-100 text-amber-700 text-xs font-bold px-4 py-1.5 rounded-full mb-4 border border-amber-200">
+                  <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" /> Reseñas reales
+                </span>
+                <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-3">
+                  Lo que dicen nuestros <span className="text-primary">estudiantes</span>
+                </h2>
+                <p className="text-muted-foreground text-base max-w-xl mx-auto">
+                  Experiencias de personas que ya están aprendiendo inglés con BLANG.
+                </p>
+              </motion.div>
+
+              {/* Grid de reseñas */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+                {reviews.map((r, i) => (
+                  <motion.div
+                    key={i}
+                    variants={staggerItem}
+                    className="bg-card border border-border/60 rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col gap-3 hover:shadow-md transition-shadow"
+                  >
+                    {/* Estrellas */}
+                    <div className="flex gap-0.5">
+                      {[1,2,3,4,5].map(s => (
+                        <Star
+                          key={s}
+                          className={`w-4 h-4 ${s <= r.rating ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground/20'}`}
+                        />
+                      ))}
+                    </div>
+
+                    {/* Comentario */}
+                    <p className="text-sm text-foreground leading-relaxed flex-1">
+                      "{r.comment}"
+                    </p>
+
+                    {/* Autor */}
+                    <div className="flex items-center gap-2.5 pt-1 border-t border-border/40">
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shrink-0">
+                        {r.full_name.charAt(0).toUpperCase()}
+                      </div>
+                      <span className="text-sm font-semibold text-foreground">{r.full_name}</span>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          </div>
+        </section>
+      )}
 
     </Layout>
   );
