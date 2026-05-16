@@ -993,7 +993,7 @@ useEffect(() => {
     // Cargar sesión y perfil al montar — usando getSession para tener el token listo
     supabase.auth.getSession().then(({ data: { session } }) => {
       const user = session?.user;
-      if (!user) return;
+      if (!user) { setProfileLoading(false); return; }
       setCurrentEmail(user.email || '');
       setCurrentUserId(user.id);
       setSessionEmail(user.email || '');
@@ -1048,16 +1048,21 @@ useEffect(() => {
   const handleSubmitReview = async () => {
     if (!reviewRating || !reviewComment.trim() || !currentUserId) return;
     setReviewSending(true);
-    const { error } = await supabase.from('student_reviews').insert({
-      user_id: currentUserId,
-      full_name: profileForm.name || userName || 'Estudiante',
-      rating: reviewRating,
-      comment: reviewComment.trim(),
-    });
-    if (!error) {
-      setExistingReview({ rating: reviewRating, comment: reviewComment.trim() });
+    try {
+      const { error } = await supabase.from('student_reviews').insert({
+        user_id: currentUserId,
+        full_name: profileForm.name || userName || 'Estudiante',
+        rating: reviewRating,
+        comment: reviewComment.trim(),
+      });
+      if (!error) {
+        setExistingReview({ rating: reviewRating, comment: reviewComment.trim() });
+      }
+    } catch (_) {
+      // silenciar error de red
+    } finally {
+      setReviewSending(false);
     }
-    setReviewSending(false);
   };
 
   // Realtime + polling para detectar cambios del admin (onboarding_step, plan, acceso módulos)
@@ -1287,8 +1292,6 @@ useEffect(() => {
 
   const handleLogout = async () => {
     try { await supabase.auth.signOut(); } catch (_) {}
-    localStorage.clear();
-    sessionStorage.clear();
     // Llamar prop del padre si existe (actualiza estado React en App.tsx)
     if (onLogout) { onLogout(); return; }
     // Fallback: recarga forzada en la ruta raíz
