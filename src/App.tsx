@@ -30,6 +30,7 @@ import AdminCourses from '@/pages/admin/AdminCourses';
 import AdminStudents from '@/pages/admin/AdminStudents';
 import AdminRevenue from '@/pages/admin/AdminRevenue';
 import AdminEnglishForStudents from '@/pages/admin/AdminEnglishForStudents';
+import AdminReviews from '@/pages/admin/AdminReviews';
 
 const queryClient = new QueryClient();
 
@@ -164,6 +165,7 @@ function AppRoutes() {
         <Route path={ADMIN_ROUTES.STUDENTS} element={<AdminStudents />} />
         <Route path={ADMIN_ROUTES.REVENUE} element={<AdminRevenue />} />
         <Route path={ADMIN_ROUTES.ENGLISH_FOR_STUDENTS} element={<AdminEnglishForStudents />} />
+        <Route path={ADMIN_ROUTES.REVIEWS} element={<AdminReviews />} />
       </Routes>
     );
   }
