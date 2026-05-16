@@ -811,6 +811,10 @@ const [loadingUnits, setLoadingUnits] = useState<string | null>(null);
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [bookingSlotId, setBookingSlotId] = useState<string | null>(null);
   const [bookedSlotIds, setBookedSlotIds] = useState<Set<string>>(new Set());
+  const [bookingModalSlot, setBookingModalSlot] = useState<{ id: string; date: string; start_time: string; end_time: string; teacher_name: string } | null>(null);
+  const [bookingFormTopic, setBookingFormTopic] = useState('');
+  const [bookingSubmitting, setBookingSubmitting] = useState(false);
+  const [bookingSuccess, setBookingSuccess] = useState(false);
 
   // Mundo Real state
   const [showMundoReal, setShowMundoReal] = useState(false);
@@ -1081,6 +1085,45 @@ useEffect(() => {
       // silenciar error de red
     } finally {
       setReviewSending(false);
+    }
+  };
+
+  const handleSubmitBooking = async () => {
+    if (!bookingModalSlot || !bookingFormTopic.trim()) return;
+    setBookingSubmitting(true);
+    try {
+      const studentName = profileForm.name || userName || 'Estudiante';
+      const studentEmail = currentEmail || userEmail || '';
+      const { data, error } = await supabase.rpc('book_schedule_slot', {
+        p_slot_id: bookingModalSlot.id,
+        p_student_name: studentName,
+        p_student_email: studentEmail,
+        p_topic: bookingFormTopic.trim(),
+      });
+      if (!error && data?.success) {
+        // Remove slot from list (it's now pending)
+        setScheduleSlots(prev => prev.filter(s => s.id !== bookingModalSlot.id));
+        setBookingSuccess(true);
+        // Send notification email to admin
+        try {
+          await supabase.functions.invoke('send-session-email', {
+            body: {
+              type: 'slot_booking',
+              studentName,
+              studentEmail,
+              slotDate: bookingModalSlot.date,
+              slotStartTime: bookingModalSlot.start_time,
+              slotEndTime: bookingModalSlot.end_time,
+              teacherName: bookingModalSlot.teacher_name,
+              topic: bookingFormTopic.trim(),
+            },
+          });
+        } catch (_) { /* email failure is non-critical */ }
+      }
+    } catch (_) {
+      // silent
+    } finally {
+      setBookingSubmitting(false);
     }
   };
 
@@ -1856,30 +1899,14 @@ useEffect(() => {
                                 ) : (
                                   <Button
                                     size="sm"
-                                    disabled={isBooking || !!bookingSlotId}
-                                    onClick={async () => {
-                                      setBookingSlotId(slot.id);
-                                      try {
-                                        const { data, error } = await supabase.rpc('book_schedule_slot', { p_slot_id: slot.id });
-                                        if (!error && data?.success) {
-                                          setBookedSlotIds(prev => new Set([...prev, slot.id]));
-                                          setScheduleSlots(prev => prev.map(s =>
-                                            s.id === slot.id
-                                              ? { ...s, available_spots: data.available_spots }
-                                              : s
-                                          ).filter(s => s.available_spots > 0 || bookedSlotIds.has(s.id) || s.id === slot.id));
-                                        }
-                                      } catch (_) {}
-                                      finally { setBookingSlotId(null); }
+                                    onClick={() => {
+                                      setBookingModalSlot(slot);
+                                      setBookingFormTopic('');
+                                      setBookingSuccess(false);
                                     }}
                                     className="rounded-xl shrink-0 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white text-xs px-4"
                                   >
-                                    {isBooking ? (
-                                      <span className="flex items-center gap-1.5">
-                                        <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                        Reservando...
-                                      </span>
-                                    ) : 'Reservar'}
+                                    Reservar
                                   </Button>
                                 )}
                               </motion.div>
@@ -3125,6 +3152,134 @@ useEffect(() => {
           onClose={() => setShowLevelExam(false)}
         />
       )}
+
+      {/* ── BOOKING CONFIRMATION MODAL ── */}
+      <AnimatePresence>
+        {bookingModalSlot && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+            onClick={e => { if (e.target === e.currentTarget && !bookingSubmitting) { setBookingModalSlot(null); setBookingSuccess(false); } }}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 16 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 16 }}
+              transition={{ type: 'spring', duration: 0.35 }}
+              className="bg-card rounded-2xl border border-border shadow-xl w-full max-w-md overflow-hidden"
+            >
+              {bookingSuccess ? (
+                /* ── SUCCESS STATE ── */
+                <div className="p-8 flex flex-col items-center text-center gap-4">
+                  <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-3xl">✅</div>
+                  <div>
+                    <h3 className="font-extrabold text-lg mb-2">¡Solicitud enviada!</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Estate pendiente de tu correo — te llegará el link de pago. Una vez realices el pago, agendaremos tu clase. 🎉
+                    </p>
+                  </div>
+                  <Button
+                    className="rounded-xl px-8 mt-2"
+                    onClick={() => { setBookingModalSlot(null); setBookingSuccess(false); }}
+                  >
+                    Cerrar
+                  </Button>
+                </div>
+              ) : (
+                /* ── FORM STATE ── */
+                <>
+                  <div className="px-6 pt-6 pb-4 border-b border-border/60">
+                    <h3 className="font-extrabold text-base flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-primary" /> Confirmar reserva
+                    </h3>
+                    <p className="text-xs text-muted-foreground mt-1">Revisa los datos y cuéntanos qué quieres practicar.</p>
+                  </div>
+
+                  <div className="p-6 space-y-4">
+                    {/* Slot info (read-only) */}
+                    <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 space-y-1.5">
+                      <div className="flex items-center gap-2 text-sm">
+                        <Clock className="w-3.5 h-3.5 text-primary shrink-0" />
+                        <span className="font-semibold text-foreground">
+                          {(() => {
+                            const months = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+                            const [y,m,d] = bookingModalSlot.date.split('-');
+                            return `${parseInt(d)} de ${months[parseInt(m)-1]} de ${y}`;
+                          })()}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <span className="w-3.5 h-3.5 shrink-0" />
+                        {bookingModalSlot.start_time.slice(0,5)} – {bookingModalSlot.end_time.slice(0,5)} · Prof. {bookingModalSlot.teacher_name}
+                      </div>
+                    </div>
+
+                    {/* Name (pre-filled, read-only) */}
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Nombre</Label>
+                      <Input
+                        value={profileForm.name || userName || 'Estudiante'}
+                        readOnly
+                        className="rounded-xl bg-muted/40 border-border/50 text-sm cursor-not-allowed"
+                      />
+                    </div>
+
+                    {/* Email (pre-filled, read-only) */}
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Correo</Label>
+                      <Input
+                        value={currentEmail || userEmail || ''}
+                        readOnly
+                        className="rounded-xl bg-muted/40 border-border/50 text-sm cursor-not-allowed"
+                      />
+                    </div>
+
+                    {/* Topic */}
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                        ¿Qué quieres estudiar en esta sesión? <span className="text-destructive">*</span>
+                      </Label>
+                      <textarea
+                        value={bookingFormTopic}
+                        onChange={e => setBookingFormTopic(e.target.value)}
+                        placeholder="Ej: Verbos en pasado, pronunciación, vocabulario de negocios..."
+                        rows={3}
+                        className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      />
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-3 pt-1">
+                      <Button
+                        variant="outline"
+                        className="rounded-xl flex-1"
+                        onClick={() => { setBookingModalSlot(null); setBookingSuccess(false); }}
+                        disabled={bookingSubmitting}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button
+                        className="rounded-xl flex-1 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white"
+                        onClick={handleSubmitBooking}
+                        disabled={bookingSubmitting || !bookingFormTopic.trim()}
+                      >
+                        {bookingSubmitting ? (
+                          <span className="flex items-center gap-2">
+                            <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            Enviando...
+                          </span>
+                        ) : 'Enviar solicitud'}
+                      </Button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
