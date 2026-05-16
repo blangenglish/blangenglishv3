@@ -18,7 +18,7 @@ import { OnboardingFlow } from '@/components/OnboardingFlow';
 import { LevelExam } from '@/components/LevelExam';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import {
-  User, CreditCard, HelpCircle, LogOut,
+  User, Users, CreditCard, HelpCircle, LogOut,
   ChevronRight, BookOpen, Lock, Eye, EyeOff, Check,
   AlertCircle, Flame, Star, Award, ChevronDown, ChevronUp,
   FlaskConical, Calendar, GraduationCap, MapPin, Phone,
@@ -806,6 +806,12 @@ const [loadingUnits, setLoadingUnits] = useState<string | null>(null);
   const [modalTab, setModalTab] = useState<'paypal'|'pse'>('paypal');
   const [modalCopied, setModalCopied] = useState(false);
 
+  // Schedule slots (sesión con profesor)
+  const [scheduleSlots, setScheduleSlots] = useState<{ id: string; date: string; start_time: string; end_time: string; teacher_name: string; available_spots: number }[]>([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+  const [bookingSlotId, setBookingSlotId] = useState<string | null>(null);
+  const [bookedSlotIds, setBookedSlotIds] = useState<Set<string>>(new Set());
+
   // Mundo Real state
   const [showMundoReal, setShowMundoReal] = useState(false);
   const [mundoRealTopic, setMundoRealTopic] = useState<string | null>(null);
@@ -835,6 +841,19 @@ const [loadingUnits, setLoadingUnits] = useState<string | null>(null);
     if (activeTab !== 'english') {
       setShowMundoReal(false);
       openMRTopic(null);
+    }
+    if (activeTab === 'sesion' && scheduleSlots.length === 0 && !slotsLoading) {
+      setSlotsLoading(true);
+      supabase
+        .from('schedule_slots')
+        .select('id, date, start_time, end_time, teacher_name, available_spots')
+        .gt('available_spots', 0)
+        .order('date', { ascending: true })
+        .order('start_time', { ascending: true })
+        .then(({ data }) => {
+          setScheduleSlots(data || []);
+          setSlotsLoading(false);
+        });
     }
   }, [activeTab]);
 
@@ -1750,186 +1769,128 @@ useEffect(() => {
                       </div>
                     </div>
 
-                    {/* Form card */}
+                    {/* Horarios disponibles */}
                     <div className="-mt-5 mx-4 mb-4 bg-background rounded-2xl border border-border/50 shadow-md p-5">
-                      {sessionSent ? (
-                        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-8">
-                          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                            <Check className="w-8 h-8 text-green-600" />
-                          </div>
-                          <p className="font-bold text-green-700 text-xl">¡Solicitud enviada! 🎉</p>
-                          <p className="text-sm text-muted-foreground mt-2 mb-5">Revisaremos tu solicitud y te contactaremos pronto para confirmar horario y método de pago.</p>
-                          <Button variant="outline" size="sm" className="rounded-xl text-xs" onClick={() => {
-                            setSessionSent(false);
-                            setSessionSlots([{ date: '', topic: '' }]);
-                            setSessionWeekly(false);
-                            setSessionWeeklyHours('');
-                            setSessionWeeklySchedule('');
-                            setSessionObjective('');
-                          }}>Enviar otra solicitud</Button>
-                        </motion.div>
+                      <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-4">
+                        Horarios disponibles
+                      </p>
+
+                      {slotsLoading ? (
+                        <div className="space-y-3">
+                          {[1,2,3].map(i => (
+                            <div key={i} className="animate-pulse rounded-2xl border border-border/40 p-4 flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-muted shrink-0" />
+                              <div className="flex-1 space-y-2">
+                                <div className="h-3.5 w-36 bg-muted rounded-full" />
+                                <div className="h-3 w-52 bg-muted rounded-full" />
+                              </div>
+                              <div className="w-20 h-8 bg-muted rounded-xl shrink-0" />
+                            </div>
+                          ))}
+                        </div>
+                      ) : scheduleSlots.length === 0 ? (
+                        <div className="text-center py-10 text-muted-foreground">
+                          <Calendar className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                          <p className="font-semibold text-sm">Sin horarios disponibles por ahora</p>
+                          <p className="text-xs mt-1">El profesor publicará nuevos horarios pronto. ¡Vuelve a revisar!</p>
+                        </div>
                       ) : (
-                        <form onSubmit={handleSessionSubmit} className="space-y-5">
-                          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Solicitar sesión</p>
+                        <div className="space-y-3">
+                          {scheduleSlots.map(slot => {
+                            const isBooked = bookedSlotIds.has(slot.id);
+                            const isBooking = bookingSlotId === slot.id;
+                            const noSpots = slot.available_spots <= 0;
+                            const months = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+                            const [y, m, d] = slot.date.split('-');
+                            const dateLabel = `${d} ${months[parseInt(m)-1]} ${y}`;
+                            const timeLabel = `${slot.start_time.slice(0,5)} – ${slot.end_time.slice(0,5)}`;
 
-                          {/* Contact info */}
-                          <div className="grid sm:grid-cols-2 gap-3">
-                            <div className="space-y-1.5">
-                              <Label className="text-xs font-medium text-muted-foreground">Tu nombre</Label>
-                              <Input value={sessionName} onChange={e => setSessionName(e.target.value)} placeholder="Nombre completo" className="rounded-xl h-9 text-sm" required />
-                            </div>
-                            <div className="space-y-1.5">
-                              <Label className="text-xs font-medium text-muted-foreground">Correo de contacto</Label>
-                              <Input type="email" value={sessionEmail} onChange={e => setSessionEmail(e.target.value)} placeholder="tu@correo.com" className="rounded-xl h-9 text-sm" required />
-                            </div>
-                          </div>
-
-                          {/* Dynamic session slots */}
-                          <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                              <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wide">📅 Fecha(s) que deseas reservar</Label>
-                            </div>
-                            {sessionSlots.map((slot, idx) => (
-                              <div key={idx} className="flex gap-2 items-start bg-muted/30 rounded-xl p-3 border border-border/40">
-                                <div className="flex-1 grid sm:grid-cols-2 gap-2">
-                                  <div className="space-y-1">
-                                    <Label className="text-xs text-muted-foreground">Fecha preferida</Label>
-                                    <Input
-                                      type="date"
-                                      value={slot.date}
-                                      min={new Date().toISOString().split('T')[0]}
-                                      onChange={e => {
-                                        const updated = [...sessionSlots];
-                                        updated[idx] = { ...updated[idx], date: e.target.value };
-                                        setSessionSlots(updated);
-                                      }}
-                                      className="rounded-xl h-9 text-sm"
-                                    />
-                                  </div>
-                                  <div className="space-y-1">
-                                    <Label className="text-xs text-muted-foreground">Tema o propósito</Label>
-                                    <Input
-                                      placeholder="Ej: Practicar speaking, revisar gramática..."
-                                      value={slot.topic}
-                                      onChange={e => {
-                                        const updated = [...sessionSlots];
-                                        updated[idx] = { ...updated[idx], topic: e.target.value };
-                                        setSessionSlots(updated);
-                                      }}
-                                      className="rounded-xl h-9 text-sm"
-                                    />
-                                  </div>
-                                </div>
-                                {sessionSlots.length > 1 && (
-                                  <button type="button" onClick={() => setSessionSlots(prev => prev.filter((_, i) => i !== idx))}
-                                    className="mt-5 p-1.5 text-muted-foreground hover:text-destructive rounded-lg hover:bg-destructive/10 transition-colors">
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
-                                )}
-                              </div>
-                            ))}
-                            <button type="button"
-                              onClick={() => setSessionSlots(prev => [...prev, { date: '', topic: '' }])}
-                              className="flex items-center gap-2 text-sm text-primary hover:text-primary/80 font-semibold transition-colors">
-                              <Plus className="w-4 h-4" /> Agregar otra fecha
-                            </button>
-                          </div>
-
-                          {/* Objective */}
-                          <div className="space-y-1.5">
-                            <Label className="text-xs font-medium text-muted-foreground">🎯 Tu objetivo con las sesiones <span className="text-muted-foreground/60">(opcional)</span></Label>
-                            <textarea
-                              value={sessionObjective}
-                              onChange={e => setSessionObjective(e.target.value)}
-                              rows={2}
-                              placeholder="Ej: Mejorar mi fluidez para entrevistas de trabajo, preparar un examen, perder el miedo a hablar..."
-                              className="w-full rounded-xl border border-input bg-muted/30 px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
-                            />
-                          </div>
-
-                          {/* Weekly plan toggle */}
-                          <div className={`rounded-2xl border-2 p-4 transition-all ${
-                            sessionWeekly ? 'border-violet-300 bg-violet-50/60' : 'border-border/40 bg-muted/20'
-                          }`}>
-                            <button type="button"
-                              onClick={() => setSessionWeekly(v => !v)}
-                              className="w-full flex items-center justify-between gap-3 text-left"
-                            >
-                              <div className="flex items-center gap-3">
+                            return (
+                              <motion.div
+                                key={slot.id}
+                                initial={{ opacity: 0, y: 8 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className={`rounded-2xl border p-4 flex items-center gap-3 transition-all ${
+                                  isBooked
+                                    ? 'border-green-200 bg-green-50/60'
+                                    : noSpots
+                                    ? 'border-border/30 bg-muted/30 opacity-60'
+                                    : 'border-border/60 bg-background hover:border-primary/30 hover:shadow-sm'
+                                }`}
+                              >
+                                {/* Ícono fecha */}
                                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                                  sessionWeekly ? 'bg-violet-600 text-white' : 'bg-muted text-muted-foreground'
+                                  isBooked ? 'bg-green-100' : 'bg-primary/10'
                                 }`}>
-                                  <Clock className="w-5 h-5" />
+                                  {isBooked
+                                    ? <Check className="w-5 h-5 text-green-600" />
+                                    : <Calendar className="w-5 h-5 text-primary" />
+                                  }
                                 </div>
-                                <div>
-                                  <p className="font-bold text-sm">¿Quieres más de 1 clase a la semana?</p>
-                                  <p className="text-xs text-muted-foreground">Servicio personalizado — cuéntanos tu disponibilidad</p>
-                                </div>
-                              </div>
-                              <div className={`w-11 h-6 rounded-full transition-all relative shrink-0 ${
-                                sessionWeekly ? 'bg-violet-600' : 'bg-muted-foreground/30'
-                              }`}>
-                                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all ${
-                                  sessionWeekly ? 'left-6' : 'left-1'
-                                }`} />
-                              </div>
-                            </button>
 
-                            <AnimatePresence>
-                              {sessionWeekly && (
-                                <motion.div
-                                  initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
-                                  className="overflow-hidden"
-                                >
-                                  <div className="mt-4 space-y-3 pt-4 border-t border-violet-200/60">
-                                    <div className="space-y-1.5">
-                                      <Label className="text-xs font-medium text-violet-700">¿Cuántas horas semanales deseas reservar?</Label>
-                                      <Input
-                                        placeholder="Ej: 2 horas por semana, 3 sesiones de 1 hora..."
-                                        value={sessionWeeklyHours}
-                                        onChange={e => setSessionWeeklyHours(e.target.value)}
-                                        className="rounded-xl h-9 text-sm border-violet-200 focus-visible:ring-violet-400"
-                                      />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                      <Label className="text-xs font-medium text-violet-700">¿Qué horas tienes disponibles durante la semana?</Label>
-                                      <textarea
-                                        value={sessionWeeklySchedule}
-                                        onChange={e => setSessionWeeklySchedule(e.target.value)}
-                                        rows={3}
-                                        placeholder="Ej: Lunes y miércoles de 7-9pm, sábados por la mañana de 9am-12pm, viernes cualquier hora..."
-                                        className="w-full rounded-xl border border-violet-200 bg-white px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-violet-400"
-                                      />
-                                    </div>
-                                    <div className="bg-violet-100/60 rounded-xl p-3 text-xs text-violet-700">
-                                      <p className="font-semibold mb-1">💡 Plan personalizado semanal</p>
-                                      <p>Te contactaremos para armar un horario fijo que se adapte a tu rutina. Precio especial para paquetes semanales.</p>
-                                    </div>
+                                {/* Info */}
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-semibold text-sm leading-tight">{dateLabel} · {timeLabel}</p>
+                                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                      <User className="w-3 h-3" />{slot.teacher_name}
+                                    </span>
+                                    <span className={`text-xs font-medium flex items-center gap-1 ${
+                                      slot.available_spots <= 2 ? 'text-amber-600' : 'text-muted-foreground'
+                                    }`}>
+                                      <Users className="w-3 h-3" />
+                                      {noSpots ? 'Sin cupos' : `${slot.available_spots} cupo${slot.available_spots !== 1 ? 's' : ''}`}
+                                    </span>
                                   </div>
-                                </motion.div>
-                              )}
-                            </AnimatePresence>
-                          </div>
+                                </div>
 
-                          <Button
-                            type="submit"
-                            disabled={sessionLoading || sessionSlots.every(s => !s.date && !s.topic)}
-                            className="w-full rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white font-semibold shadow-md shadow-violet-200 py-6"
-                          >
-                            {sessionLoading ? (
-                              <span className="flex items-center gap-2">
-                                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                Enviando...
-                              </span>
-                            ) : 'Solicitar sesión — $10 USD / hora 🎓'}
-                          </Button>
-                          <div className="flex items-center justify-center flex-wrap gap-3 text-xs text-muted-foreground">
-                            <span>✅ Sin compromiso</span>
-                            <span>📧 Respuesta en 24h</span>
-                            <span>💳 Pago al confirmar</span>
-                          </div>
-                        </form>
+                                {/* Botón */}
+                                {isBooked ? (
+                                  <span className="text-xs font-bold text-green-600 bg-green-100 px-3 py-1.5 rounded-xl shrink-0">
+                                    ✓ Reservado
+                                  </span>
+                                ) : noSpots ? (
+                                  <span className="text-xs font-medium text-muted-foreground bg-muted px-3 py-1.5 rounded-xl shrink-0">
+                                    Sin cupos
+                                  </span>
+                                ) : (
+                                  <Button
+                                    size="sm"
+                                    disabled={isBooking || !!bookingSlotId}
+                                    onClick={async () => {
+                                      setBookingSlotId(slot.id);
+                                      try {
+                                        const { data, error } = await supabase.rpc('book_schedule_slot', { p_slot_id: slot.id });
+                                        if (!error && data?.success) {
+                                          setBookedSlotIds(prev => new Set([...prev, slot.id]));
+                                          setScheduleSlots(prev => prev.map(s =>
+                                            s.id === slot.id
+                                              ? { ...s, available_spots: data.available_spots }
+                                              : s
+                                          ).filter(s => s.available_spots > 0 || bookedSlotIds.has(s.id) || s.id === slot.id));
+                                        }
+                                      } catch (_) {}
+                                      finally { setBookingSlotId(null); }
+                                    }}
+                                    className="rounded-xl shrink-0 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white text-xs px-4"
+                                  >
+                                    {isBooking ? (
+                                      <span className="flex items-center gap-1.5">
+                                        <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        Reservando...
+                                      </span>
+                                    ) : 'Reservar'}
+                                  </Button>
+                                )}
+                              </motion.div>
+                            );
+                          })}
+                        </div>
                       )}
+
+                      <p className="text-xs text-muted-foreground text-center mt-5">
+                        💳 El pago se coordina directamente con el profesor · $10 USD / hora
+                      </p>
                     </div>
                   </div>
                 </motion.div>
