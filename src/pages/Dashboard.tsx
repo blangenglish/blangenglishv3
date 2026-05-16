@@ -815,6 +815,7 @@ const [loadingUnits, setLoadingUnits] = useState<string | null>(null);
   const [bookingFormTopic, setBookingFormTopic] = useState('');
   const [bookingSubmitting, setBookingSubmitting] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
+  const [bookingError, setBookingError] = useState('');
 
   // Mundo Real state
   const [showMundoReal, setShowMundoReal] = useState(false);
@@ -1091,37 +1092,45 @@ useEffect(() => {
   const handleSubmitBooking = async () => {
     if (!bookingModalSlot || !bookingFormTopic.trim()) return;
     setBookingSubmitting(true);
+    setBookingError('');
+    const studentName = profileForm.name || userName || 'Estudiante';
+    const studentEmail = currentEmail || userEmail || '';
     try {
-      const studentName = profileForm.name || userName || 'Estudiante';
-      const studentEmail = currentEmail || userEmail || '';
       const { data, error } = await supabase.rpc('book_schedule_slot', {
         p_slot_id: bookingModalSlot.id,
         p_student_name: studentName,
         p_student_email: studentEmail,
         p_topic: bookingFormTopic.trim(),
       });
-      if (!error && data?.success) {
-        // Remove slot from list (it's now pending)
+      if (error) {
+        setBookingError('Ocurrió un error al procesar tu reserva. Intenta de nuevo.');
+      } else if (data?.success === false || data?.error) {
+        setBookingError('Este horario ya no está disponible. Por favor elige otro.');
+        // Recargar slots para reflejar el estado real
+        supabase.from('schedule_slots').select('id, date, start_time, end_time, teacher_name, available_spots')
+          .gt('available_spots', 0).eq('status', 'available')
+          .order('date').order('start_time')
+          .then(({ data: fresh }) => { if (fresh) setScheduleSlots(fresh); });
+      } else {
+        // Éxito (data?.success === true o cualquier respuesta sin error)
         setScheduleSlots(prev => prev.filter(s => s.id !== bookingModalSlot.id));
         setBookingSuccess(true);
-        // Send notification email to admin
-        try {
-          await supabase.functions.invoke('send-session-email', {
-            body: {
-              type: 'slot_booking',
-              studentName,
-              studentEmail,
-              slotDate: bookingModalSlot.date,
-              slotStartTime: bookingModalSlot.start_time,
-              slotEndTime: bookingModalSlot.end_time,
-              teacherName: bookingModalSlot.teacher_name,
-              topic: bookingFormTopic.trim(),
-            },
-          });
-        } catch (_) { /* email failure is non-critical */ }
+        // Fire-and-forget: no awaitar para no bloquear el flujo
+        supabase.functions.invoke('send-session-email', {
+          body: {
+            type: 'slot_booking',
+            studentName,
+            studentEmail,
+            slotDate: bookingModalSlot.date,
+            slotStartTime: bookingModalSlot.start_time,
+            slotEndTime: bookingModalSlot.end_time,
+            teacherName: bookingModalSlot.teacher_name,
+            topic: bookingFormTopic.trim(),
+          },
+        }).catch(() => {});
       }
     } catch (_) {
-      // silent
+      setBookingError('Error de conexión. Verifica tu internet e intenta de nuevo.');
     } finally {
       setBookingSubmitting(false);
     }
@@ -1903,11 +1912,13 @@ useEffect(() => {
                                       setBookingModalSlot(slot);
                                       setBookingFormTopic('');
                                       setBookingSuccess(false);
+                                      setBookingError('');
                                     }}
                                     className="rounded-xl shrink-0 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white text-xs px-4"
                                   >
                                     Reservar
                                   </Button>
+
                                 )}
                               </motion.div>
                             );
@@ -3250,12 +3261,20 @@ useEffect(() => {
                       />
                     </div>
 
+                    {/* Error message */}
+                    {bookingError && (
+                      <div className="flex items-start gap-2 bg-destructive/10 text-destructive rounded-xl p-3 text-sm">
+                        <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                        <span>{bookingError}</span>
+                      </div>
+                    )}
+
                     {/* Actions */}
                     <div className="flex gap-3 pt-1">
                       <Button
                         variant="outline"
                         className="rounded-xl flex-1"
-                        onClick={() => { setBookingModalSlot(null); setBookingSuccess(false); }}
+                        onClick={() => { setBookingModalSlot(null); setBookingSuccess(false); setBookingError(''); }}
                         disabled={bookingSubmitting}
                       >
                         Cancelar
