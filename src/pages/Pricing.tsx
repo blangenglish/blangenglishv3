@@ -150,7 +150,7 @@ export default function PricingPage({ isLoggedIn = false, onOpenAuth, onLogout, 
   const [pubSlots, setPubSlots] = useState<{ id: string; date: string; start_time: string; end_time: string; teacher_name: string }[]>([]);
   const [pubSlotsLoading, setPubSlotsLoading] = useState(false);
   const [selSlot, setSelSlot] = useState<{ id: string; date: string; start_time: string; end_time: string; teacher_name: string } | null>(null);
-  const [pubForm, setPubForm] = useState({ name: '', email: '', phone: '', topic: '' });
+  const [pubForm, setPubForm] = useState({ name: '', email: '', phone: '', topic: '', paymentMethod: '' });
   const [pubSubmitting, setPubSubmitting] = useState(false);
   const [pubError, setPubError] = useState('');
 
@@ -158,7 +158,7 @@ export default function PricingPage({ isLoggedIn = false, onOpenAuth, onLogout, 
     setShowSlots(true);
     setSlotsStep('list');
     setSelSlot(null);
-    setPubForm({ name: '', email: '', phone: '', topic: '' });
+    setPubForm({ name: '', email: '', phone: '', topic: '', paymentMethod: '' });
     setPubError('');
     setPubSlotsLoading(true);
     const { data } = await supabase
@@ -200,6 +200,7 @@ export default function PricingPage({ isLoggedIn = false, onOpenAuth, onLogout, 
           endTime: selSlot.end_time,
           teacherName: selSlot.teacher_name,
           topic: pubForm.topic.trim(),
+          paymentMethod: pubForm.paymentMethod,
         },
       }).catch(() => {});
       setSlotsStep('success');
@@ -466,7 +467,7 @@ export default function PricingPage({ isLoggedIn = false, onOpenAuth, onLogout, 
                         setShowSlots(false);
                         setSlotsStep('list');
                         setSelSlot(null);
-                        setPubForm({ name: '', email: '', phone: '', topic: '' });
+                        setPubForm({ name: '', email: '', phone: '', topic: '', paymentMethod: '' });
                       }}
                     >
                       Cerrar
@@ -623,20 +624,41 @@ export default function PricingPage({ isLoggedIn = false, onOpenAuth, onLogout, 
                           </div>
                         </div>
                         <div className="px-4 py-3">
-                          <p className="text-[11px] font-semibold text-blue-700 mb-2 uppercase tracking-wide">Métodos de pago disponibles</p>
+                          <p className="text-[11px] font-semibold text-blue-700 mb-2 uppercase tracking-wide">Selecciona tu método de pago</p>
                           <div className="flex items-center gap-2">
                             {/* PayPal */}
-                            <div className="flex items-center gap-1.5 bg-white border border-blue-200 rounded-lg px-3 py-1.5 shadow-sm">
-                              <span className="text-sm font-extrabold" style={{ color: '#003087' }}>Pay</span>
-                              <span className="text-sm font-extrabold" style={{ color: '#009cde' }}>Pal</span>
-                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setPubForm(p => ({ ...p, paymentMethod: p.paymentMethod === 'PayPal' ? '' : 'PayPal' }))}
+                              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 border-2 transition-all duration-150 shadow-sm ${
+                                pubForm.paymentMethod === 'PayPal'
+                                  ? 'bg-[#003087] border-[#003087] shadow-md scale-105'
+                                  : 'bg-white border-blue-200 hover:border-blue-400'
+                              }`}
+                            >
+                              <span className={`text-sm font-extrabold ${pubForm.paymentMethod === 'PayPal' ? 'text-white' : ''}`} style={pubForm.paymentMethod === 'PayPal' ? {} : { color: '#003087' }}>Pay</span>
+                              <span className={`text-sm font-extrabold ${pubForm.paymentMethod === 'PayPal' ? 'text-blue-200' : ''}`} style={pubForm.paymentMethod === 'PayPal' ? {} : { color: '#009cde' }}>Pal</span>
+                            </button>
                             {/* Bold / PSE */}
-                            <div className="flex items-center gap-1.5 bg-white border border-blue-200 rounded-lg px-3 py-1.5 shadow-sm">
-                              <span className="text-sm font-extrabold text-gray-800">Bold</span>
-                              <span className="text-[10px] text-gray-400 font-medium">(PSE)</span>
-                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setPubForm(p => ({ ...p, paymentMethod: p.paymentMethod === 'Bold (PSE)' ? '' : 'Bold (PSE)' }))}
+                              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 border-2 transition-all duration-150 shadow-sm ${
+                                pubForm.paymentMethod === 'Bold (PSE)'
+                                  ? 'bg-gray-800 border-gray-800 shadow-md scale-105'
+                                  : 'bg-white border-blue-200 hover:border-blue-400'
+                              }`}
+                            >
+                              <span className={`text-sm font-extrabold ${pubForm.paymentMethod === 'Bold (PSE)' ? 'text-white' : 'text-gray-800'}`}>Bold</span>
+                              <span className={`text-[10px] font-medium ${pubForm.paymentMethod === 'Bold (PSE)' ? 'text-gray-300' : 'text-gray-400'}`}>(PSE)</span>
+                            </button>
                           </div>
-                          <p className="text-[10px] text-blue-500 mt-2">
+                          {pubForm.paymentMethod && (
+                            <p className="text-[11px] text-emerald-600 font-semibold mt-2 flex items-center gap-1">
+                              <Check className="w-3 h-3" /> {pubForm.paymentMethod} seleccionado
+                            </p>
+                          )}
+                          <p className="text-[10px] text-blue-500 mt-1.5">
                             💬 Te enviaremos el link de pago después de confirmar tu reserva.
                           </p>
                         </div>
@@ -644,7 +666,7 @@ export default function PricingPage({ isLoggedIn = false, onOpenAuth, onLogout, 
 
                       <Button
                         className="w-full rounded-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-6"
-                        disabled={pubSubmitting || !pubForm.name.trim() || !pubForm.email.trim() || !pubForm.topic.trim()}
+                        disabled={pubSubmitting || !pubForm.name.trim() || !pubForm.email.trim() || !pubForm.topic.trim() || !pubForm.paymentMethod}
                         onClick={handlePublicSubmit}
                       >
                         {pubSubmitting ? (
