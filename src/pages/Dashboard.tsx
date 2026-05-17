@@ -814,6 +814,7 @@ const [loadingUnits, setLoadingUnits] = useState<string | null>(null);
   const [myBookedSlot, setMyBookedSlot] = useState<{ id: string; date: string; start_time: string; end_time: string; teacher_name: string; status: string; session_topic?: string } | null | 'loading'>('loading');
   const [bookingModalSlot, setBookingModalSlot] = useState<{ id: string; date: string; start_time: string; end_time: string; teacher_name: string } | null>(null);
   const [bookingFormTopic, setBookingFormTopic] = useState('');
+  const [bookingPaymentMethod, setBookingPaymentMethod] = useState('');
   const [bookingSubmitting, setBookingSubmitting] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
   const [bookingError, setBookingError] = useState('');
@@ -1145,6 +1146,7 @@ useEffect(() => {
             slotEndTime: bookingModalSlot.end_time,
             teacherName: bookingModalSlot.teacher_name,
             topic: bookingFormTopic.trim(),
+            paymentMethod: bookingPaymentMethod,
           },
         }).catch(() => {});
       }
@@ -3338,12 +3340,62 @@ useEffect(() => {
                       </div>
                     )}
 
+                    {/* Resumen de pago */}
+                    <div className="rounded-2xl border border-violet-200 bg-violet-50/60 overflow-hidden">
+                      <div className="px-4 py-3 border-b border-violet-200/70 flex items-center justify-between">
+                        <span className="text-xs font-semibold text-violet-700 uppercase tracking-wide">Resumen de pago</span>
+                        <div className="text-right">
+                          <span className="text-lg font-extrabold text-violet-900">$10 USD</span>
+                          <span className="text-xs text-violet-600 ml-1.5">/ $35.000 COP</span>
+                        </div>
+                      </div>
+                      <div className="px-4 py-3">
+                        <p className="text-[11px] font-semibold text-violet-700 mb-2 uppercase tracking-wide">Selecciona tu método de pago</p>
+                        <div className="flex items-center gap-2">
+                          {/* PayPal */}
+                          <button
+                            type="button"
+                            onClick={() => setBookingPaymentMethod(p => p === 'PayPal' ? '' : 'PayPal')}
+                            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 border-2 transition-all duration-150 shadow-sm ${
+                              bookingPaymentMethod === 'PayPal'
+                                ? 'bg-[#003087] border-[#003087] shadow-md scale-105'
+                                : 'bg-white border-violet-200 hover:border-violet-400'
+                            }`}
+                          >
+                            <span className={`text-sm font-extrabold`} style={{ color: bookingPaymentMethod === 'PayPal' ? '#ffffff' : '#003087' }}>Pay</span>
+                            <span className={`text-sm font-extrabold`} style={{ color: bookingPaymentMethod === 'PayPal' ? '#93c5fd' : '#009cde' }}>Pal</span>
+                          </button>
+                          {/* Bold / PSE */}
+                          <button
+                            type="button"
+                            onClick={() => setBookingPaymentMethod(p => p === 'Bold (PSE)' ? '' : 'Bold (PSE)')}
+                            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 border-2 transition-all duration-150 shadow-sm ${
+                              bookingPaymentMethod === 'Bold (PSE)'
+                                ? 'bg-gray-800 border-gray-800 shadow-md scale-105'
+                                : 'bg-white border-violet-200 hover:border-violet-400'
+                            }`}
+                          >
+                            <span className={`text-sm font-extrabold ${bookingPaymentMethod === 'Bold (PSE)' ? 'text-white' : 'text-gray-800'}`}>Bold</span>
+                            <span className={`text-[10px] font-medium ${bookingPaymentMethod === 'Bold (PSE)' ? 'text-gray-300' : 'text-gray-400'}`}>(PSE)</span>
+                          </button>
+                        </div>
+                        {bookingPaymentMethod && (
+                          <p className="text-[11px] text-emerald-600 font-semibold mt-2 flex items-center gap-1">
+                            <Check className="w-3 h-3" /> {bookingPaymentMethod} seleccionado
+                          </p>
+                        )}
+                        <p className="text-[10px] text-violet-500 mt-1.5">
+                          💬 Te enviaremos el link de pago después de confirmar tu reserva.
+                        </p>
+                      </div>
+                    </div>
+
                     {/* Actions */}
                     <div className="flex gap-3 pt-1">
                       <Button
                         variant="outline"
                         className="rounded-xl flex-1"
-                        onClick={() => { setBookingModalSlot(null); setBookingSuccess(false); setBookingError(''); }}
+                        onClick={() => { setBookingModalSlot(null); setBookingSuccess(false); setBookingError(''); setBookingPaymentMethod(''); }}
                         disabled={bookingSubmitting}
                       >
                         Cancelar
@@ -3351,7 +3403,7 @@ useEffect(() => {
                       <Button
                         className="rounded-xl flex-1 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white"
                         onClick={handleSubmitBooking}
-                        disabled={bookingSubmitting || !bookingFormTopic.trim()}
+                        disabled={bookingSubmitting || !bookingFormTopic.trim() || !bookingPaymentMethod}
                       >
                         {bookingSubmitting ? (
                           <span className="flex items-center gap-2">
