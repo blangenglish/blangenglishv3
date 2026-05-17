@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, X, Calendar, User, Mail, Phone, Send, Plus, Trash2 } from 'lucide-react';
+import { Check, X, Calendar, User, Mail, Phone, Clock, ChevronLeft, AlertCircle, BookOpen } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { IMAGES } from '@/assets/images';
 import { Button } from '@/components/ui/button';
@@ -116,10 +116,6 @@ function PlanCard({ plan, onSelect }: { plan: DBPricingPlan; onSelect: () => voi
   );
 }
 
-interface SessionSlot { id: string; date: string; time: string; topic: string; }
-interface BookingForm { name: string; lastName: string; email: string; phone: string; slots: SessionSlot[]; }
-const SESSION_PRICE_USD = 10;
-
 const FAQ = [
   { q: '¿Cuánto cuesta después de los días gratis?', a: 'Solo $15 USD ó $55,000 COP al mes. Sin contratos ni compromisos.' },
   { q: '¿Cómo puedo pagar?', a: 'Aceptamos transferencia bancaria o pago por PayPal. Escríbenos y te indicamos el método más conveniente para ti.' },
@@ -128,44 +124,91 @@ const FAQ = [
   { q: '¿Hay compromiso al empezar?', a: 'No. Los días de prueba son completamente gratis y sin ningún compromiso. Cancelas cuando quieras.' },
 ];
 
+function formatDate(dateStr: string) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  return date.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+}
+function formatTime(t: string) {
+  if (!t) return '';
+  const [h, min] = t.split(':');
+  const hour = parseInt(h);
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  const h12 = hour % 12 || 12;
+  return `${h12}:${min} ${ampm}`;
+}
+
 export default function PricingPage({ isLoggedIn = false, onOpenAuth, onLogout, userName }: PricingPageProps) {
   const { data: plans, loading } = usePricingPlans();
   const { data: settings } = useSiteSettings();
 
   const trialDays = settings?.trial_days ?? '7';
 
-  // Booking form state
-  const [showBooking, setShowBooking] = useState(false);
-  const [bookingSent, setBookingSent] = useState(false);
-  const [bookingLoading, setBookingLoading] = useState(false);
-  const [bookingForm, setBookingForm] = useState<BookingForm>({
-    name: '', lastName: '', email: '', phone: '',
-    slots: [{ id: '1', date: '', time: '', topic: '' }],
-  });
+  // Slots booking modal state
+  const [showSlots, setShowSlots] = useState(false);
+  const [slotsStep, setSlotsStep] = useState<'list' | 'form' | 'success'>('list');
+  const [pubSlots, setPubSlots] = useState<{ id: string; date: string; start_time: string; end_time: string; teacher_name: string }[]>([]);
+  const [pubSlotsLoading, setPubSlotsLoading] = useState(false);
+  const [selSlot, setSelSlot] = useState<{ id: string; date: string; start_time: string; end_time: string; teacher_name: string } | null>(null);
+  const [pubForm, setPubForm] = useState({ name: '', email: '', phone: '', topic: '' });
+  const [pubSubmitting, setPubSubmitting] = useState(false);
+  const [pubError, setPubError] = useState('');
 
-  const addSlot = () => setBookingForm(prev => ({
-    ...prev, slots: [...prev.slots, { id: Date.now().toString(), date: '', time: '', topic: '' }],
-  }));
-  const removeSlot = (id: string) => {
-    if (bookingForm.slots.length === 1) return;
-    setBookingForm(prev => ({ ...prev, slots: prev.slots.filter(s => s.id !== id) }));
+  const openSlotBooking = async () => {
+    setShowSlots(true);
+    setSlotsStep('list');
+    setSelSlot(null);
+    setPubForm({ name: '', email: '', phone: '', topic: '' });
+    setPubError('');
+    setPubSlotsLoading(true);
+    const { data } = await supabase
+      .from('schedule_slots')
+      .select('id, date, start_time, end_time, teacher_name')
+      .eq('status', 'available')
+      .gt('available_spots', 0)
+      .gte('date', new Date().toISOString().split('T')[0])
+      .order('date', { ascending: true })
+      .order('start_time', { ascending: true });
+    setPubSlots(data ?? []);
+    setPubSlotsLoading(false);
   };
-  const updateSlot = (id: string, field: keyof SessionSlot, value: string) => {
-    setBookingForm(prev => ({ ...prev, slots: prev.slots.map(s => s.id === id ? { ...s, [field]: value } : s) }));
-  };
-  const handleBookingSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setBookingLoading(true);
+
+  const handlePublicSubmit = async () => {
+    if (!selSlot || !pubForm.name.trim() || !pubForm.email.trim() || !pubForm.topic.trim()) return;
+    setPubSubmitting(true);
+    setPubError('');
     try {
-      await supabase.functions.invoke('send-contact-email', {
-        body: { type: 'booking', ...bookingForm, totalUSD: bookingForm.slots.length * SESSION_PRICE_USD },
+      const { data, error } = await supabase.rpc('book_schedule_slot', {
+        p_slot_id: selSlot.id,
+        p_student_name: pubForm.name.trim(),
+        p_student_email: pubForm.email.trim(),
+        p_topic: pubForm.topic.trim(),
+        p_student_phone: pubForm.phone.trim(),
       });
-    } catch { /* silent */ } finally {
-      setBookingLoading(false);
-      setBookingSent(true);
+      if (error || data?.error) {
+        setPubError(data?.error || 'Ocurrió un error. Intenta de nuevo.');
+        return;
+      }
+      supabase.functions.invoke('send-session-email', {
+        body: {
+          type: 'slot_booking',
+          studentName: pubForm.name.trim(),
+          studentEmail: pubForm.email.trim(),
+          studentPhone: pubForm.phone.trim(),
+          date: selSlot.date,
+          startTime: selSlot.start_time,
+          endTime: selSlot.end_time,
+          teacherName: selSlot.teacher_name,
+          topic: pubForm.topic.trim(),
+        },
+      }).catch(() => {});
+      setSlotsStep('success');
+    } catch {
+      setPubError('Ocurrió un error. Intenta de nuevo.');
+    } finally {
+      setPubSubmitting(false);
     }
   };
-  const totalUSD = bookingForm.slots.length * SESSION_PRICE_USD;
 
   return (
     <Layout isLoggedIn={isLoggedIn} onOpenAuth={onOpenAuth} onLogout={onLogout} userName={userName}>
@@ -250,7 +293,11 @@ export default function PricingPage({ isLoggedIn = false, onOpenAuth, onLogout, 
               initial="hidden" animate="visible" variants={stagger}
             >
               {(plans ?? []).filter(p => p.is_published).map((plan) => (
-                <PlanCard key={plan.id} plan={plan} onSelect={() => onOpenAuth?.('register')} />
+                <PlanCard
+                  key={plan.id}
+                  plan={plan}
+                  onSelect={plan.slug === 'clase-vivo' ? openSlotBooking : () => onOpenAuth?.('register')}
+                />
               ))}
             </motion.div>
           )}
@@ -303,187 +350,6 @@ export default function PricingPage({ isLoggedIn = false, onOpenAuth, onLogout, 
           </motion.div>
         </div>
       </section>
-
-      {/* LIVE CLASSES */}
-      <section id="clases-vivo" className="py-16 bg-white/60">
-        <div className="container mx-auto px-4">
-          <motion.div className="max-w-3xl mx-auto"
-            initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger}
-          >
-            <motion.div variants={fadeUp} className="text-center mb-10">
-              <span className="inline-block bg-blue-100 text-blue-700 text-sm font-semibold px-4 py-1.5 rounded-full mb-3">
-                🎥 Clases en Vivo
-              </span>
-              <h2 className="text-3xl font-bold">Clases 1 a 1 con nuestros profes</h2>
-              <p className="text-muted-foreground mt-2">Solo las horas y temas que decidas · Google Meet · $10 USD/hora</p>
-            </motion.div>
-            <motion.div variants={fadeUp} className="flex flex-col md:flex-row items-center gap-10 bg-background border border-blue-100 rounded-3xl p-8 shadow-sm">
-              <div className="flex-shrink-0 flex flex-col items-center gap-3">
-                <div className="relative">
-                  <div className="w-36 h-36 rounded-3xl overflow-hidden ring-4 ring-blue-200 shadow-xl">
-                    <img src={IMAGES.INSTRUCTOR_NOBG} alt="Profe" className="w-full h-full object-cover" />
-                  </div>
-                  <div className="absolute -bottom-2 -right-2 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse inline-block" />
-                    Disponible
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground text-center">Tu profe · Google Meet · 1 a 1</p>
-              </div>
-              <div className="flex-1 text-center md:text-left">
-                <p className="text-muted-foreground leading-relaxed mb-5">
-                  Sin necesidad de tener el curso completo. Elige el día, la hora y el tema que quieras trabajar.
-                  Clases <strong>personalizadas</strong> via Google Meet.
-                </p>
-                <Button size="lg"
-                  className="rounded-full bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-5"
-                  onClick={() => { setShowBooking(true); setBookingSent(false); }}
-                >
-                  Reservar sesión 📅
-                </Button>
-              </div>
-            </motion.div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* BOOKING MODAL */}
-      <AnimatePresence>
-        {showBooking && (
-          <motion.div className="fixed inset-0 z-[100] flex items-center justify-center p-4"
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          >
-            <motion.div className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-              onClick={() => setShowBooking(false)}
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            />
-            <motion.div
-              className="relative bg-background rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
-              initial={{ opacity: 0, scale: 0.92, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.92, y: 20 }} transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-            >
-              <div className="h-1.5 bg-gradient-to-r from-primary via-purple-400 to-pink-400 rounded-t-3xl" />
-              <div className="p-7">
-                <button onClick={() => setShowBooking(false)}
-                  className="absolute top-5 right-5 text-muted-foreground hover:text-foreground p-1.5 rounded-full hover:bg-muted transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-                {bookingSent ? (
-                  <div className="text-center py-8">
-                    <div className="text-6xl mb-4">🎉</div>
-                    <h3 className="text-2xl font-bold mb-2">¡Solicitud enviada!</h3>
-                    <p className="text-muted-foreground mb-6">
-                      Recibirás el <strong>link de pago</strong> en tu correo ({bookingForm.email}) en las próximas horas.
-                    </p>
-                    <Button variant="outline" className="rounded-full"
-                      onClick={() => { setShowBooking(false); setBookingSent(false); setBookingForm({ name: '', lastName: '', email: '', phone: '', slots: [{ id: '1', date: '', time: '', topic: '' }] }); }}
-                    >Cerrar</Button>
-                  </div>
-                ) : (
-                  <form onSubmit={handleBookingSubmit} className="space-y-5">
-                    <div className="text-center mb-6">
-                      <h2 className="text-2xl font-extrabold mb-1">Reserva tu sesión 🎤</h2>
-                      <p className="text-sm text-muted-foreground">Completa los datos y te enviamos el link de pago</p>
-                    </div>
-                    <div className="grid sm:grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <Label htmlFor="b-name" className="text-sm font-medium flex items-center gap-1.5"><User className="w-3.5 h-3.5 text-primary" /> Nombre</Label>
-                        <Input id="b-name" placeholder="Tu nombre" value={bookingForm.name} onChange={e => setBookingForm(p => ({ ...p, name: e.target.value }))} required className="rounded-xl" />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label htmlFor="b-lastname" className="text-sm font-medium flex items-center gap-1.5"><User className="w-3.5 h-3.5 text-primary" /> Apellidos</Label>
-                        <Input id="b-lastname" placeholder="Tus apellidos" value={bookingForm.lastName} onChange={e => setBookingForm(p => ({ ...p, lastName: e.target.value }))} required className="rounded-xl" />
-                      </div>
-                    </div>
-                    <div className="grid sm:grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <Label htmlFor="b-email" className="text-sm font-medium flex items-center gap-1.5"><Mail className="w-3.5 h-3.5 text-primary" /> Correo</Label>
-                        <Input id="b-email" type="email" placeholder="tucorreo@ejemplo.com" value={bookingForm.email} onChange={e => setBookingForm(p => ({ ...p, email: e.target.value }))} required className="rounded-xl" />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label htmlFor="b-phone" className="text-sm font-medium flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-primary" /> Teléfono / WhatsApp</Label>
-                        <Input id="b-phone" type="tel" placeholder="+57 300 000 0000" value={bookingForm.phone} onChange={e => setBookingForm(p => ({ ...p, phone: e.target.value }))} required className="rounded-xl" />
-                      </div>
-                    </div>
-                    <div className="space-y-4">
-                      <div className="bg-primary/5 border border-primary/15 rounded-2xl p-4 space-y-3">
-                        <p className="font-semibold text-sm text-primary">📅 Reserva una hora de clase</p>
-                        <div className="grid sm:grid-cols-2 gap-3">
-                          <div className="space-y-1.5">
-                            <Label className="text-xs font-medium flex items-center gap-1"><Calendar className="w-3 h-3 text-primary" /> Fecha</Label>
-                            <Input type="date" value={bookingForm.slots[0]?.date || ''} onChange={e => updateSlot(bookingForm.slots[0].id, 'date', e.target.value)} required className="rounded-xl text-sm" min={new Date().toISOString().split('T')[0]} />
-                          </div>
-                          <div className="space-y-1.5">
-                            <Label className="text-xs font-medium">🕐 Hora</Label>
-                            <Input type="time" value={bookingForm.slots[0]?.time || ''} onChange={e => updateSlot(bookingForm.slots[0].id, 'time', e.target.value)} required className="rounded-xl text-sm" />
-                          </div>
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-xs font-medium">📝 Tema</Label>
-                          <Input placeholder="Ej: Conversación, Pronunciación, Phrasal verbs..." value={bookingForm.slots[0]?.topic || ''} onChange={e => updateSlot(bookingForm.slots[0].id, 'topic', e.target.value)} required className="rounded-xl text-sm" />
-                        </div>
-                      </div>
-                      {bookingForm.slots.slice(1).map((slot, i) => (
-                        <div key={slot.id} className="bg-violet-50/70 border border-violet-200/60 rounded-2xl p-4 space-y-3 relative">
-                          <div className="flex items-center justify-between">
-                            <p className="font-semibold text-sm text-primary">📅 Sesión extra #{i + 2}</p>
-                            <button type="button" onClick={() => removeSlot(slot.id)} className="text-muted-foreground hover:text-destructive p-1 rounded-lg hover:bg-destructive/10">
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                          <div className="grid sm:grid-cols-2 gap-3">
-                            <div className="space-y-1.5">
-                              <Label className="text-xs font-medium flex items-center gap-1"><Calendar className="w-3 h-3 text-primary" /> Fecha</Label>
-                              <Input type="date" value={slot.date} onChange={e => updateSlot(slot.id, 'date', e.target.value)} required className="rounded-xl text-sm" min={new Date().toISOString().split('T')[0]} />
-                            </div>
-                            <div className="space-y-1.5">
-                              <Label className="text-xs font-medium">🕐 Hora</Label>
-                              <Input type="time" value={slot.time} onChange={e => updateSlot(slot.id, 'time', e.target.value)} required className="rounded-xl text-sm" />
-                            </div>
-                          </div>
-                          <div className="space-y-1.5">
-                            <Label className="text-xs font-medium">📝 Tema</Label>
-                            <Input placeholder="Ej: Business English, Gramática..." value={slot.topic} onChange={e => updateSlot(slot.id, 'topic', e.target.value)} required className="rounded-xl text-sm" />
-                          </div>
-                        </div>
-                      ))}
-                      <button type="button" onClick={addSlot}
-                        className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-primary/30 rounded-2xl py-3 text-sm font-medium text-primary hover:bg-primary/5 transition-colors"
-                      >
-                        <Plus className="w-4 h-4" /> Añadir otra sesión
-                      </button>
-                    </div>
-                    <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 flex items-center justify-between">
-                      <div>
-                        <p className="text-xs text-muted-foreground mb-0.5">Son <strong>${SESSION_PRICE_USD} USD</strong> por hora</p>
-                        <p className="text-2xl font-extrabold text-primary mt-1">Total: ${totalUSD} USD</p>
-                      </div>
-                      <div className="text-right text-xs text-muted-foreground">
-                        <p>📧 El link de pago</p>
-                        <p>se te enviará al correo</p>
-                      </div>
-                    </div>
-                    <Button type="submit" size="lg"
-                      className="w-full rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-6"
-                      disabled={bookingLoading}
-                    >
-                      {bookingLoading ? (
-                        <span className="flex items-center gap-2">
-                          <motion.span animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }} className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
-                          Enviando...
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-2"><Send className="w-4 h-4" /> Enviar solicitud</span>
-                      )}
-                    </Button>
-                  </form>
-                )}
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* FAQ */}
       <section className="py-16 bg-purple-50/50">
@@ -550,6 +416,225 @@ export default function PricingPage({ isLoggedIn = false, onOpenAuth, onLogout, 
           </motion.div>
         </div>
       </section>
+
+      {/* SLOTS BOOKING MODAL */}
+      <AnimatePresence>
+        {showSlots && (
+          <motion.div
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              onClick={() => setShowSlots(false)}
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            />
+            <motion.div
+              className="relative bg-background rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+              initial={{ opacity: 0, scale: 0.92, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: 20 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+            >
+              <div className="h-1.5 bg-gradient-to-r from-blue-500 via-indigo-400 to-purple-400 rounded-t-3xl" />
+              <div className="p-7">
+                <button
+                  onClick={() => setShowSlots(false)}
+                  className="absolute top-5 right-5 text-muted-foreground hover:text-foreground p-1.5 rounded-full hover:bg-muted transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+
+                {/* STEP: success */}
+                {slotsStep === 'success' && (
+                  <div className="text-center py-8">
+                    <div className="text-6xl mb-4">🎉</div>
+                    <h3 className="text-2xl font-bold mb-2">¡Solicitud enviada!</h3>
+                    <p className="text-muted-foreground mb-2">
+                      Recibimos tu reserva. El profe revisará tu solicitud y te confirmaremos por correo.
+                    </p>
+                    {selSlot && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 text-sm text-blue-800 mb-6 text-left">
+                        <p className="font-semibold mb-1">📅 {formatDate(selSlot.date)}</p>
+                        <p className="text-blue-600">{formatTime(selSlot.start_time)} – {formatTime(selSlot.end_time)}</p>
+                      </div>
+                    )}
+                    <Button
+                      variant="outline"
+                      className="rounded-full"
+                      onClick={() => {
+                        setShowSlots(false);
+                        setSlotsStep('list');
+                        setSelSlot(null);
+                        setPubForm({ name: '', email: '', phone: '', topic: '' });
+                      }}
+                    >
+                      Cerrar
+                    </Button>
+                  </div>
+                )}
+
+                {/* STEP: list */}
+                {slotsStep === 'list' && (
+                  <div>
+                    <div className="text-center mb-6">
+                      <h2 className="text-2xl font-extrabold mb-1">Reserva tu clase 🎥</h2>
+                      <p className="text-sm text-muted-foreground">Selecciona un horario disponible</p>
+                    </div>
+
+                    {pubSlotsLoading ? (
+                      <div className="flex flex-col items-center justify-center py-12 gap-3">
+                        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                        <p className="text-sm text-muted-foreground">Cargando horarios...</p>
+                      </div>
+                    ) : pubSlots.length === 0 ? (
+                      <div className="text-center py-12">
+                        <BookOpen className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
+                        <p className="font-semibold text-muted-foreground">No hay horarios disponibles</p>
+                        <p className="text-sm text-muted-foreground mt-1">Escríbenos y coordinamos uno para ti 😊</p>
+                        <a
+                          href="mailto:blangenglishlearning@blangenglish.com"
+                          className="inline-block mt-4 text-blue-600 font-semibold text-sm hover:underline"
+                        >
+                          blangenglishlearning@blangenglish.com
+                        </a>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {pubSlots.map((slot) => (
+                          <button
+                            key={slot.id}
+                            className="w-full text-left bg-blue-50 hover:bg-blue-100 border border-blue-200 hover:border-blue-400 rounded-2xl p-4 transition-all group"
+                            onClick={() => { setSelSlot(slot); setSlotsStep('form'); }}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="font-semibold text-blue-900 capitalize text-sm">
+                                  📅 {formatDate(slot.date)}
+                                </p>
+                                <div className="flex items-center gap-1.5 mt-1 text-blue-700 text-sm">
+                                  <Clock className="w-3.5 h-3.5" />
+                                  {formatTime(slot.start_time)} – {formatTime(slot.end_time)}
+                                </div>
+                                <p className="text-xs text-blue-500 mt-0.5">👤 {slot.teacher_name}</p>
+                              </div>
+                              <div className="bg-blue-600 text-white text-xs font-bold px-3 py-1.5 rounded-full group-hover:bg-blue-700 transition-colors">
+                                Reservar →
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* STEP: form */}
+                {slotsStep === 'form' && selSlot && (
+                  <div>
+                    <button
+                      onClick={() => setSlotsStep('list')}
+                      className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors"
+                    >
+                      <ChevronLeft className="w-4 h-4" /> Volver a horarios
+                    </button>
+
+                    <div className="text-center mb-5">
+                      <h2 className="text-2xl font-extrabold mb-1">Tus datos 📋</h2>
+                      <p className="text-sm text-muted-foreground">Completa el formulario para reservar</p>
+                    </div>
+
+                    {/* Selected slot preview */}
+                    <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-5">
+                      <p className="text-xs font-semibold text-blue-500 uppercase tracking-wide mb-1">Horario seleccionado</p>
+                      <p className="font-bold text-blue-900 capitalize text-sm">📅 {formatDate(selSlot.date)}</p>
+                      <div className="flex items-center gap-1.5 text-blue-700 text-sm mt-0.5">
+                        <Clock className="w-3.5 h-3.5" />
+                        {formatTime(selSlot.start_time)} – {formatTime(selSlot.end_time)}
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="pub-name" className="text-sm font-medium flex items-center gap-1.5">
+                          <User className="w-3.5 h-3.5 text-primary" /> Nombre completo
+                        </Label>
+                        <Input
+                          id="pub-name"
+                          placeholder="Tu nombre completo"
+                          value={pubForm.name}
+                          onChange={e => setPubForm(p => ({ ...p, name: e.target.value }))}
+                          className="rounded-xl"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="pub-email" className="text-sm font-medium flex items-center gap-1.5">
+                          <Mail className="w-3.5 h-3.5 text-primary" /> Correo electrónico
+                        </Label>
+                        <Input
+                          id="pub-email"
+                          type="email"
+                          placeholder="tucorreo@ejemplo.com"
+                          value={pubForm.email}
+                          onChange={e => setPubForm(p => ({ ...p, email: e.target.value }))}
+                          className="rounded-xl"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="pub-phone" className="text-sm font-medium flex items-center gap-1.5">
+                          <Phone className="w-3.5 h-3.5 text-primary" /> Teléfono / WhatsApp
+                        </Label>
+                        <Input
+                          id="pub-phone"
+                          type="tel"
+                          placeholder="+57 300 000 0000"
+                          value={pubForm.phone}
+                          onChange={e => setPubForm(p => ({ ...p, phone: e.target.value }))}
+                          className="rounded-xl"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="pub-topic" className="text-sm font-medium flex items-center gap-1.5">
+                          <Calendar className="w-3.5 h-3.5 text-primary" /> ¿Qué quieres estudiar?
+                        </Label>
+                        <Input
+                          id="pub-topic"
+                          placeholder="Ej: Conversación, Gramática, Pronunciación..."
+                          value={pubForm.topic}
+                          onChange={e => setPubForm(p => ({ ...p, topic: e.target.value }))}
+                          className="rounded-xl"
+                        />
+                      </div>
+
+                      {pubError && (
+                        <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700">
+                          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                          {pubError}
+                        </div>
+                      )}
+
+                      <Button
+                        className="w-full rounded-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-6"
+                        disabled={pubSubmitting || !pubForm.name.trim() || !pubForm.email.trim() || !pubForm.topic.trim()}
+                        onClick={handlePublicSubmit}
+                      >
+                        {pubSubmitting ? (
+                          <span className="flex items-center gap-2">
+                            <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block" />
+                            Enviando...
+                          </span>
+                        ) : (
+                          'Enviar solicitud 📅'
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </Layout>
   );
