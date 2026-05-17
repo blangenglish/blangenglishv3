@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { usePricingPlans } from '@/hooks/useSupabaseData';
@@ -828,6 +828,7 @@ const [loadingUnits, setLoadingUnits] = useState<string | null>(null);
   const [mrWordSubmitted, setMrWordSubmitted] = useState(false);
   const [mrCategoryFilter, setMrCategoryFilter] = useState('Todos');
   const [mrSearch, setMrSearch] = useState('');
+  const [mrOverrides, setMrOverrides] = useState<Record<string, any>>({});
 
   // Review state
   const [existingReview, setExistingReview] = useState<{ rating: number; comment: string } | null | 'loading'>('loading');
@@ -900,6 +901,35 @@ useEffect(() => {
       setCoursesLoading(false);
     });
   }, []);
+
+  // Cargar overrides de Mundo Real (ediciones del admin)
+  useEffect(() => {
+    supabase
+      .from('mundo_real_overrides')
+      .select('topic_id, vocabulary, phrases, structure, dialogue')
+      .then(({ data }) => {
+        if (data?.length) {
+          const map: Record<string, any> = {};
+          data.forEach((row: any) => { map[row.topic_id] = row; });
+          setMrOverrides(map);
+        }
+      });
+  }, []);
+
+  // Fusionar datos estáticos con overrides del admin
+  const mergedMundoRealTopics = useMemo(() =>
+    MUNDO_REAL_TOPICS.map(t => {
+      const ov = mrOverrides[t.id];
+      if (!ov) return t;
+      return {
+        ...t,
+        vocabulary: ov.vocabulary ?? t.vocabulary,
+        phrases:    ov.phrases    ?? t.phrases,
+        structure:  ov.structure  ?? t.structure,
+        dialogue:   ov.dialogue   ?? t.dialogue,
+      };
+    }),
+  [mrOverrides]);
 
   const loadUnitsForCourse = async (courseId: string) => {
     if (courseUnits[courseId]) return; // already loaded
@@ -2771,9 +2801,9 @@ useEffect(() => {
 
               {/* ─── INGLÉS PARA EL MUNDO REAL (dentro de English for you!) ─── */}
               {activeTab === 'english' && showMundoReal && (() => {
-                const topic = mundoRealTopic ? MUNDO_REAL_TOPICS.find(t => t.id === mundoRealTopic) : null;
+                const topic = mundoRealTopic ? mergedMundoRealTopics.find(t => t.id === mundoRealTopic) : null;
                 const categories = MR_CATEGORIES;
-                const filtered = MUNDO_REAL_TOPICS.filter(t => {
+                const filtered = mergedMundoRealTopics.filter(t => {
                   const matchCat = mrCategoryFilter === 'Todos' || t.category === mrCategoryFilter;
                   const matchSearch = t.title.toLowerCase().includes(mrSearch.toLowerCase()) || t.category.toLowerCase().includes(mrSearch.toLowerCase());
                   return matchCat && matchSearch;
