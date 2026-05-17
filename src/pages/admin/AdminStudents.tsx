@@ -963,15 +963,14 @@ export default function AdminStudents() {
         for (const c of allCourses as { id: string; level: string }[]) {
           const { data: units } = await supabase.from('units').select('id').eq('course_id', c.id);
           await adminDeleteByFilter('student_module_access', { student_id: studentId, course_id: c.id });
-          if (units && units.length > 0) {
-            const unitRecords = (units as { id: string }[]).map(u => ({
-              student_id: studentId, course_id: c.id, unit_id: u.id,
-              is_active: true, granted_at: new Date().toISOString(),
-            }));
-            await adminInsert('student_module_access', unitRecords);
-          } else {
-            await adminInsert('student_module_access', { student_id: studentId, course_id: c.id, is_active: true, granted_at: new Date().toISOString() });
-          }
+          const now = new Date().toISOString();
+          const records = [
+            { student_id: studentId, course_id: c.id, is_active: true, granted_at: now },
+            ...((units || []) as { id: string }[]).map(u => ({
+              student_id: studentId, course_id: c.id, unit_id: u.id, is_active: true, granted_at: now,
+            })),
+          ];
+          await adminInsert('student_module_access', records);
         }
       }
       await loadStudentModuleAccess(studentId);
@@ -993,6 +992,47 @@ export default function AdminStudents() {
       console.error('[revokeAllCourses] error:', e);
       showMsg('error', '❌ Error al deshabilitar módulos.');
     }
+  };
+
+  const toggleLevelWithUnits = async (
+    studentId: string,
+    course: { id: string; units?: { id: string }[] },
+    currentlyActive: boolean,
+  ) => {
+    const units = course.units || [];
+    const allIds = [course.id, ...units.map(u => u.id)];
+    if (currentlyActive) {
+      // Deshabilitar nivel: actualizar UI y borrar registros del curso y sus unidades
+      setStudentModuleAccess(prev => ({
+        ...prev,
+        [studentId]: (prev[studentId] || []).filter(id => !allIds.includes(id)),
+      }));
+      try {
+        await adminDeleteByFilter('student_module_access', { student_id: studentId, course_id: course.id });
+      } catch (e) {
+        console.error('[toggleLevelWithUnits] error deshabilitando:', e);
+        showMsg('error', '❌ Error al deshabilitar el nivel.');
+      }
+    } else {
+      // Habilitar nivel: actualizar UI e insertar curso + todas sus unidades
+      setStudentModuleAccess(prev => ({
+        ...prev,
+        [studentId]: [...new Set([...(prev[studentId] || []), ...allIds])],
+      }));
+      try {
+        const now = new Date().toISOString();
+        await adminDeleteByFilter('student_module_access', { student_id: studentId, course_id: course.id });
+        const records = [
+          { student_id: studentId, course_id: course.id, is_active: true, granted_at: now },
+          ...units.map(u => ({ student_id: studentId, course_id: course.id, unit_id: u.id, is_active: true, granted_at: now })),
+        ];
+        await adminInsert('student_module_access', records);
+      } catch (e) {
+        console.error('[toggleLevelWithUnits] error habilitando:', e);
+        showMsg('error', '❌ Error al habilitar el nivel.');
+      }
+    }
+    await loadStudentModuleAccess(studentId);
   };
 
   const totalProgress = (s: StudentRow) => {
@@ -1439,8 +1479,9 @@ export default function AdminStudents() {
                                         const studentLvlIdx = LEVEL_ORDER_ADMIN.indexOf(studentLvl);
                                         const courseLvlIdx = LEVEL_ORDER_ADMIN.indexOf(course.level || '');
                                         const explicitGrant = (studentModuleAccess[student.id] || []).includes(course.id);
+                                        const anyUnitGranted = (course.units || []).some(u => (studentModuleAccess[student.id] || []).includes(u.id));
                                         const levelGrant = student.account_enabled !== false && studentLvlIdx >= 0 && courseLvlIdx >= 0 && courseLvlIdx <= studentLvlIdx;
-                                        const courseGranted = explicitGrant || levelGrant;
+                                        const courseGranted = explicitGrant || anyUnitGranted || levelGrant;
                                         return (
                                           <div key={course.id} className="border border-border/50 rounded-xl overflow-hidden bg-background">
                                             <div className="flex items-center gap-3 p-3 bg-muted/20">
@@ -1450,7 +1491,7 @@ export default function AdminStudents() {
                                                 <p className="text-[11px] text-muted-foreground">{course.units?.length || 0} unidades</p>
                                               </div>
                                               <button
-                                                onClick={() => toggleModuleAccess(student.id, course.id, null, courseGranted)}
+                                                onClick={() => toggleLevelWithUnits(student.id, course, courseGranted)}
                                                 className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-colors ${
                                                   courseGranted ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : 'bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary'
                                                 }`}>
