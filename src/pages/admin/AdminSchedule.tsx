@@ -140,7 +140,7 @@ export default function AdminSchedule() {
     };
     try {
       if (editingId) {
-        await adminUpdate('schedule_slots', editingId, payload);
+        await adminUpdate('schedule_slots', payload, editingId);
         setSlots(prev => prev.map(s => s.id === editingId ? { ...s, ...payload } : s));
       } else {
         const created = await adminInsert('schedule_slots', { ...payload, status: 'available' }) as Slot;
@@ -166,10 +166,11 @@ export default function AdminSchedule() {
       if (newStatus === 'available') {
         patch.booked_student_name  = null;
         patch.booked_student_email = null;
+        patch.booked_student_phone = null;
         patch.session_topic        = null;
         patch.available_spots      = 1;
       }
-      await adminUpdate('schedule_slots', slot.id, patch);
+      await adminUpdate('schedule_slots', patch, slot.id);
       setSlots(prev => prev.map(s => s.id === slot.id ? { ...s, ...patch } : s));
 
       // Mostrar aviso de cuenta pendiente
