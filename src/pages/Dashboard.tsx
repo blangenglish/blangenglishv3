@@ -811,6 +811,7 @@ const [loadingUnits, setLoadingUnits] = useState<string | null>(null);
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [bookingSlotId, setBookingSlotId] = useState<string | null>(null);
   const [bookedSlotIds, setBookedSlotIds] = useState<Set<string>>(new Set());
+  const [myBookedSlot, setMyBookedSlot] = useState<{ id: string; date: string; start_time: string; end_time: string; teacher_name: string; status: string; session_topic?: string } | null | 'loading'>('loading');
   const [bookingModalSlot, setBookingModalSlot] = useState<{ id: string; date: string; start_time: string; end_time: string; teacher_name: string } | null>(null);
   const [bookingFormTopic, setBookingFormTopic] = useState('');
   const [bookingSubmitting, setBookingSubmitting] = useState(false);
@@ -847,18 +848,36 @@ const [loadingUnits, setLoadingUnits] = useState<string | null>(null);
       setShowMundoReal(false);
       openMRTopic(null);
     }
-    if (activeTab === 'sesion' && scheduleSlots.length === 0 && !slotsLoading) {
-      setSlotsLoading(true);
-      supabase
-        .from('schedule_slots')
-        .select('id, date, start_time, end_time, teacher_name, available_spots')
-        .gt('available_spots', 0)
-        .order('date', { ascending: true })
-        .order('start_time', { ascending: true })
-        .then(({ data }) => {
-          setScheduleSlots(data || []);
-          setSlotsLoading(false);
-        });
+    if (activeTab === 'sesion') {
+      // Cargar horarios disponibles
+      if (scheduleSlots.length === 0 && !slotsLoading) {
+        setSlotsLoading(true);
+        supabase
+          .from('schedule_slots')
+          .select('id, date, start_time, end_time, teacher_name, available_spots')
+          .gt('available_spots', 0)
+          .eq('status', 'available')
+          .order('date', { ascending: true })
+          .order('start_time', { ascending: true })
+          .then(({ data }) => {
+            setScheduleSlots(data || []);
+            setSlotsLoading(false);
+          });
+      }
+      // Cargar la sesión reservada del estudiante (por su email)
+      const emailToCheck = currentEmail || userEmail;
+      if (emailToCheck) {
+        setMyBookedSlot('loading');
+        supabase
+          .from('schedule_slots')
+          .select('id, date, start_time, end_time, teacher_name, status, session_topic')
+          .eq('booked_student_email', emailToCheck)
+          .in('status', ['pending', 'confirmed'])
+          .maybeSingle()
+          .then(({ data }) => setMyBookedSlot(data ?? null));
+      } else {
+        setMyBookedSlot(null);
+      }
     }
   }, [activeTab]);
 
@@ -1791,6 +1810,56 @@ useEffect(() => {
                     <h1 className="text-2xl md:text-3xl font-extrabold mb-1">Sesión con el Profesor 🎓</h1>
                     <p className="text-muted-foreground text-sm">Reserva una clase 1 a 1 personalizada con el profesor.</p>
                   </div>
+
+                  {/* ── MI SESIÓN RESERVADA ── */}
+                  {myBookedSlot === 'loading' ? (
+                    <div className="rounded-2xl border border-border/50 p-4 animate-pulse bg-card h-20" />
+                  ) : myBookedSlot !== null ? (
+                    <div className={`rounded-2xl border-2 p-5 ${
+                      myBookedSlot.status === 'confirmed'
+                        ? 'border-green-300 bg-green-50/60 dark:bg-green-900/10'
+                        : 'border-amber-300 bg-amber-50/60 dark:bg-amber-900/10'
+                    }`}>
+                      <div className="flex items-start gap-3">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-lg ${
+                          myBookedSlot.status === 'confirmed' ? 'bg-green-100' : 'bg-amber-100'
+                        }`}>
+                          {myBookedSlot.status === 'confirmed' ? '✅' : '⏳'}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap mb-1">
+                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                              myBookedSlot.status === 'confirmed'
+                                ? 'bg-green-200 text-green-800'
+                                : 'bg-amber-200 text-amber-800'
+                            }`}>
+                              {myBookedSlot.status === 'confirmed' ? '✓ Sesión confirmada' : '⏳ Solicitud pendiente'}
+                            </span>
+                          </div>
+                          <p className="font-bold text-sm">
+                            {(() => {
+                              const months = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+                              const [y,m,d] = myBookedSlot.date.split('-');
+                              return `${parseInt(d)} ${months[parseInt(m)-1]} ${y}`;
+                            })()}
+                            {' · '}
+                            {myBookedSlot.start_time.slice(0,5)} – {myBookedSlot.end_time.slice(0,5)}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-0.5">Prof. {myBookedSlot.teacher_name}</p>
+                          {myBookedSlot.session_topic && (
+                            <p className="text-xs mt-1 text-muted-foreground">📚 {myBookedSlot.session_topic}</p>
+                          )}
+                          <p className={`text-xs mt-2 font-medium ${
+                            myBookedSlot.status === 'confirmed' ? 'text-green-700' : 'text-amber-700'
+                          }`}>
+                            {myBookedSlot.status === 'confirmed'
+                              ? '🎉 ¡Tu clase está lista! Te enviaremos el link de videollamada poco antes de la sesión.'
+                              : '📧 Tu solicitud está siendo revisada. Recibirás un correo cuando sea confirmada.'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
 
                   {/* Info notice */}
                   <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-800">

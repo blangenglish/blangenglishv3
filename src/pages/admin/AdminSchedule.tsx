@@ -59,6 +59,7 @@ export default function AdminSchedule() {
   const [deletingId, setDeletingId]           = useState<string | null>(null);
   const [formError, setFormError]             = useState('');
   const [statusChangingId, setStatusChangingId] = useState<string | null>(null);
+  const [confirmedNotice, setConfirmedNotice]   = useState<string | null>(null); // email del estudiante confirmado
 
   /* ── Carga inicial + auto-eliminar pasados disponibles ── */
   const loadSlots = async () => {
@@ -170,6 +171,12 @@ export default function AdminSchedule() {
       await adminUpdate('schedule_slots', slot.id, patch);
       setSlots(prev => prev.map(s => s.id === slot.id ? { ...s, ...patch } : s));
 
+      // Mostrar aviso de cuenta pendiente
+      if (newStatus === 'confirmed' && slot.booked_student_email) {
+        setConfirmedNotice(slot.booked_student_email);
+        setTimeout(() => setConfirmedNotice(null), 12000);
+      }
+
       // Enviar correo de confirmación al estudiante
       if (newStatus === 'confirmed' && slot.booked_student_email) {
         supabase.functions.invoke('send-session-email', {
@@ -233,6 +240,28 @@ export default function AdminSchedule() {
             <Plus className="w-4 h-4" /> Agregar disponibilidad
           </Button>
         </div>
+
+        {/* ── Aviso post-confirmación ── */}
+        <AnimatePresence>
+          {confirmedNotice && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+              className="mb-6 bg-blue-50 border border-blue-200 rounded-2xl p-4 flex items-start gap-3"
+            >
+              <span className="text-xl shrink-0">✅</span>
+              <div className="flex-1 text-sm">
+                <p className="font-bold text-blue-800 mb-0.5">Sesión confirmada — correo enviado a {confirmedNotice}</p>
+                <p className="text-blue-700">
+                  Si este estudiante aún no tiene acceso a la plataforma, activa su cuenta en{' '}
+                  <a href="#/adminblang/estudiantes" className="font-bold underline underline-offset-2">Estudiantes → habilitar cuenta</a>.
+                </p>
+              </div>
+              <button onClick={() => setConfirmedNotice(null)} className="text-blue-400 hover:text-blue-600 shrink-0">
+                <X className="w-4 h-4" />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* ── Modal formulario ── */}
         <AnimatePresence>
