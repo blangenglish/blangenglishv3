@@ -613,6 +613,35 @@ export default function PricingPage({ isLoggedIn = false, onOpenAuth, onLogout, 
                         </div>
                       )}
 
+                      {/* Resumen de pago */}
+                      <div className="rounded-2xl border border-blue-200 bg-blue-50/60 overflow-hidden">
+                        <div className="px-4 py-3 border-b border-blue-200/70 flex items-center justify-between">
+                          <span className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Resumen de pago</span>
+                          <div className="text-right">
+                            <span className="text-lg font-extrabold text-blue-900">$10 USD</span>
+                            <span className="text-xs text-blue-600 ml-1.5">/ $35.000 COP</span>
+                          </div>
+                        </div>
+                        <div className="px-4 py-3">
+                          <p className="text-[11px] font-semibold text-blue-700 mb-2 uppercase tracking-wide">Métodos de pago disponibles</p>
+                          <div className="flex items-center gap-2">
+                            {/* PayPal */}
+                            <div className="flex items-center gap-1.5 bg-white border border-blue-200 rounded-lg px-3 py-1.5 shadow-sm">
+                              <span className="text-sm font-extrabold" style={{ color: '#003087' }}>Pay</span>
+                              <span className="text-sm font-extrabold" style={{ color: '#009cde' }}>Pal</span>
+                            </div>
+                            {/* Bold / PSE */}
+                            <div className="flex items-center gap-1.5 bg-white border border-blue-200 rounded-lg px-3 py-1.5 shadow-sm">
+                              <span className="text-sm font-extrabold text-gray-800">Bold</span>
+                              <span className="text-[10px] text-gray-400 font-medium">(PSE)</span>
+                            </div>
+                          </div>
+                          <p className="text-[10px] text-blue-500 mt-2">
+                            💬 Te enviaremos el link de pago después de confirmar tu reserva.
+                          </p>
+                        </div>
+                      </div>
+
                       <Button
                         className="w-full rounded-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-6"
                         disabled={pubSubmitting || !pubForm.name.trim() || !pubForm.email.trim() || !pubForm.topic.trim()}
