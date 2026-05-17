@@ -1,11 +1,11 @@
 // @ts-nocheck
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ChevronRight, Star } from 'lucide-react';
+import { ChevronRight, Star, X, Clock, Calendar, ChevronLeft, AlertCircle, Users, User, Phone, Mail, BookOpen } from 'lucide-react';
 import { ROUTE_PATHS } from '@/lib/index';
 import type { AuthModal } from '@/lib/index';
 import { IMAGES } from '@/assets/images';
@@ -49,6 +49,86 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
   const [ctaEmail, setCtaEmail] = useState('');
   const navigate = useNavigate();
   const [reviews, setReviews] = useState<{ full_name: string; rating: number; comment: string }[]>([]);
+
+  // ── Booking modal (landing page, sin login) ──
+  const [bookingOpen, setBookingOpen]     = useState(false);
+  const [bookingStep, setBookingStep]     = useState<'slots' | 'form' | 'success'>('slots');
+  const [pubSlots, setPubSlots]           = useState<any[]>([]);
+  const [pubSlotsLoading, setPubSlotsLoading] = useState(false);
+  const [selectedSlot, setSelectedSlot]   = useState<any>(null);
+  const [pubForm, setPubForm]             = useState({ name: '', email: '', phone: '', topic: '' });
+  const [pubSubmitting, setPubSubmitting] = useState(false);
+  const [pubError, setPubError]           = useState('');
+
+  const openBooking = () => {
+    setBookingOpen(true);
+    setBookingStep('slots');
+    setPubForm({ name: '', email: '', phone: '', topic: '' });
+    setPubError('');
+    setPubSlotsLoading(true);
+    supabase.from('schedule_slots')
+      .select('id, date, start_time, end_time, teacher_name, available_spots')
+      .eq('status', 'available')
+      .gt('available_spots', 0)
+      .order('date', { ascending: true })
+      .order('start_time', { ascending: true })
+      .then(({ data }) => { setPubSlots(data || []); setPubSlotsLoading(false); });
+  };
+
+  const closeBooking = () => { setBookingOpen(false); };
+
+  const selectSlot = (slot: any) => {
+    setSelectedSlot(slot);
+    setPubError('');
+    setBookingStep('form');
+  };
+
+  const handlePublicBooking = async () => {
+    if (!pubForm.name.trim() || !pubForm.email.trim() || !pubForm.topic.trim()) {
+      setPubError('Por favor completa nombre, correo y tema.');
+      return;
+    }
+    setPubSubmitting(true);
+    setPubError('');
+    try {
+      const { data, error } = await supabase.rpc('book_schedule_slot', {
+        p_slot_id:       selectedSlot.id,
+        p_student_name:  pubForm.name.trim(),
+        p_student_email: pubForm.email.trim(),
+        p_topic:         pubForm.topic.trim(),
+        p_student_phone: pubForm.phone.trim(),
+      });
+      if (error || data?.success === false) {
+        setPubError(data?.error || 'Este horario ya no está disponible. Por favor elige otro.');
+        // Recargar slots actualizados
+        supabase.from('schedule_slots')
+          .select('id, date, start_time, end_time, teacher_name, available_spots')
+          .eq('status', 'available').gt('available_spots', 0)
+          .order('date').order('start_time')
+          .then(({ data: fresh }) => setPubSlots(fresh || []));
+      } else {
+        // Notificar al admin (fire-and-forget)
+        supabase.functions.invoke('send-session-email', {
+          body: {
+            type: 'slot_booking',
+            studentName:   pubForm.name.trim(),
+            studentEmail:  pubForm.email.trim(),
+            studentPhone:  pubForm.phone.trim(),
+            teacherName:   selectedSlot.teacher_name,
+            slotDate:      selectedSlot.date,
+            slotStartTime: selectedSlot.start_time,
+            slotEndTime:   selectedSlot.end_time,
+            topic:         pubForm.topic.trim(),
+          },
+        }).catch(() => {});
+        setBookingStep('success');
+      }
+    } catch (_) {
+      setPubError('Error de conexión. Intenta de nuevo.');
+    } finally {
+      setPubSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     supabase
@@ -483,7 +563,7 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
                     <Button
                       size="lg"
                       className="w-full bg-white text-primary hover:bg-white/90 font-extrabold text-base sm:text-lg py-5 sm:py-6 rounded-2xl shadow-xl transition-all active:scale-[0.98]"
-                      onClick={() => navigate(ROUTE_PATHS.PRICING)}
+                      onClick={openBooking}
                     >
                       Reservar sesión 📅
                     </Button>
@@ -579,6 +659,221 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
           </div>
         </section>
       )}
+
+      {/* ── BOOKING MODAL (landing, sin login) ── */}
+      <AnimatePresence>
+        {bookingOpen && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            onClick={e => { if (e.target === e.currentTarget) closeBooking(); }}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
+                <div className="flex items-center gap-3">
+                  {bookingStep === 'form' && (
+                    <button onClick={() => setBookingStep('slots')} className="p-1 rounded-lg hover:bg-gray-100 transition-colors mr-1">
+                      <ChevronLeft className="w-4 h-4 text-gray-500" />
+                    </button>
+                  )}
+                  <div className="w-8 h-8 rounded-xl bg-violet-100 flex items-center justify-center">
+                    <Calendar className="w-4 h-4 text-violet-600" />
+                  </div>
+                  <div>
+                    <p className="font-extrabold text-sm text-gray-900">
+                      {bookingStep === 'slots' ? 'Horarios disponibles' :
+                       bookingStep === 'form'  ? 'Confirmar reserva' :
+                       '¡Solicitud enviada!'}
+                    </p>
+                    <p className="text-xs text-gray-400">Clase 1 a 1 · $10 USD / hora</p>
+                  </div>
+                </div>
+                <button onClick={closeBooking} className="p-1.5 rounded-xl hover:bg-gray-100 transition-colors">
+                  <X className="w-4 h-4 text-gray-400" />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="overflow-y-auto flex-1">
+
+                {/* STEP: SLOTS */}
+                {bookingStep === 'slots' && (
+                  <div className="p-5">
+                    {pubSlotsLoading ? (
+                      <div className="space-y-3">
+                        {[1,2,3].map(i => (
+                          <div key={i} className="animate-pulse rounded-2xl border border-gray-100 p-4 flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-gray-100 shrink-0" />
+                            <div className="flex-1 space-y-2">
+                              <div className="h-3.5 w-36 bg-gray-100 rounded-full" />
+                              <div className="h-3 w-48 bg-gray-100 rounded-full" />
+                            </div>
+                            <div className="w-20 h-8 bg-gray-100 rounded-xl shrink-0" />
+                          </div>
+                        ))}
+                      </div>
+                    ) : pubSlots.length === 0 ? (
+                      <div className="text-center py-12">
+                        <Calendar className="w-10 h-10 mx-auto mb-3 text-gray-200" />
+                        <p className="font-semibold text-gray-700 text-sm">Sin horarios disponibles</p>
+                        <p className="text-xs text-gray-400 mt-1">El profesor publicará nuevos horarios pronto. ¡Vuelve a revisar!</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {pubSlots.map(slot => {
+                          const months = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+                          const [y,m,d] = slot.date.split('-');
+                          const dateLabel = `${parseInt(d)} ${months[parseInt(m)-1]} ${y}`;
+                          const timeLabel = `${slot.start_time.slice(0,5)} – ${slot.end_time.slice(0,5)}`;
+                          return (
+                            <div key={slot.id} className="rounded-2xl border border-gray-100 p-4 flex items-center gap-3 hover:border-violet-200 hover:bg-violet-50/30 transition-all">
+                              <div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+                                <Calendar className="w-5 h-5 text-violet-600" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-bold text-sm text-gray-900">{dateLabel}</p>
+                                <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+                                  <span className="text-xs text-gray-500 flex items-center gap-1">
+                                    <Clock className="w-3 h-3" /> {timeLabel}
+                                  </span>
+                                  <span className="text-xs text-gray-500 flex items-center gap-1">
+                                    <User className="w-3 h-3" /> {slot.teacher_name}
+                                  </span>
+                                  <span className={`text-xs font-medium flex items-center gap-1 ${slot.available_spots <= 2 ? 'text-amber-600' : 'text-gray-500'}`}>
+                                    <Users className="w-3 h-3" /> {slot.available_spots} cupo{slot.available_spots !== 1 ? 's' : ''}
+                                  </span>
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => selectSlot(slot)}
+                                className="shrink-0 px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-violet-600 to-purple-600 text-white hover:from-violet-700 hover:to-purple-700 transition-all"
+                              >
+                                Reservar
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* STEP: FORM */}
+                {bookingStep === 'form' && selectedSlot && (
+                  <div className="p-5 space-y-4">
+                    {/* Slot info */}
+                    {(() => {
+                      const months = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+                      const [y,m,d] = selectedSlot.date.split('-');
+                      return (
+                        <div className="bg-violet-50 border border-violet-200 rounded-2xl p-4 space-y-1">
+                          <div className="flex items-center gap-2 text-sm font-bold text-violet-900">
+                            <Calendar className="w-3.5 h-3.5 shrink-0" />
+                            {parseInt(d)} de {months[parseInt(m)-1]} de {y}
+                          </div>
+                          <div className="flex items-center gap-2 text-xs text-violet-700">
+                            <Clock className="w-3.5 h-3.5 shrink-0" />
+                            {selectedSlot.start_time.slice(0,5)} – {selectedSlot.end_time.slice(0,5)} · Prof. {selectedSlot.teacher_name}
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Nombre */}
+                    <div className="space-y-1.5">
+                      <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                        <User className="w-3.5 h-3.5" /> Nombre completo *
+                      </label>
+                      <Input value={pubForm.name} onChange={e => setPubForm(f => ({ ...f, name: e.target.value }))}
+                        placeholder="Tu nombre completo" className="rounded-xl" />
+                    </div>
+
+                    {/* Correo */}
+                    <div className="space-y-1.5">
+                      <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                        <Mail className="w-3.5 h-3.5" /> Correo electrónico *
+                      </label>
+                      <Input type="email" value={pubForm.email} onChange={e => setPubForm(f => ({ ...f, email: e.target.value }))}
+                        placeholder="tu@correo.com" className="rounded-xl" />
+                    </div>
+
+                    {/* Teléfono */}
+                    <div className="space-y-1.5">
+                      <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                        <Phone className="w-3.5 h-3.5" /> Teléfono (WhatsApp)
+                      </label>
+                      <Input type="tel" value={pubForm.phone} onChange={e => setPubForm(f => ({ ...f, phone: e.target.value }))}
+                        placeholder="+57 300 000 0000" className="rounded-xl" />
+                    </div>
+
+                    {/* Tema */}
+                    <div className="space-y-1.5">
+                      <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                        <BookOpen className="w-3.5 h-3.5" /> ¿Qué quieres estudiar? *
+                      </label>
+                      <textarea
+                        value={pubForm.topic}
+                        onChange={e => setPubForm(f => ({ ...f, topic: e.target.value }))}
+                        placeholder="Ej: Verbos en pasado, pronunciación, inglés de negocios..."
+                        rows={3}
+                        className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-violet-400/40"
+                      />
+                    </div>
+
+                    {/* Error */}
+                    {pubError && (
+                      <div className="flex items-start gap-2 bg-red-50 text-red-700 rounded-xl p-3 text-sm">
+                        <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" /> {pubError}
+                      </div>
+                    )}
+
+                    {/* Botón */}
+                    <Button
+                      className="w-full rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white font-bold py-5"
+                      onClick={handlePublicBooking}
+                      disabled={pubSubmitting}
+                    >
+                      {pubSubmitting ? (
+                        <span className="flex items-center gap-2">
+                          <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          Enviando...
+                        </span>
+                      ) : 'Enviar solicitud 🚀'}
+                    </Button>
+                    <p className="text-center text-xs text-gray-400">
+                      Al enviar, te llegará un correo con el link de pago.
+                    </p>
+                  </div>
+                )}
+
+                {/* STEP: SUCCESS */}
+                {bookingStep === 'success' && (
+                  <div className="p-8 flex flex-col items-center text-center gap-4">
+                    <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center text-4xl">✅</div>
+                    <div>
+                      <h3 className="font-extrabold text-xl text-gray-900 mb-2">¡Solicitud enviada!</h3>
+                      <p className="text-sm text-gray-500 leading-relaxed max-w-xs mx-auto">
+                        Estate pendiente de tu correo — te llegará el link de pago. Una vez realices el pago, agendaremos tu clase. 🎉
+                      </p>
+                    </div>
+                    <Button onClick={closeBooking} className="rounded-xl px-8 bg-violet-600 hover:bg-violet-700 text-white mt-2">
+                      Cerrar
+                    </Button>
+                  </div>
+                )}
+
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </Layout>
   );

@@ -9,8 +9,8 @@ import { adminSelect, adminInsert, adminUpdate, adminDelete } from '@/lib/adminW
 import { supabase } from '@/integrations/supabase/client';
 import {
   CalendarDays, Clock, User, Users, Plus, Pencil,
-  Trash2, X, Check, AlertCircle, Mail, BookOpen,
-  CheckCircle2, CircleDot, Circle,
+  Trash2, X, Check, AlertCircle, Mail, BookOpen, Phone,
+  CheckCircle2, Circle,
 } from 'lucide-react';
 
 interface Slot {
@@ -23,6 +23,7 @@ interface Slot {
   status: 'available' | 'pending' | 'confirmed';
   booked_student_name?: string;
   booked_student_email?: string;
+  booked_student_phone?: string;
   session_topic?: string;
   created_at: string;
 }
@@ -443,6 +444,12 @@ export default function AdminSchedule() {
                                     <div className="flex items-center gap-2">
                                       <Mail className="w-3 h-3 text-muted-foreground shrink-0" />
                                       <span className="text-muted-foreground">{slot.booked_student_email}</span>
+                                    </div>
+                                  )}
+                                  {slot.booked_student_phone && (
+                                    <div className="flex items-center gap-2">
+                                      <Phone className="w-3 h-3 text-muted-foreground shrink-0" />
+                                      <span className="text-muted-foreground">{slot.booked_student_phone}</span>
                                     </div>
                                   )}
                                   {slot.session_topic && (
