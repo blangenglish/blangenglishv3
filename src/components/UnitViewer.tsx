@@ -225,6 +225,87 @@ function getCorrectTexts(q) {
   return [];
 }
 
+// ─── Botón de reproducción de audio (Web Speech Synthesis) ──────────────────
+function ListenButton({ text }: { text: string }) {
+  const [status, setStatus] = useState<'idle' | 'playing' | 'done' | 'error'>('idle');
+
+  const playAudio = useCallback(() => {
+    if (!('speechSynthesis' in window)) {
+      setStatus('error');
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+    setStatus('playing');
+
+    const utt = new SpeechSynthesisUtterance(text);
+    utt.lang = 'en-US';
+    utt.rate = 0.82;
+    utt.pitch = 1.0;
+    utt.onend   = () => setStatus('done');
+    utt.onerror = () => setStatus('error');
+
+    const doSpeak = () => {
+      const voices = window.speechSynthesis.getVoices();
+      // Preferir voz en-US nativa (no Google TTS que puede fallar offline)
+      const voice =
+        voices.find(v => v.lang === 'en-US' && v.localService) ||
+        voices.find(v => v.lang === 'en-US') ||
+        voices.find(v => v.lang.startsWith('en'));
+      if (voice) utt.voice = voice;
+      window.speechSynthesis.speak(utt);
+    };
+
+    if (window.speechSynthesis.getVoices().length > 0) {
+      doSpeak();
+    } else {
+      // Chrome carga voces de forma asíncrona la primera vez
+      window.speechSynthesis.addEventListener('voiceschanged', doSpeak, { once: true });
+    }
+  }, [text]);
+
+  return (
+    <div className="rounded-xl border-2 border-blue-200 bg-blue-50/80 p-4 space-y-2.5">
+      <div className="flex items-center gap-2 justify-center">
+        <span className="text-lg">🎧</span>
+        <p className="text-sm font-semibold text-blue-900">Escucha con atención y responde</p>
+      </div>
+
+      <div className="flex justify-center">
+        <button
+          type="button"
+          onClick={playAudio}
+          disabled={status === 'playing'}
+          className={cn(
+            'flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all',
+            status === 'playing'
+              ? 'bg-blue-200 text-blue-400 cursor-not-allowed'
+              : 'bg-blue-600 hover:bg-blue-700 active:scale-95 text-white shadow-sm',
+          )}
+        >
+          {status === 'playing' ? (
+            <><Loader2 className="w-4 h-4 animate-spin" /> Reproduciendo…</>
+          ) : (
+            <><Volume2 className="w-4 h-4" /> {status === 'done' ? 'Escuchar de nuevo' : '▶ Escuchar audio'}</>
+          )}
+        </button>
+      </div>
+
+      {status === 'idle' && (
+        <p className="text-xs text-blue-600 text-center">Presiona el botón para escuchar el audio</p>
+      )}
+      {status === 'done' && (
+        <p className="text-xs text-blue-700 text-center font-medium">✓ Puedes escucharlo de nuevo cuando quieras</p>
+      )}
+      {status === 'error' && (
+        <p className="text-xs text-red-500 text-center">
+          ⚠️ Tu navegador no soporta síntesis de voz. Prueba con Chrome o Edge.
+        </p>
+      )}
+    </div>
+  );
+}
+
 // ─── Inline Quiz Player ───────────────────────────────────────────────────────
 function InlineQuiz({ questions, onPassed }) {
   const [cur, setCur] = useState(0);
@@ -327,7 +408,13 @@ function InlineQuiz({ questions, onPassed }) {
 
     // Fill gap / write types — case-insensitive trim
     if (['fill_gap','image_write','listen_write','rewrite','organize'].includes(type)) {
-      const correct = String(q.correctAnswer || '').trim().toLowerCase();
+      // Para listen_write el admin solo guarda q.question (la palabra a escuchar);
+      // si correctAnswer no está definido, la respuesta correcta ES q.question.
+      const correctSource =
+        type === 'listen_write' && !q.correctAnswer
+          ? q.question
+          : (q.correctAnswer || '');
+      const correct = String(correctSource).trim().toLowerCase();
       const ans = textAnswer.trim().toLowerCase();
       return ans === correct;
     }
@@ -422,7 +509,11 @@ function InlineQuiz({ questions, onPassed }) {
 
   // For display: correct answer text
   const correctDisplay = (() => {
-    if (writeTypes.includes(q.type)) return q.correctAnswer || '';
+    if (writeTypes.includes(q.type)) {
+      // listen_write: si no hay correctAnswer, la respuesta correcta es q.question
+      if (q.type === 'listen_write' && !q.correctAnswer) return q.question || '';
+      return q.correctAnswer || '';
+    }
     if (singleChoiceTypes.includes(q.type)) return opts.filter(o => o.isCorrect).map(o => o.text).join(', ');
     if (q.type === 'multiple_select') return opts.filter(o => o.isCorrect).map(o => o.text).join(', ');
     return '';
@@ -465,12 +556,9 @@ function InlineQuiz({ questions, onPassed }) {
           />
         )}
 
-        {/* Audio hint for listen types */}
-        {(q.type === 'listen_select' || q.type === 'listen_write') && (
-          <div className="flex items-center gap-2 p-3 rounded-xl bg-blue-50 border border-blue-200">
-            <Volume2 className="h-4 w-4 text-blue-500 shrink-0" />
-            <p className="text-xs text-blue-700">Escucha con atención y responde</p>
-          </div>
+        {/* Audio player para preguntas de escucha */}
+        {(q.type === 'listen_select' || q.type === 'listen_write') && q.question && (
+          <ListenButton key={q.id ?? cur} text={q.question} />
         )}
 
         {/* Question text */}
