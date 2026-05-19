@@ -234,6 +234,7 @@ function InlineQuiz({ questions, onPassed }) {
   const [isCorrect, setIsCorrect] = useState(false);
   const [score, setScore] = useState(0);
   const [finished, setFinished] = useState(false);
+  const [continuarLoading, setContinuarLoading] = useState(false);
 
   // match: {optText -> correctAnswer}
   const [matchMap, setMatchMap] = useState({});
@@ -384,16 +385,29 @@ function InlineQuiz({ questions, onPassed }) {
             style={{ width: `${pct}%` }} />
         </div>
         {passed ? (
-          <Button className="w-full rounded-xl font-bold gap-2 bg-green-600 hover:bg-green-700" onClick={onPassed}>
-            <CheckCircle className="w-4 h-4" /> Continuar →
+          <Button
+            className="w-full rounded-xl font-bold gap-2 bg-green-600 hover:bg-green-700"
+            disabled={continuarLoading}
+            onClick={async () => {
+              setContinuarLoading(true);
+              await onPassed();
+              // El componente se desmonta después de navegar; no reseteamos el estado.
+            }}
+          >
+            {continuarLoading
+              ? <><Loader2 className="w-4 h-4 animate-spin" /> Guardando…</>
+              : <><CheckCircle className="w-4 h-4" /> Continuar →</>
+            }
           </Button>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-3">
+            <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 font-medium">
+              Necesitas al menos <strong>60%</strong> para avanzar. ¡Revisa el material y vuelve a intentarlo!
+            </div>
             <Button variant="outline" className="w-full rounded-xl gap-2"
-              onClick={() => { setCur(0); setScore(0); setFinished(false); }}>
+              onClick={() => { setCur(0); setScore(0); setFinished(false); setContinuarLoading(false); }}>
               <RefreshCw className="w-4 h-4" /> Intentar de nuevo
             </Button>
-            <p className="text-xs text-muted-foreground">Necesitas al menos 60% para pasar</p>
           </div>
         )}
       </div>
@@ -1045,24 +1059,44 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
   const markCompleted = async () => {
     if (!currentStage || markingDone) return;
     setMarkingDone(true);
-    const row = {
-      student_id: studentId, unit_id: unitId, stage: currentStage.id,
-      completed: true, completed_at: new Date().toISOString(), quiz_passed: hasQuiz,
-    };
-    const { error } = await supabase.from('unit_progress')
-      .upsert(row, { onConflict: 'student_id,unit_id,stage' });
-    if (!error) {
-      setProgress(prev => ({
-        ...prev,
-        [currentStage.id]: { completed: true, completed_at: row.completed_at, quiz_passed: row.quiz_passed },
-      }));
-      setShowQuiz(false);
-      if (localIdx < stagesWithContent.length - 1) {
-        setTimeout(() => {
-          setCurrentStageIdx(STAGES.findIndex(s => s.id === stagesWithContent[localIdx + 1].id));
-        }, 700);
-      }
+
+    const now = new Date().toISOString();
+
+    // 1. Actualizar UI inmediatamente (optimista) — sin esperar a Supabase
+    setProgress(prev => ({
+      ...prev,
+      [currentStage.id]: { completed: true, completed_at: now, quiz_passed: hasQuiz },
+    }));
+    setShowQuiz(false);
+
+    // 2. Navegar a la siguiente parte si existe (sin esperar al save)
+    if (localIdx < stagesWithContent.length - 1) {
+      setTimeout(() => {
+        setCurrentStageIdx(STAGES.findIndex(s => s.id === stagesWithContent[localIdx + 1].id));
+      }, 400);
     }
+
+    // 3. Guardar en Supabase en segundo plano
+    try {
+      const { error } = await supabase.from('unit_progress').upsert(
+        {
+          student_id: studentId,
+          unit_id: unitId,
+          stage: currentStage.id,
+          completed: true,
+          completed_at: now,
+          quiz_passed: hasQuiz,
+          updated_at: now,
+        },
+        { onConflict: 'student_id,unit_id,stage' },
+      );
+      if (error) {
+        console.error('[UnitViewer] Error guardando progreso:', error.message);
+      }
+    } catch (e) {
+      console.error('[UnitViewer] Error de red al guardar progreso:', e);
+    }
+
     setMarkingDone(false);
   };
 
