@@ -740,6 +740,8 @@ export default function Dashboard({ isLoggedIn = false, onOpenAuth, onLogout, us
   const [completedLevels, setCompletedLevels] = useState<string[]>([]);
   // unit progress map: unitId → number of completed stages
   const [unitProgressMap, setUnitProgressMap] = useState<Record<string, number>>({});
+  // total stages per unit (from unit_stage_materials + unit_stage_quizzes)
+  const [unitStageTotalMap, setUnitStageTotalMap] = useState<Record<string, number>>({});
 
   // Session booking form state
   interface SessionSlot { date: string; topic: string; }
@@ -938,14 +940,36 @@ useEffect(() => {
     const units = (data || []) as DBUnitRow[];
     setCourseUnits(prev => ({ ...prev, [courseId]: units }));
     setLoadingUnits(null);
-    // Cargar progreso de cada unidad
+    // Cargar progreso + total real de partes de cada unidad
     if (units.length > 0 && currentUserId) {
       const unitIds = units.map(u => u.id);
-      const { data: progData } = await supabase.from('unit_progress')
-        .select('unit_id')
-        .in('unit_id', unitIds)
-        .eq('student_id', currentUserId)
-        .eq('completed', true);
+
+      // Tres consultas en paralelo: progreso completado + materiales + quizzes
+      const [{ data: progData }, { data: matStages }, { data: quizStages }] = await Promise.all([
+        supabase.from('unit_progress')
+          .select('unit_id')
+          .in('unit_id', unitIds)
+          .eq('student_id', currentUserId)
+          .eq('completed', true),
+        supabase.from('unit_stage_materials')
+          .select('unit_id, stage')
+          .in('unit_id', unitIds),
+        supabase.from('unit_stage_quizzes')
+          .select('unit_id, stage')
+          .in('unit_id', unitIds),
+      ]);
+
+      // Total de partes por unidad = stages únicos con material O quiz
+      const stageSetMap: Record<string, Set<string>> = {};
+      [...(matStages || []), ...(quizStages || [])].forEach((r: { unit_id: string; stage: string }) => {
+        if (!stageSetMap[r.unit_id]) stageSetMap[r.unit_id] = new Set();
+        stageSetMap[r.unit_id].add(r.stage);
+      });
+      const newTotalMap: Record<string, number> = {};
+      unitIds.forEach(uid => { newTotalMap[uid] = stageSetMap[uid]?.size || 1; });
+      setUnitStageTotalMap(prev => ({ ...prev, ...newTotalMap }));
+
+      // Partes completadas por unidad
       const newMap: Record<string, number> = {};
       (progData || []).forEach((p: { unit_id: string }) => {
         newMap[p.unit_id] = (newMap[p.unit_id] || 0) + 1;
@@ -1199,6 +1223,33 @@ useEffect(() => {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'student_profiles',      filter: `id=eq.${currentUserId}` },       doRefresh)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'subscriptions',         filter: `student_id=eq.${currentUserId}` }, doRefresh)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'student_module_access', filter: `student_id=eq.${currentUserId}` }, doRefresh)
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'unit_progress', filter: `student_id=eq.${currentUserId}` },
+        (payload: any) => {
+          const unitId = payload.new?.unit_id;
+          if (!unitId) return;
+          // Refrescar conteo de partes completadas para esta unidad específica
+          supabase.from('unit_progress')
+            .select('unit_id')
+            .eq('unit_id', unitId)
+            .eq('student_id', currentUserId)
+            .eq('completed', true)
+            .then(({ data }) => {
+              if (data) setUnitProgressMap(prev => ({ ...prev, [unitId]: data.length }));
+            });
+          // Refrescar el contador global de "unidades con progreso"
+          supabase.from('unit_progress')
+            .select('unit_id')
+            .eq('student_id', currentUserId)
+            .eq('completed', true)
+            .then(({ data }) => {
+              if (data) {
+                const unique = new Set(data.map((p: any) => p.unit_id));
+                setRealCompletedUnits(unique.size);
+              }
+            });
+        },
+      )
       .subscribe();
 
     // Polling de respaldo cada 8s para asegurar que cambios admin se reflejen
@@ -1793,8 +1844,8 @@ useEffect(() => {
                               )}
                               {units.map(unit => {
                                 const unitProg = unitProgressMap[unit.id] || 0;
-                                const totalStages = 5;
-                                const progPct = Math.round((unitProg / totalStages) * 100);
+                                const totalStages = unitStageTotalMap[unit.id] || 5;
+                                const progPct = Math.min(100, Math.round((unitProg / totalStages) * 100));
                                 return (
                                 <button
                                   key={unit.id}
