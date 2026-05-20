@@ -1069,6 +1069,10 @@ function StepDot({ idx, currentIdx, completed, label }) {
   );
 }
 
+// ─── Caché de contenido por unidad (persiste mientras la sesión esté abierta) ──
+// Almacena materials + quizzes para que al reabrir la misma unidad no se vuelva a pedir a Supabase.
+const _unitContentCache: Record<string, { byStage: Record<string, any[]>; quizByStage: Record<string, any[]> }> = {};
+
 // ─── Main UnitViewer ──────────────────────────────────────────────────────────
 export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onClose, isLocked }) {
   const [loading, setLoading] = useState(true);
@@ -1084,37 +1088,55 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
     setLoading(true);
     setShowQuiz(false);
 
-    const { data: mats } = await supabase
-      .from('unit_stage_materials').select('*')
-      .eq('unit_id', unitId).order('sort_order', { ascending: true });
+    // ── Paso 1: contenido estático (materials + quizzes) desde caché o Supabase ──
+    // Se ejecuta en paralelo con la consulta de progreso (que siempre va a Supabase).
+    const getContent = async () => {
+      if (_unitContentCache[unitId]) return _unitContentCache[unitId];
 
-    const map = Object.fromEntries(STAGES.map(s => [s.id, []]));
-    (mats || []).forEach(m => { if (m.stage in map) map[m.stage].push(m); });
+      const [matsResult, quizResult] = await Promise.all([
+        supabase
+          .from('unit_stage_materials').select('*')
+          .eq('unit_id', unitId).order('sort_order', { ascending: true }),
+        supabase
+          .from('unit_stage_quizzes').select('stage, questions')
+          .eq('unit_id', unitId),
+      ]);
+
+      const byStageData: Record<string, any[]> = Object.fromEntries(STAGES.map(s => [s.id, []]));
+      (matsResult.data || []).forEach(m => { if (m.stage in byStageData) byStageData[m.stage].push(m); });
+
+      const quizData: Record<string, any[]> = {};
+      (quizResult.data || []).forEach(row => {
+        const qs = Array.isArray(row.questions) ? row.questions : [];
+        if (qs.length > 0) quizData[row.stage] = qs;
+      });
+
+      _unitContentCache[unitId] = { byStage: byStageData, quizByStage: quizData };
+      return _unitContentCache[unitId];
+    };
+
+    // ── Paso 2: contenido y progreso en paralelo ──
+    const [content, progResult] = await Promise.all([
+      getContent(),
+      isLocked
+        ? Promise.resolve({ data: null })
+        : supabase
+            .from('unit_progress').select('stage, completed, completed_at, quiz_passed')
+            .eq('unit_id', unitId).eq('student_id', studentId),
+    ]);
+
+    const { byStage: map, quizByStage: qmap } = content;
     setByStage(map);
-
-    const { data: quizRows } = await supabase
-      .from('unit_stage_quizzes').select('stage, questions')
-      .eq('unit_id', unitId);
-
-    const qmap = {};
-    (quizRows || []).forEach(row => {
-      const qs = Array.isArray(row.questions) ? row.questions : [];
-      if (qs.length > 0) qmap[row.stage] = qs;
-    });
     setQuizByStage(qmap);
 
     if (!isLocked) {
-      const { data: prog } = await supabase
-        .from('unit_progress').select('stage, completed, completed_at, quiz_passed')
-        .eq('unit_id', unitId).eq('student_id', studentId);
-
-      const pm = {};
-      (prog || []).forEach(p => {
+      const pm: Record<string, any> = {};
+      ((progResult as any).data || []).forEach((p: any) => {
         pm[p.stage] = { completed: p.completed, completed_at: p.completed_at, quiz_passed: p.quiz_passed };
       });
       setProgress(pm);
 
-      const stagesWC = STAGES.filter(s => map[s.id].length > 0 || qmap[s.id]);
+      const stagesWC = STAGES.filter(s => map[s.id]?.length > 0 || qmap[s.id]);
       const firstInc = stagesWC.findIndex(s => !pm[s.id]?.completed);
       const startStage = stagesWC[firstInc >= 0 ? firstInc : Math.max(0, stagesWC.length - 1)];
       const globalIdx = STAGES.findIndex(s => s.id === (startStage?.id || STAGES[0].id));
