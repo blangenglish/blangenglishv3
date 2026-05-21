@@ -803,7 +803,7 @@ const [showPaypalModal, setShowPaypalModal] = useState(false);
   const [expandedCourse, setExpandedCourse] = useState<string | null>(null);
   const [courseUnits, setCourseUnits] = useState<Record<string, DBUnitRow[]>>({});
 const [loadingUnits, setLoadingUnits] = useState<string | null>(null);
-  const [viewerUnit, setViewerUnit] = useState<{ id: string; title: string; description: string } | null>(null);
+  const [viewerUnit, setViewerUnit] = useState<{ id: string; title: string; description: string; isReview?: boolean } | null>(null);
   // Modal payment tab state (used in showPaypalModal)
   const [modalTab, setModalTab] = useState<'paypal'|'pse'>('paypal');
   const [modalCopied, setModalCopied] = useState(false);
@@ -1846,17 +1846,16 @@ useEffect(() => {
                                 const unitProg = unitProgressMap[unit.id] || 0;
                                 const totalStages = unitStageTotalMap[unit.id] || 5;
                                 const progPct = Math.min(100, Math.round((unitProg / totalStages) * 100));
+                                const isCompleted = unitProg >= totalStages;
                                 return (
-                                <button
+                                <div
                                   key={unit.id}
-                                  type="button"
-                                  onClick={() => setViewerUnit({ id: unit.id, title: unit.title, description: unit.description })}
-                                  className="w-full flex items-center gap-3 p-3 rounded-xl border border-border bg-card hover:border-primary/30 hover:bg-primary/5 transition-all text-left group"
+                                  className="w-full flex items-center gap-3 p-3 rounded-xl border border-border bg-card transition-all text-left"
                                 >
                                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                                    unitProg >= totalStages ? 'bg-green-100' : 'bg-primary/10'
+                                    isCompleted ? 'bg-green-100' : 'bg-primary/10'
                                   }`}>
-                                    {unitProg >= totalStages
+                                    {isCompleted
                                       ? <CheckCircle2 className="w-4 h-4 text-green-600" />
                                       : <BookOpen className="w-4 h-4 text-primary" />}
                                   </div>
@@ -1865,7 +1864,7 @@ useEffect(() => {
                                     {unitProg > 0 ? (
                                       <div className="flex items-center gap-2 mt-0.5">
                                         <div className="flex-1 h-1.5 bg-border rounded-full overflow-hidden">
-                                          <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${progPct}%` }} />
+                                          <div className={`h-full rounded-full transition-all ${isCompleted ? 'bg-green-500' : 'bg-primary'}`} style={{ width: `${progPct}%` }} />
                                         </div>
                                         <span className="text-[10px] text-muted-foreground shrink-0">{unitProg}/{totalStages}</span>
                                       </div>
@@ -1873,8 +1872,30 @@ useEffect(() => {
                                       unit.description && <p className="text-xs text-muted-foreground truncate">{unit.description}</p>
                                     )}
                                   </div>
-                                  <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary shrink-0" />
-                                </button>
+                                  {isCompleted ? (
+                                    /* Unidad completada: dos botones */
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                      <button
+                                        type="button"
+                                        onClick={() => setViewerUnit({ id: unit.id, title: unit.title, description: unit.description, isReview: true })}
+                                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-primary/40 text-primary hover:bg-primary/10 transition-colors"
+                                      >
+                                        <History className="w-3 h-3" />
+                                        Repasar
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    /* Unidad en progreso o sin empezar: botón único */
+                                    <button
+                                      type="button"
+                                      onClick={() => setViewerUnit({ id: unit.id, title: unit.title, description: unit.description })}
+                                      className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                                    >
+                                      {unitProg > 0 ? 'Continuar' : 'Comenzar'}
+                                      <ChevronRight className="w-3 h-3" />
+                                    </button>
+                                  )}
+                                </div>
                                 );
                               })}
                             </div>
@@ -3250,6 +3271,7 @@ useEffect(() => {
           unitTitle={viewerUnit.title}
           unitDescription={viewerUnit.description}
           studentId={currentUserId}
+          isReview={!!viewerUnit.isReview}
           onClose={async () => {
             // Actualizar progreso de esta unidad en el mapa al cerrar
             if (currentUserId && viewerUnit.id) {

@@ -1074,7 +1074,7 @@ function StepDot({ idx, currentIdx, completed, label }) {
 const _unitContentCache: Record<string, { byStage: Record<string, any[]>; quizByStage: Record<string, any[]> }> = {};
 
 // ─── Main UnitViewer ──────────────────────────────────────────────────────────
-export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onClose, isLocked }) {
+export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onClose, isLocked, isReview = false }) {
   const [loading, setLoading] = useState(true);
   const [byStage, setByStage] = useState(() =>
     Object.fromEntries(STAGES.map(s => [s.id, []])));
@@ -1083,6 +1083,10 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
   const [currentStageIdx, setCurrentStageIdx] = useState(0);
   const [markingDone, setMarkingDone] = useState(false);
   const [showQuiz, setShowQuiz] = useState(false);
+  // Modo repaso: stages "pasados" en esta sesión (no se guardan en Supabase)
+  const [reviewPassedSet, setReviewPassedSet] = useState<Set<string>>(new Set());
+  // Activado cuando el estudiante elige repasar desde la pantalla de unidad completa
+  const [isReviewing, setIsReviewing] = useState(isReview);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -1137,10 +1141,16 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
       setProgress(pm);
 
       const stagesWC = STAGES.filter(s => map[s.id]?.length > 0 || qmap[s.id]);
-      const firstInc = stagesWC.findIndex(s => !pm[s.id]?.completed);
-      const startStage = stagesWC[firstInc >= 0 ? firstInc : Math.max(0, stagesWC.length - 1)];
-      const globalIdx = STAGES.findIndex(s => s.id === (startStage?.id || STAGES[0].id));
-      setCurrentStageIdx(globalIdx >= 0 ? globalIdx : 0);
+      if (isReview) {
+        // En repaso: siempre empezar desde la primera parte
+        const globalIdx = STAGES.findIndex(s => s.id === stagesWC[0]?.id);
+        setCurrentStageIdx(globalIdx >= 0 ? globalIdx : 0);
+      } else {
+        const firstInc = stagesWC.findIndex(s => !pm[s.id]?.completed);
+        const startStage = stagesWC[firstInc >= 0 ? firstInc : Math.max(0, stagesWC.length - 1)];
+        const globalIdx = STAGES.findIndex(s => s.id === (startStage?.id || STAGES[0].id));
+        setCurrentStageIdx(globalIdx >= 0 ? globalIdx : 0);
+      }
     }
 
     setLoading(false);
@@ -1210,6 +1220,18 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
     setMarkingDone(false);
   };
 
+  // ── Completar en modo repaso: solo avanza de stage, NO guarda en Supabase ──
+  const markReviewCompleted = () => {
+    if (!currentStage) return;
+    setReviewPassedSet(prev => new Set([...prev, currentStage.id]));
+    setShowQuiz(false);
+    if (localIdx < stagesWithContent.length - 1) {
+      setTimeout(() => {
+        setCurrentStageIdx(STAGES.findIndex(s => s.id === stagesWithContent[localIdx + 1].id));
+      }, 400);
+    }
+  };
+
   if (isLocked) return (
     <div className="fixed inset-0 bg-background z-50 flex flex-col">
       <div className="border-b border-border bg-card shrink-0 px-4 py-3 flex items-center gap-3">
@@ -1236,6 +1258,11 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
             <div className="flex items-center gap-2">
               <BookOpen className="h-4 w-4 text-primary shrink-0" />
               <h1 className="text-base font-bold truncate">{unitTitle}</h1>
+              {isReviewing && (
+                <span className="shrink-0 flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-200">
+                  🔁 Repaso
+                </span>
+              )}
             </div>
             {unitDescription && <p className="text-xs text-muted-foreground truncate mt-0.5 ml-6">{unitDescription}</p>}
           </div>
@@ -1264,7 +1291,8 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
             <p className="font-medium">Esta unidad aún no tiene materiales</p>
             <p className="text-sm text-muted-foreground">El instructor está preparando el contenido</p>
           </div>
-        ) : allDone ? (
+        ) : allDone && !isReviewing ? (
+          /* ── Pantalla "Unidad completada" ── */
           <div className="flex flex-col items-center justify-center h-full text-center px-6 space-y-5">
             <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center shadow-lg">
               <Trophy className="w-10 h-10 text-green-600" />
@@ -1280,7 +1308,11 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Repasar parte</p>
               {stagesWithContent.map(s => (
                 <button key={s.id}
-                  onClick={() => { setCurrentStageIdx(STAGES.findIndex(x => x.id === s.id)); setShowQuiz(false); }}
+                  onClick={() => {
+                    setCurrentStageIdx(STAGES.findIndex(x => x.id === s.id));
+                    setShowQuiz(false);
+                    setIsReviewing(true); // activa modo repaso → oculta esta pantalla
+                  }}
                   className="w-full flex items-center gap-3 p-3 rounded-xl border border-green-200 bg-green-50 hover:bg-green-100 transition-colors text-left">
                   <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
                   <span className="text-sm font-medium">{s.label}</span>
@@ -1340,57 +1372,101 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
             )}
 
             {/* Quiz block */}
-            {hasQuiz && !currentCompleted && (
-              !showQuiz ? (
-                <div className="rounded-2xl border-2 border-primary/40 bg-primary/5 p-5 text-center space-y-3">
-                  <div className="text-4xl">📝</div>
-                  <p className="font-bold text-base">Quiz de esta parte</p>
-                  <p className="text-sm text-muted-foreground">
-                    Responde {currentQuiz.length} {currentQuiz.length === 1 ? 'pregunta' : 'preguntas'} para avanzar.
-                  </p>
-                  <Button className="w-full rounded-xl font-bold gap-2" onClick={() => setShowQuiz(true)}>
-                    Comenzar quiz →
-                  </Button>
-                </div>
-              ) : (
-                <InlineQuiz questions={currentQuiz} onPassed={markCompleted} />
-              )
+            {hasQuiz && (
+              // Normal: solo si no está completada | Repaso: siempre mostrar
+              isReviewing
+                ? (!reviewPassedSet.has(currentStage?.id)
+                    ? (!showQuiz ? (
+                        <div className="rounded-2xl border-2 border-amber-300/60 bg-amber-50 dark:bg-amber-950/20 p-5 text-center space-y-3">
+                          <div className="text-4xl">🔁</div>
+                          <p className="font-bold text-base">Quiz de repaso</p>
+                          <p className="text-sm text-muted-foreground">
+                            Vuelve a responder {currentQuiz.length} {currentQuiz.length === 1 ? 'pregunta' : 'preguntas'}. Tu progreso no cambiará.
+                          </p>
+                          <Button className="w-full rounded-xl font-bold gap-2 bg-amber-500 hover:bg-amber-600 text-white" onClick={() => setShowQuiz(true)}>
+                            Intentar de nuevo →
+                          </Button>
+                        </div>
+                      ) : (
+                        <InlineQuiz questions={currentQuiz} onPassed={markReviewCompleted} />
+                      )
+                    ) : null /* ya pasado en este repaso */
+                  )
+                : (!currentCompleted && (
+                    !showQuiz ? (
+                      <div className="rounded-2xl border-2 border-primary/40 bg-primary/5 p-5 text-center space-y-3">
+                        <div className="text-4xl">📝</div>
+                        <p className="font-bold text-base">Quiz de esta parte</p>
+                        <p className="text-sm text-muted-foreground">
+                          Responde {currentQuiz.length} {currentQuiz.length === 1 ? 'pregunta' : 'preguntas'} para avanzar.
+                        </p>
+                        <Button className="w-full rounded-xl font-bold gap-2" onClick={() => setShowQuiz(true)}>
+                          Comenzar quiz →
+                        </Button>
+                      </div>
+                    ) : (
+                      <InlineQuiz questions={currentQuiz} onPassed={markCompleted} />
+                    )
+                  ))
             )}
 
-            {/* Action bar — only when no quiz pending */}
-            {(!hasQuiz || currentCompleted) && (
-              <div className="rounded-2xl border border-border bg-card p-4">
-                {!currentCompleted ? (
-                  <div className="flex items-center gap-3">
-                    <Button variant="outline" className="flex-1 rounded-xl gap-2"
-                      onClick={markCompleted} disabled={markingDone}>
-                      {markingDone ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                      {markingDone ? 'Guardando...' : 'Marcar como completada'}
+            {/* Action bar */}
+            {isReviewing ? (
+              /* ── Barra en modo repaso ── */
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 dark:bg-amber-950/20 p-4">
+                <div className="flex items-center gap-3">
+                  <Button variant="outline" className="gap-2 rounded-xl border-amber-300" onClick={goPrev} disabled={localIdx === 0}>
+                    <ChevronLeft className="w-4 h-4" /> Anterior
+                  </Button>
+                  {localIdx < stagesWithContent.length - 1 ? (
+                    <Button className="flex-1 rounded-xl gap-2 font-bold bg-amber-500 hover:bg-amber-600 text-white"
+                      onClick={() => { markReviewCompleted(); }}>
+                      Siguiente parte <ChevronRight className="w-4 h-4" />
                     </Button>
-                    {localIdx < stagesWithContent.length - 1 && (
-                      <Button className="flex-1 rounded-xl gap-2 font-bold"
-                        onClick={markCompleted} disabled={markingDone}>
-                        Siguiente <ChevronRight className="w-4 h-4" />
-                      </Button>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-3">
-                    <Button variant="outline" className="gap-2 rounded-xl" onClick={goPrev} disabled={localIdx === 0}>
-                      <ChevronLeft className="w-4 h-4" /> Anterior
+                  ) : (
+                    <Button className="flex-1 rounded-xl gap-2 font-bold" variant="outline"
+                      onClick={onClose}>
+                      <CheckCircle2 className="w-4 h-4 text-green-600" /> Terminar repaso
                     </Button>
-                    {localIdx < stagesWithContent.length - 1 ? (
-                      <Button className="flex-1 rounded-xl gap-2 font-bold" onClick={goNext}>
-                        Siguiente parte <ChevronRight className="w-4 h-4" />
-                      </Button>
-                    ) : (
-                      <div className="flex-1 flex items-center justify-center gap-2 text-green-600 font-bold text-sm">
-                        <Trophy className="w-4 h-4" /> Unidad completa
-                      </div>
-                    )}
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
+            ) : (
+              /* ── Barra normal ── */
+              (!hasQuiz || currentCompleted) && (
+                <div className="rounded-2xl border border-border bg-card p-4">
+                  {!currentCompleted ? (
+                    <div className="flex items-center gap-3">
+                      <Button variant="outline" className="flex-1 rounded-xl gap-2"
+                        onClick={markCompleted} disabled={markingDone}>
+                        {markingDone ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                        {markingDone ? 'Guardando...' : 'Marcar como completada'}
+                      </Button>
+                      {localIdx < stagesWithContent.length - 1 && (
+                        <Button className="flex-1 rounded-xl gap-2 font-bold"
+                          onClick={markCompleted} disabled={markingDone}>
+                          Siguiente <ChevronRight className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-3">
+                      <Button variant="outline" className="gap-2 rounded-xl" onClick={goPrev} disabled={localIdx === 0}>
+                        <ChevronLeft className="w-4 h-4" /> Anterior
+                      </Button>
+                      {localIdx < stagesWithContent.length - 1 ? (
+                        <Button className="flex-1 rounded-xl gap-2 font-bold" onClick={goNext}>
+                          Siguiente parte <ChevronRight className="w-4 h-4" />
+                        </Button>
+                      ) : (
+                        <div className="flex-1 flex items-center justify-center gap-2 text-green-600 font-bold text-sm">
+                          <Trophy className="w-4 h-4" /> Unidad completa
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )
             )}
 
             {/* Part list */}
