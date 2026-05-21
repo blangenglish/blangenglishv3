@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   Search, Users, TrendingUp, CreditCard, Edit2,
-  Check, X, Mail, Phone, Calendar, Award, Flame,
+  Check, X, Mail, Calendar, Award, Flame,
   ChevronDown, ChevronUp, BookOpen, AlertCircle, KeyRound, RefreshCw,
   Video, Clock, Target, ShieldCheck, ShieldX, Trash2, Lock, Unlock,
   ToggleLeft, ToggleRight, History, Gift, FileText, Printer, Send,
@@ -31,7 +31,6 @@ interface SessionRequestRow {
 interface StudentRow {
   id: string;
   full_name: string;
-  phone: string;
   current_level: string;
   english_level?: string;
   created_at: string;
@@ -323,7 +322,7 @@ export default function AdminStudents() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({
-    full_name: '', phone: '', current_level: '', english_level: '',
+    full_name: '', current_level: '', english_level: '',
     country: '', city: '', birthday: '', email: '',
   });
   const [savingEmail, setSavingEmail] = useState(false);
@@ -618,7 +617,7 @@ export default function AdminStudents() {
     setExpandedId(s.id); // auto-expand the card
     setEmailSaveMsg(null);
     setEditForm({
-      full_name: s.full_name, phone: s.phone || '',
+      full_name: s.full_name,
       current_level: s.current_level || 'A1', english_level: s.english_level || '',
       country: s.country || '', city: s.city || '', birthday: s.birthday || '',
       email: s.email || '',
@@ -666,7 +665,6 @@ export default function AdminStudents() {
       action: 'update_student',
       student_id: editingId,
       new_full_name: editForm.full_name,
-      new_phone: editForm.phone,
       new_current_level: editForm.current_level,
       new_english_level: editForm.english_level || null,
       new_country: editForm.country,
@@ -677,7 +675,6 @@ export default function AdminStudents() {
       // Direct fallback via RLS
       await supabase.from('student_profiles').update({
         full_name: editForm.full_name,
-        phone: editForm.phone,
         current_level: editForm.current_level,
         english_level: editForm.english_level || null,
         country: editForm.country,
@@ -1240,10 +1237,6 @@ export default function AdminStudents() {
                                 <Input value={editForm.full_name} onChange={e => setEditForm(p => ({ ...p, full_name: e.target.value }))} placeholder="Nombre completo" className="rounded-xl text-sm" />
                               </div>
                               <div className="space-y-1.5">
-                                <Label className="text-xs font-medium flex items-center gap-1"><Phone className="w-3 h-3" /> Teléfono / WhatsApp</Label>
-                                <Input value={editForm.phone} onChange={e => setEditForm(p => ({ ...p, phone: e.target.value }))} placeholder="+57 300..." className="rounded-xl text-sm" />
-                              </div>
-                              <div className="space-y-1.5">
                                 <Label className="text-xs font-medium flex items-center gap-1"><Calendar className="w-3 h-3" /> Fecha de nacimiento</Label>
                                 <Input type="date" value={editForm.birthday} onChange={e => setEditForm(p => ({ ...p, birthday: e.target.value }))} className="rounded-xl text-sm" />
                               </div>
@@ -1307,7 +1300,6 @@ export default function AdminStudents() {
                               <div className="grid sm:grid-cols-3 gap-3 text-sm">
                                 {[
                                   { icon: <Mail className="w-4 h-4 text-primary" />, label: 'Correo', value: student.email || 'N/A' },
-                                  { icon: <Phone className="w-4 h-4 text-primary" />, label: 'Teléfono', value: student.phone || 'No registrado' },
                                   { icon: <Award className="w-4 h-4 text-primary" />, label: 'Nivel inglés', value: student.english_level || student.current_level || '—' },
                                   { icon: <Calendar className="w-4 h-4 text-primary" />, label: 'Registrado', value: new Date(student.created_at).toLocaleDateString('es-CO') },
                                   { icon: <CreditCard className="w-4 h-4 text-primary" />, label: 'Plan', value: sub?.plan_name || 'Sin plan' },

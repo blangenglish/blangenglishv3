@@ -21,7 +21,7 @@ import {
   User, CreditCard, HelpCircle, LogOut,
   ChevronRight, BookOpen, Lock, Eye, EyeOff, Check,
   AlertCircle, Flame, Star, Award, ChevronDown, ChevronUp,
-  FlaskConical, Calendar, GraduationCap, MapPin, Phone,
+  FlaskConical, Calendar, GraduationCap, MapPin,
   Video, Plus, Trash2, Clock, Mail, History, CheckCircle2,
   ExternalLink, Copy, MessageSquare,
 } from 'lucide-react';
@@ -624,7 +624,6 @@ function TrialPaymentBlock({
 function UpdateRequestForm({ studentName, studentEmail }: { studentName: string; studentEmail: string }) {
   const FIELDS = [
     { value: 'full_name', label: 'Nombre completo' },
-    { value: 'phone', label: 'Teléfono / WhatsApp' },
     { value: 'country', label: 'País' },
     { value: 'city', label: 'Ciudad' },
     { value: 'birthday', label: 'Fecha de nacimiento' },
@@ -694,7 +693,7 @@ function UpdateRequestForm({ studentName, studentEmail }: { studentName: string;
         <div className="space-y-1.5">
           <Label className="text-sm font-medium">Nuevo valor</Label>
           <Input
-            placeholder={field === 'birthday' ? 'Ej: 11/03/2001' : field === 'phone' ? '+57 300 000 0000' : 'Escribe el nuevo valor...'}
+            placeholder={field === 'birthday' ? 'Ej: 11/03/2001' : 'Escribe el nuevo valor...'}
             value={newValue}
             onChange={e => setNewValue(e.target.value)}
             className="rounded-xl"
@@ -723,7 +722,7 @@ function UpdateRequestForm({ studentName, studentEmail }: { studentName: string;
 export default function Dashboard({ isLoggedIn = false, onOpenAuth, onLogout, userName }: DashboardProps) {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabId>('cursos');
-  const [profileForm, setProfileForm] = useState({ name: '', phone: '', country: '', city: '', birthday: '' });
+  const [profileForm, setProfileForm] = useState({ name: '', country: '', city: '', birthday: '' });
   const [pwForm, setPwForm] = useState({ current: '', newPw: '', confirm: '' });
   const [showPw, setShowPw] = useState(false);
   const [showNewPw, setShowNewPw] = useState(false);
@@ -858,7 +857,7 @@ useEffect(() => {
     const [profRes, subRes, histRes, modRes] = await Promise.all([
       supabase
         .from('student_profiles')
-        .select('full_name, phone, english_level, onboarding_step, is_admin_only, birthday, country, city, education_level, education_other, account_enabled, account_status, trial_active, trial_start_date, trial_end_date, created_at')
+        .select('full_name, english_level, onboarding_step, is_admin_only, birthday, country, city, education_level, education_other, account_enabled, account_status, trial_active, trial_start_date, trial_end_date, created_at')
         .eq('id', userId)
         .maybeSingle(),
       supabase
@@ -896,7 +895,6 @@ useEffect(() => {
       const displayFullName = dbName || userName || '';
       setProfileForm({
         name: displayFullName,
-        phone: (prof as { phone?: string }).phone || '',
         country: (prof as { country?: string }).country || '',
         city: (prof as { city?: string }).city || '',
         birthday: (prof as { birthday?: string }).birthday || '',
@@ -1176,7 +1174,6 @@ useEffect(() => {
     setLoading(true);
     const patch = {
       full_name: profileForm.name.trim() || null,
-      phone: profileForm.phone.trim() || null,
       country: profileForm.country.trim() || null,
       city: profileForm.city.trim() || null,
       birthday: profileForm.birthday || null,
@@ -1972,17 +1969,6 @@ useEffect(() => {
                           placeholder="Tu nombre completo"
                           value={profileForm.name}
                           onChange={e => setProfileForm(p => ({ ...p, name: e.target.value }))}
-                          className="rounded-xl"
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label htmlFor="prof-phone" className="text-sm font-medium">Teléfono</Label>
-                        <Input
-                          id="prof-phone"
-                          type="tel"
-                          placeholder="Ej: +57 300 123 4567"
-                          value={profileForm.phone}
-                          onChange={e => setProfileForm(p => ({ ...p, phone: e.target.value }))}
                           className="rounded-xl"
                         />
                       </div>
