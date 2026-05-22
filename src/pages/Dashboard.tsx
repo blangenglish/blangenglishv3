@@ -823,7 +823,7 @@ const [loadingUnits, setLoadingUnits] = useState<string | null>(null);
   // Mundo Real state
   const [showMundoReal, setShowMundoReal] = useState(false);
   const [mundoRealTopic, setMundoRealTopic] = useState<string | null>(null);
-  const [mundoRealTab, setMundoRealTab] = useState<'vocab'|'frases'|'estructura'|'dialogo'>('vocab');
+  const [mundoRealTab, setMundoRealTab] = useState<'vocab'|'frases'|'expresiones'|'phrasal'|'estructura'|'dialogo'>('vocab');
   const [mrAnswers, setMrAnswers] = useState<Record<string, number>>({});
   const [mrWordOrder, setMrWordOrder] = useState<string[]>([]);
   const [mrWordSubmitted, setMrWordSubmitted] = useState(false);
@@ -907,7 +907,7 @@ useEffect(() => {
   useEffect(() => {
     supabase
       .from('mundo_real_overrides')
-      .select('topic_id, vocabulary, phrases, structure, dialogue')
+      .select('topic_id, vocabulary, phrases, structure, dialogue, expressions, phrasal_verbs')
       .then(({ data }) => {
         if (data?.length) {
           const map: Record<string, any> = {};
@@ -924,10 +924,12 @@ useEffect(() => {
       if (!ov) return t;
       return {
         ...t,
-        vocabulary: ov.vocabulary ?? t.vocabulary,
-        phrases:    ov.phrases    ?? t.phrases,
-        structure:  ov.structure  ?? t.structure,
-        dialogue:   ov.dialogue   ?? t.dialogue,
+        vocabulary:   ov.vocabulary    ?? t.vocabulary,
+        phrases:      ov.phrases       ?? t.phrases,
+        structure:    ov.structure     ?? t.structure,
+        dialogue:     ov.dialogue      ?? t.dialogue,
+        expressions:  ov.expressions   ?? t.expressions  ?? [],
+        phrasalVerbs: ov.phrasal_verbs ?? t.phrasalVerbs ?? [],
       };
     }),
   [mrOverrides]);
@@ -2931,10 +2933,12 @@ useEffect(() => {
 
                 // ── DETAIL VIEW ──
                 const tabs = [
-                  { id: 'vocab', label: '📖 Vocabulario' },
-                  { id: 'frases', label: '💬 Frases' },
-                  { id: 'estructura', label: '🏗️ Estructura' },
-                  { id: 'dialogo', label: '🎭 Diálogo' },
+                  { id: 'vocab',       label: '📖 Vocabulario' },
+                  { id: 'frases',      label: '💬 Frases' },
+                  ...(topic.expressions?.length  ? [{ id: 'expresiones', label: '🗣️ Expresiones' }] : []),
+                  ...(topic.phrasalVerbs?.length  ? [{ id: 'phrasal',     label: '🔀 Phrasal Verbs' }] : []),
+                  { id: 'estructura',  label: '🏗️ Estructura' },
+                  { id: 'dialogo',     label: '🎭 Diálogo' },
                 ] as const;
 
                 const speak = (text: string) => {
@@ -3070,6 +3074,113 @@ useEffect(() => {
                             );
                           })}
                         </div>
+                      </div>
+                    )}
+
+                    {/* ── EXPRESIONES & IDIOMS TAB ── */}
+                    {mundoRealTab === 'expresiones' && (
+                      <div className="space-y-3">
+                        <div className="rounded-2xl border border-border/50 bg-card shadow-sm divide-y divide-border/40">
+                          {(topic.expressions ?? []).map((e, i) => (
+                            <div key={i} className="p-4 flex gap-3 items-start">
+                              <button onClick={() => speak(e.expression)} className="p-1.5 rounded-lg hover:bg-muted transition-colors text-primary mt-0.5 shrink-0" title="Escuchar">🔊</button>
+                              <div className="flex-1">
+                                <p className="font-bold text-sm">"{e.expression}"</p>
+                                <p className="text-muted-foreground text-xs mt-0.5">💡 {e.meaning}</p>
+                                <p className="text-xs italic text-muted-foreground/80 mt-1 border-l-2 border-primary/30 pl-2">"{e.example}"</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        {/* Ejercicio: ¿Cuál es el significado? */}
+                        {(topic.expressions ?? []).length > 0 && (
+                          <div className="rounded-2xl border border-border/50 bg-card shadow-sm p-4 space-y-3">
+                            <h3 className="font-bold text-sm">🎯 Ejercicio: ¿Qué significa esta expresión?</h3>
+                            {(topic.expressions ?? []).map((e, i) => {
+                              const key = `expr-${i}`;
+                              const chosen = mrAnswers[key];
+                              const allMeanings = (topic.expressions ?? []).map(x => x.meaning);
+                              const opts = [...new Set([e.meaning, ...allMeanings.filter(m => m !== e.meaning).slice(0, 3)])].slice(0, 4);
+                              const correct = opts.indexOf(e.meaning);
+                              return (
+                                <div key={key} className={`rounded-xl border p-3 ${chosen !== undefined ? (chosen === correct ? 'border-green-400 bg-green-50 dark:bg-green-950/20' : 'border-red-400 bg-red-50 dark:bg-red-950/20') : 'border-border/40'}`}>
+                                  <p className="font-semibold text-sm mb-2">"{e.expression}"</p>
+                                  <div className="grid grid-cols-1 gap-1.5">
+                                    {opts.map((opt, oi) => (
+                                      <button key={oi} disabled={chosen !== undefined}
+                                        onClick={() => setMrAnswers(a => ({ ...a, [key]: oi }))}
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all text-left ${
+                                          chosen !== undefined
+                                            ? oi === correct ? 'bg-green-500 text-white border-green-500' : chosen === oi ? 'bg-red-400 text-white border-red-400' : 'bg-muted/40 text-muted-foreground border-border/40'
+                                            : 'bg-background border-border/60 hover:border-primary/60 hover:bg-primary/5'
+                                        }`}>{opt}</button>
+                                    ))}
+                                  </div>
+                                  {chosen !== undefined && (
+                                    <p className={`text-xs mt-1.5 font-semibold ${chosen === correct ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
+                                      {chosen === correct ? '✅ ¡Correcto!' : `❌ Significado: ${e.meaning}`}
+                                    </p>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* ── PHRASAL VERBS TAB ── */}
+                    {mundoRealTab === 'phrasal' && (
+                      <div className="space-y-3">
+                        <div className="rounded-2xl border border-border/50 bg-card shadow-sm divide-y divide-border/40">
+                          {(topic.phrasalVerbs ?? []).map((pv, i) => (
+                            <div key={i} className="p-4 flex gap-3 items-start">
+                              <button onClick={() => speak(pv.verb)} className="p-1.5 rounded-lg hover:bg-muted transition-colors text-primary mt-0.5 shrink-0" title="Escuchar">🔊</button>
+                              <div className="flex-1">
+                                <div className="flex items-baseline gap-2 flex-wrap">
+                                  <span className="font-bold text-sm text-primary">{pv.verb}</span>
+                                  <span className="text-muted-foreground text-xs">→</span>
+                                  <span className="text-sm text-muted-foreground">{pv.meaning}</span>
+                                </div>
+                                <p className="text-xs italic text-muted-foreground/80 mt-1 border-l-2 border-primary/30 pl-2">"{pv.example}"</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        {/* Ejercicio: completar con phrasal verb correcto */}
+                        {(topic.phrasalVerbs ?? []).length > 0 && (
+                          <div className="rounded-2xl border border-border/50 bg-card shadow-sm p-4 space-y-3">
+                            <h3 className="font-bold text-sm">🎯 Ejercicio: ¿Cuál es el significado?</h3>
+                            {(topic.phrasalVerbs ?? []).map((pv, i) => {
+                              const key = `pv-${i}`;
+                              const chosen = mrAnswers[key];
+                              const allMeanings = (topic.phrasalVerbs ?? []).map(x => x.meaning);
+                              const opts = [...new Set([pv.meaning, ...allMeanings.filter(m => m !== pv.meaning).slice(0, 3)])].slice(0, 4);
+                              const correct = opts.indexOf(pv.meaning);
+                              return (
+                                <div key={key} className={`rounded-xl border p-3 ${chosen !== undefined ? (chosen === correct ? 'border-green-400 bg-green-50 dark:bg-green-950/20' : 'border-red-400 bg-red-50 dark:bg-red-950/20') : 'border-border/40'}`}>
+                                  <p className="font-semibold text-sm mb-2 text-primary">"{pv.verb}"</p>
+                                  <div className="grid grid-cols-1 gap-1.5">
+                                    {opts.map((opt, oi) => (
+                                      <button key={oi} disabled={chosen !== undefined}
+                                        onClick={() => setMrAnswers(a => ({ ...a, [key]: oi }))}
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all text-left ${
+                                          chosen !== undefined
+                                            ? oi === correct ? 'bg-green-500 text-white border-green-500' : chosen === oi ? 'bg-red-400 text-white border-red-400' : 'bg-muted/40 text-muted-foreground border-border/40'
+                                            : 'bg-background border-border/60 hover:border-primary/60 hover:bg-primary/5'
+                                        }`}>{opt}</button>
+                                    ))}
+                                  </div>
+                                  {chosen !== undefined && (
+                                    <p className={`text-xs mt-1.5 font-semibold ${chosen === correct ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
+                                      {chosen === correct ? '✅ ¡Correcto!' : `❌ Significado: ${pv.meaning}`}
+                                    </p>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                     )}
 

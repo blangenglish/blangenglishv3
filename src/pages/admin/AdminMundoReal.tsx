@@ -12,6 +12,7 @@ import {
 import {
   MUNDO_REAL_TOPICS, MR_CATEGORIES,
   type MRTopic, type MRVocab, type MRPhrase, type MRStructure, type MRDialogueLine,
+  type MRExpression, type MRPhrasalVerb,
 } from '@/pages/MundoRealData';
 import { adminUpsert } from '@/lib/adminWrite';
 import { supabase } from '@/integrations/supabase/client';
@@ -42,7 +43,7 @@ function TopicEditModal({
   onSaved: () => void;
 }) {
   const cat = CAT_COLORS[topic.category] ?? fallbackColor;
-  const [tab, setTab] = useState<'vocab' | 'frases' | 'estructura' | 'dialogo'>('vocab');
+  const [tab, setTab] = useState<'vocab' | 'frases' | 'expresiones' | 'phrasal' | 'estructura' | 'dialogo'>('vocab');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveResult, setSaveResult] = useState<'idle' | 'success' | 'error'>('idle');
@@ -63,21 +64,29 @@ function TopicEditModal({
   const [dialogue, setDialogue] = useState<MRDialogueLine[]>(
     (topic.dialogue ?? []).map(l => ({ ...l }))
   );
+  const [expressions, setExpressions] = useState<MRExpression[]>(
+    (topic.expressions ?? []).map(e => ({ ...e }))
+  );
+  const [phrasalVerbs, setPhrasalVerbs] = useState<MRPhrasalVerb[]>(
+    (topic.phrasalVerbs ?? []).map(p => ({ ...p }))
+  );
   const [newWord, setNewWord] = useState('');
 
   /* ── Cargar override existente de Supabase ── */
   useEffect(() => {
     supabase
       .from('mundo_real_overrides')
-      .select('vocabulary, phrases, structure, dialogue')
+      .select('vocabulary, phrases, structure, dialogue, expressions, phrasal_verbs')
       .eq('topic_id', topic.id)
       .maybeSingle()
       .then(({ data }) => {
         if (data) {
-          if (data.vocabulary)  setVocab(data.vocabulary);
-          if (data.phrases)     setPhrases(data.phrases);
-          if (data.structure)   setStructure(data.structure);
-          if (data.dialogue)    setDialogue(data.dialogue);
+          if (data.vocabulary)    setVocab(data.vocabulary);
+          if (data.phrases)       setPhrases(data.phrases);
+          if (data.structure)     setStructure(data.structure);
+          if (data.dialogue)      setDialogue(data.dialogue);
+          if (data.expressions)   setExpressions(data.expressions);
+          if (data.phrasal_verbs) setPhrasalVerbs(data.phrasal_verbs);
         }
         setLoading(false);
       });
@@ -98,6 +107,22 @@ function TopicEditModal({
     setPhrases(prev => prev.filter((_, j) => j !== i));
   const addPhrase = () =>
     setPhrases(prev => [...prev, { phrase: '', meaning: '', when: '', missing: '', options: [], correct: 0 }]);
+
+  /* ── Helpers: Expresiones ── */
+  const updateExpression = (i: number, field: keyof MRExpression, val: string) =>
+    setExpressions(prev => prev.map((e, j) => j === i ? { ...e, [field]: val } : e));
+  const deleteExpression = (i: number) =>
+    setExpressions(prev => prev.filter((_, j) => j !== i));
+  const addExpression = () =>
+    setExpressions(prev => [...prev, { expression: '', meaning: '', example: '' }]);
+
+  /* ── Helpers: Phrasal Verbs ── */
+  const updatePhrasalVerb = (i: number, field: keyof MRPhrasalVerb, val: string) =>
+    setPhrasalVerbs(prev => prev.map((p, j) => j === i ? { ...p, [field]: val } : p));
+  const deletePhrasalVerb = (i: number) =>
+    setPhrasalVerbs(prev => prev.filter((_, j) => j !== i));
+  const addPhrasalVerb = () =>
+    setPhrasalVerbs(prev => [...prev, { verb: '', meaning: '', example: '' }]);
 
   /* ── Helpers: Diálogo ── */
   const updateDialogue = (i: number, field: 'speaker' | 'text', val: string) =>
@@ -123,6 +148,8 @@ function TopicEditModal({
           phrases,
           structure,
           dialogue,
+          expressions,
+          phrasal_verbs: phrasalVerbs,
           updated_at: new Date().toISOString(),
         },
         'topic_id',
@@ -138,10 +165,12 @@ function TopicEditModal({
   };
 
   const tabs = [
-    { id: 'vocab',      label: '📖 Vocabulario',  count: vocab.length      },
-    { id: 'frases',     label: '💬 Frases',        count: phrases.length    },
-    { id: 'estructura', label: '🏗️ Estructura',    count: null              },
-    { id: 'dialogo',    label: '🎭 Diálogo',       count: dialogue.length   },
+    { id: 'vocab',       label: '📖 Vocabulario',    count: vocab.length        },
+    { id: 'frases',      label: '💬 Frases',          count: phrases.length      },
+    { id: 'expresiones', label: '🗣️ Expresiones',    count: expressions.length  },
+    { id: 'phrasal',     label: '🔀 Phrasal Verbs',  count: phrasalVerbs.length },
+    { id: 'estructura',  label: '🏗️ Estructura',     count: null                },
+    { id: 'dialogo',     label: '🎭 Diálogo',         count: dialogue.length     },
   ] as const;
 
   return (
@@ -304,6 +333,110 @@ function TopicEditModal({
                     <div className="px-3 py-2.5 border-t border-border/30">
                       <Button variant="ghost" size="sm" onClick={addPhrase} className="gap-1.5 text-xs h-7 rounded-xl text-primary hover:text-primary">
                         <Plus className="w-3.5 h-3.5" /> Agregar frase
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ── EXPRESIONES & IDIOMS ── */}
+              {tab === 'expresiones' && (
+                <div className="space-y-3">
+                  <p className="text-xs text-muted-foreground">
+                    Expresiones idiomáticas y modismos relacionados al tema. Incluye el significado en español y un ejemplo de uso.
+                  </p>
+                  <div className="rounded-2xl border border-border/50 bg-card overflow-hidden">
+                    <div className="divide-y divide-border/30">
+                      {expressions.map((e, i) => (
+                        <div key={i} className="p-3 space-y-2">
+                          <div className="flex items-start gap-2">
+                            <div className="flex-1 space-y-2">
+                              <Input
+                                value={e.expression}
+                                onChange={ev => updateExpression(i, 'expression', ev.target.value)}
+                                placeholder='Expresión en inglés (ej: "On the house")'
+                                className="text-sm font-semibold"
+                              />
+                              <div className="grid grid-cols-2 gap-2">
+                                <Input
+                                  value={e.meaning}
+                                  onChange={ev => updateExpression(i, 'meaning', ev.target.value)}
+                                  placeholder="Significado en español"
+                                  className="text-sm"
+                                />
+                                <Input
+                                  value={e.example}
+                                  onChange={ev => updateExpression(i, 'example', ev.target.value)}
+                                  placeholder="Ejemplo de uso en inglés"
+                                  className="text-sm italic text-muted-foreground"
+                                />
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => deleteExpression(i)}
+                              className="flex items-center justify-center h-8 w-8 rounded-lg hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors mt-0.5 shrink-0"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="px-3 py-2.5 border-t border-border/30">
+                      <Button variant="ghost" size="sm" onClick={addExpression} className="gap-1.5 text-xs h-7 rounded-xl text-primary hover:text-primary">
+                        <Plus className="w-3.5 h-3.5" /> Agregar expresión
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ── PHRASAL VERBS ── */}
+              {tab === 'phrasal' && (
+                <div className="space-y-3">
+                  <p className="text-xs text-muted-foreground">
+                    Phrasal verbs relevantes al tema con su significado en español y ejemplo de uso en contexto.
+                  </p>
+                  <div className="rounded-2xl border border-border/50 bg-card overflow-hidden">
+                    <div className="grid grid-cols-[1fr_1fr_2fr_32px] gap-2 px-3 py-2 bg-muted/40 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+                      <span>Phrasal Verb</span>
+                      <span>Significado (ES)</span>
+                      <span>Ejemplo en inglés</span>
+                      <span />
+                    </div>
+                    <div className="divide-y divide-border/30">
+                      {phrasalVerbs.map((p, i) => (
+                        <div key={i} className="grid grid-cols-[1fr_1fr_2fr_32px] gap-2 items-center px-3 py-2.5">
+                          <Input
+                            value={p.verb}
+                            onChange={e => updatePhrasalVerb(i, 'verb', e.target.value)}
+                            placeholder="eat out"
+                            className="h-8 text-sm font-semibold"
+                          />
+                          <Input
+                            value={p.meaning}
+                            onChange={e => updatePhrasalVerb(i, 'meaning', e.target.value)}
+                            placeholder="comer fuera de casa"
+                            className="h-8 text-sm"
+                          />
+                          <Input
+                            value={p.example}
+                            onChange={e => updatePhrasalVerb(i, 'example', e.target.value)}
+                            placeholder="Let's eat out tonight."
+                            className="h-8 text-sm italic text-muted-foreground"
+                          />
+                          <button
+                            onClick={() => deletePhrasalVerb(i)}
+                            className="flex items-center justify-center h-8 w-8 rounded-lg hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="px-3 py-2.5 border-t border-border/30">
+                      <Button variant="ghost" size="sm" onClick={addPhrasalVerb} className="gap-1.5 text-xs h-7 rounded-xl text-primary hover:text-primary">
+                        <Plus className="w-3.5 h-3.5" /> Agregar phrasal verb
                       </Button>
                     </div>
                   </div>

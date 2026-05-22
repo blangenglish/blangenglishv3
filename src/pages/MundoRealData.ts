@@ -3,6 +3,8 @@ export interface MRVocab { word: string; translation: string; example: string; o
 export interface MRPhrase { phrase: string; meaning: string; when: string; missing: string; options: string[]; correct: number; }
 export interface MRStructure { title: string; explanation: string; examples: string[]; words: string[]; }
 export interface MRDialogueLine { speaker: 'A' | 'B'; text: string; options?: string[]; correct?: number; }
+export interface MRExpression { expression: string; meaning: string; example: string; }
+export interface MRPhrasalVerb { verb: string; meaning: string; example: string; }
 export interface MRTopic {
   id: string; title: string; category: string; emoji: string;
   color: string; cardBg: string; badge: string;
@@ -10,6 +12,8 @@ export interface MRTopic {
   phrases: MRPhrase[];
   structure: MRStructure;
   dialogue: MRDialogueLine[];
+  expressions?: MRExpression[];
+  phrasalVerbs?: MRPhrasalVerb[];
 }
 
 
