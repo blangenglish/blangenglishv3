@@ -924,8 +924,8 @@ useEffect(() => {
       if (!ov) return t;
       return {
         ...t,
-        vocabulary:   ov.vocabulary    ?? t.vocabulary,
-        phrases:      ov.phrases       ?? t.phrases,
+        vocabulary:   [...(t.vocabulary ?? []), ...(ov.vocabulary ?? [])],
+        phrases:      [...(t.phrases ?? []),     ...(ov.phrases ?? [])],
         structure:    ov.structure     ?? t.structure,
         dialogue:     ov.dialogue      ?? t.dialogue,
         expressions:  ov.expressions   ?? t.expressions  ?? [],
