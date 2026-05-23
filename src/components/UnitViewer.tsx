@@ -561,10 +561,15 @@ function InlineQuiz({ questions, onPassed }) {
           <ListenButton key={q.id ?? cur} text={q.question} />
         )}
 
-        {/* Question text */}
-        <div className="font-semibold text-sm leading-relaxed">
-          <RichContent html={q.question || ''} />
-        </div>
+        {/* Question text — para tipos "listening" q.question ES la palabra a escuchar
+            (= la respuesta correcta), así que se oculta completamente.
+            El encabezado de ListenButton ya da la instrucción; el feedback
+            revela la respuesta correcta después de verificar. */}
+        {q.type !== 'listen_write' && q.type !== 'listen_select' && (
+          <div className="font-semibold text-sm leading-relaxed">
+            <RichContent html={q.question || ''} />
+          </div>
+        )}
 
         {/* ── Answer areas ── */}
         {!submitted ? (
