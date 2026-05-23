@@ -1658,6 +1658,42 @@ useEffect(() => {
 
           {/* ── MAIN CONTENT ── */}
           <main className="flex-1 min-w-0">
+
+            {/* ── BANNER: membresía próxima a vencer ── */}
+            {(() => {
+              if (!subscription || !subscription.current_period_end) return null;
+              const expiry = new Date(subscription.current_period_end);
+              const today  = new Date();
+              today.setHours(0, 0, 0, 0);
+              const diffMs   = expiry.getTime() - today.getTime();
+              const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+              const isActive = subscription.status === 'active' && subscription.account_enabled === true && subscription.plan_slug !== 'free_admin';
+              if (!isActive || diffDays > 3 || diffDays < 0) return null;
+              const fechaStr = expiry.toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' });
+              const precio   = subscription.amount_usd ? `$${Number(subscription.amount_usd).toFixed(0)} USD` : 'el valor de tu plan';
+              return (
+                <div className="mb-4 flex items-start gap-3 rounded-2xl border border-amber-300 bg-amber-50 dark:bg-amber-950/40 dark:border-amber-700 px-4 py-3.5 shadow-sm">
+                  <span className="text-2xl leading-none mt-0.5">⚠️</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-amber-800 dark:text-amber-300 text-sm leading-snug">
+                      Pronto termina tu membresía
+                    </p>
+                    <p className="text-amber-700 dark:text-amber-400 text-sm mt-0.5 leading-snug">
+                      Recuerda pagar el día <strong>{fechaStr}</strong> un valor de <strong>{precio}</strong>.{' '}
+                      Escríbenos a{' '}
+                      <a
+                        href="mailto:blangenglishlearning@blangenglish.com"
+                        className="underline font-semibold hover:text-amber-900 dark:hover:text-amber-200"
+                      >
+                        blangenglishlearning@blangenglish.com
+                      </a>{' '}
+                      para enviarte el link de pago.
+                    </p>
+                  </div>
+                </div>
+              );
+            })()}
+
             <AnimatePresence mode="wait">
 
               {/* ─── CURSOS ─── */}

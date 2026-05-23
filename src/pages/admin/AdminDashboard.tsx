@@ -17,6 +17,7 @@ import {
   ExternalLink,
   Clock,
   Gift,
+  AlertTriangle,
 } from 'lucide-react';
 import { IMAGES } from '@/assets/images';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -29,6 +30,16 @@ interface StudentProfile {
   created_at: string;
   sub_status?: string;
   sub_plan?: string;
+}
+
+interface ExpiringStudent {
+  id: string;
+  full_name: string;
+  email: string;
+  expiry_date: string;       // ISO string
+  plan_name: string;
+  amount_usd: number;
+  days_left: number;
 }
 
 interface RevenueData {
@@ -50,6 +61,7 @@ export default function AdminDashboard() {
   const [publishedCourses, setPublishedCourses] = useState(0);
   const [recentStudents, setRecentStudents] = useState<StudentProfile[]>([]);
   const [revenueChart, setRevenueChart] = useState<RevenueData[]>([]);
+  const [expiringStudents, setExpiringStudents] = useState<ExpiringStudent[]>([]);
 
   // Verificar sesión al montar — si no hay sesión, redirigir al login
   useEffect(() => {
@@ -75,7 +87,7 @@ export default function AdminDashboard() {
       });
       const allStudents: Array<{
         id: string; full_name: string; email: string; current_level: string; created_at: string;
-        subscription?: { status: string; plan_slug: string; amount_usd: number; amount_cop: number; approved_by_admin: boolean; account_enabled: boolean; };
+        subscription?: { status: string; plan_slug: string; plan_name: string; amount_usd: number; amount_cop: number; approved_by_admin: boolean; account_enabled: boolean; current_period_end?: string; };
       }> = edgeData?.students || [];
 
       setStudentCount(allStudents.length);
@@ -113,6 +125,35 @@ export default function AdminDashboard() {
           sub_plan: s.subscription?.plan_slug,
         }));
       setRecentStudents(recent);
+
+      // Estudiantes con membresía próxima a vencer (≤ 3 días)
+      const todayMs = new Date().setHours(0, 0, 0, 0);
+      const expiring: ExpiringStudent[] = allStudents
+        .filter(s => {
+          const sub = s.subscription;
+          if (!sub) return false;
+          if (sub.status !== 'active') return false;
+          if (sub.plan_slug === 'free_admin') return false;
+          if (!sub.current_period_end) return false;
+          const expiryMs = new Date(sub.current_period_end).getTime();
+          const diffDays = Math.floor((expiryMs - todayMs) / (1000 * 60 * 60 * 24));
+          return diffDays >= 0 && diffDays <= 3;
+        })
+        .map(s => {
+          const expiryMs = new Date(s.subscription!.current_period_end!).getTime();
+          const diffDays = Math.floor((expiryMs - todayMs) / (1000 * 60 * 60 * 24));
+          return {
+            id: s.id,
+            full_name: s.full_name,
+            email: s.email,
+            expiry_date: s.subscription!.current_period_end!,
+            plan_name: s.subscription!.plan_name || 'Plan',
+            amount_usd: s.subscription!.amount_usd || 0,
+            days_left: diffDays,
+          };
+        })
+        .sort((a, b) => a.days_left - b.days_left);
+      setExpiringStudents(expiring);
 
       // Gráfico de ingresos: datos reales por mes
       const chartData: RevenueData[] = [];
@@ -261,6 +302,44 @@ export default function AdminDashboard() {
             );
           })}
         </div>
+
+        {/* ── ALERTA: membresías próximas a vencer ── */}
+        {expiringStudents.length > 0 && (
+          <div className="mb-8">
+            <div className="flex items-center gap-2 mb-3">
+              <AlertTriangle className="w-5 h-5 text-amber-500" />
+              <h2 className="font-bold text-base text-amber-700 dark:text-amber-400">
+                Membresías por vencer ({expiringStudents.length})
+              </h2>
+            </div>
+            <div className="rounded-2xl border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700 overflow-hidden shadow-sm">
+              <div className="divide-y divide-amber-200 dark:divide-amber-800">
+                {expiringStudents.map(s => (
+                  <div key={s.id} className="flex items-center gap-3 px-4 py-3">
+                    <div className="w-9 h-9 rounded-full bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200 flex items-center justify-center font-bold text-sm shrink-0">
+                      {s.full_name?.charAt(0)?.toUpperCase() || '?'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm text-amber-900 dark:text-amber-200 truncate">{s.full_name}</p>
+                      <p className="text-xs text-amber-700 dark:text-amber-400 truncate">{s.email}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-xs font-bold text-amber-800 dark:text-amber-300">
+                        {new Date(s.expiry_date).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      </p>
+                      <p className="text-xs text-amber-600 dark:text-amber-400">
+                        {s.days_left === 0 ? '⚠️ Vence hoy' : `Faltan ${s.days_left} día${s.days_left === 1 ? '' : 's'}`}
+                      </p>
+                      {s.amount_usd > 0 && (
+                        <p className="text-xs text-amber-600 dark:text-amber-500">${s.amount_usd.toFixed(0)} USD</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="mb-8">
           <h2 className="font-bold text-lg mb-4">Accesos Rápidos</h2>
