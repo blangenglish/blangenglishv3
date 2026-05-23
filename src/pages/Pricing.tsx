@@ -491,8 +491,8 @@ export default function PricingPage({ isLoggedIn = false, onOpenAuth, onLogout, 
                     ) : pubSlots.length === 0 ? (
                       <div className="text-center py-12">
                         <BookOpen className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
-                        <p className="font-semibold text-muted-foreground">No hay horarios disponibles</p>
-                        <p className="text-sm text-muted-foreground mt-1">Escríbenos y coordinamos uno para ti 😊</p>
+                        <p className="font-semibold text-muted-foreground">No hay clases disponibles en este momento</p>
+                        <p className="text-sm text-muted-foreground mt-1">Pronto agregaremos nuevos horarios 😊</p>
                         <a
                           href="mailto:blangenglishlearning@blangenglish.com"
                           className="inline-block mt-4 text-blue-600 font-semibold text-sm hover:underline"

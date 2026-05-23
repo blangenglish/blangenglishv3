@@ -860,6 +860,7 @@ const [loadingUnits, setLoadingUnits] = useState<string | null>(null);
           .select('id, date, start_time, end_time, teacher_name, available_spots')
           .gt('available_spots', 0)
           .eq('status', 'available')
+          .gte('date', new Date().toISOString().split('T')[0])
           .order('date', { ascending: true })
           .order('start_time', { ascending: true })
           .then(({ data }) => {
@@ -2015,8 +2016,8 @@ useEffect(() => {
                       ) : scheduleSlots.length === 0 ? (
                         <div className="text-center py-10 text-muted-foreground">
                           <Calendar className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                          <p className="font-semibold text-sm">Sin horarios disponibles por ahora</p>
-                          <p className="text-xs mt-1">El profesor publicará nuevos horarios pronto. ¡Vuelve a revisar!</p>
+                          <p className="font-semibold text-sm">No hay clases disponibles en este momento</p>
+                          <p className="text-xs mt-1">Pronto agregaremos nuevos horarios. ¡Vuelve a revisar!</p>
                         </div>
                       ) : (
                         <div className="space-y-3">
