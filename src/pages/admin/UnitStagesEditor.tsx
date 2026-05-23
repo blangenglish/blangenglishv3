@@ -977,7 +977,8 @@ function QuizEditor({ unitId, stage }: { unitId: string; stage: Stage; stageLabe
   }, [unitId, stage]);
 
   // Save quiz via REPLACE (delete existing + insert new) — evita duplicate key
-  const saveQuiz = async (qs: QuizQuestion[]) => {
+  // Devuelve true si el guardado fue exitoso, false si hubo un error.
+  const saveQuiz = async (qs: QuizQuestion[]): Promise<boolean> => {
     setSavingQ(true); setSaveErrQ(null);
     try {
       const quizFilters = { unit_id: unitId, stage };
@@ -995,7 +996,8 @@ function QuizEditor({ unitId, stage }: { unitId: string; stage: Stage; stageLabe
 
       console.log('[QuizEditor] saveQuiz SUCCESS ✅');
       setSavedQ(true);
-      setTimeout(() => setSavedQ(false), 6000);
+      setTimeout(() => setSavedQ(false), 4000);
+      return true;
     } catch (e) {
       const errObj = e as { message?: string; code?: string; details?: string; hint?: string };
       const msg = errObj.message || JSON.stringify(e);
@@ -1005,6 +1007,7 @@ function QuizEditor({ unitId, stage }: { unitId: string; stage: Stage; stageLabe
       const fullMsg = `${msg}${detail}${hint}${code}`;
       console.error('[QuizEditor] saveQuiz ERROR ❌:', fullMsg, e);
       setSaveErrQ(fullMsg);
+      return false;
     } finally { setSavingQ(false); }
   };
 
@@ -1039,7 +1042,7 @@ function QuizEditor({ unitId, stage }: { unitId: string; stage: Stage; stageLabe
     setActiveQ(null);
   };
 
-  const submitForm = () => {
+  const submitForm = async () => {
     setFormError(null);
     if (!formQuestion.trim()) { setFormError('Escribe la pregunta.'); return; }
     const id = editingId ?? `q-manual-${Date.now()}`;
@@ -1105,9 +1108,13 @@ function QuizEditor({ unitId, stage }: { unitId: string; stage: Stage; stageLabe
       ? questions.map(q => q.id === editingId ? newQ : q)
       : [...questions, newQ];
     setQuestions(updated);
-    saveQuiz(updated);
-    resetForm();
-    setShowForm(false);
+    const ok = await saveQuiz(updated);
+    if (ok) {
+      resetForm();
+      setShowForm(false);
+    } else {
+      setFormError('No se pudo guardar. Revisa tu conexión e intenta de nuevo.');
+    }
   };
 
   const deleteQ = (id: string) => {
