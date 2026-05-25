@@ -5,11 +5,12 @@ import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ChevronRight, Star } from 'lucide-react';
+import { ChevronRight, Star, Lock, Sparkles } from 'lucide-react';
 import { ROUTE_PATHS } from '@/lib/index';
 import type { AuthModal } from '@/lib/index';
 import { IMAGES } from '@/assets/images';
 import { supabase } from '@/integrations/supabase/client';
+import { MODULES } from '@/components/EnglishForYou';
 
 const staggerContainer = {
   hidden: { opacity: 0 },
@@ -394,6 +395,194 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
           </motion.div>
         </div>
       </section>
+
+      {/* ── ENGLISH FOR YOU ── */}
+      {(() => {
+        // Módulos para la landing: todos excepto "clases-en-vivo"
+        const landingModules = MODULES.filter(m => m.slug !== 'clases-en-vivo');
+        const [fonetica, ...lockedMods] = landingModules;
+
+        // Preview estático de fonética (sonidos IPA)
+        const PHONETICS_PREVIEW = [
+          { ipa: '/æ/', word: 'cat',   color: 'bg-blue-100 text-blue-700' },
+          { ipa: '/θ/', word: 'think', color: 'bg-cyan-100 text-cyan-700' },
+          { ipa: '/aɪ/', word: 'time',  color: 'bg-indigo-100 text-indigo-700' },
+          { ipa: '/ʃ/',  word: 'ship',  color: 'bg-sky-100 text-sky-700' },
+          { ipa: '/ð/',  word: 'this',  color: 'bg-blue-100 text-blue-700' },
+          { ipa: '/ŋ/',  word: 'sing',  color: 'bg-cyan-100 text-cyan-700' },
+        ];
+
+        return (
+          <section id="english-for-you" className="py-14 sm:py-20">
+            <div className="container mx-auto px-4">
+              <motion.div
+                initial="hidden" whileInView="visible"
+                viewport={{ once: true, margin: '-80px' }}
+                variants={staggerContainer}
+              >
+
+                {/* Encabezado */}
+                <motion.div variants={staggerItem} className="text-center mb-8 sm:mb-10">
+                  <span className="inline-flex items-center gap-2 bg-primary/10 text-primary text-xs sm:text-sm font-bold px-4 py-2 rounded-full mb-4 border border-primary/20">
+                    <Sparkles className="w-3.5 h-3.5" /> Módulos especiales
+                  </span>
+                  <h2 className="text-3xl sm:text-5xl font-black tracking-tight mb-3">
+                    English for <span className="text-primary">you!</span>
+                  </h2>
+                  <p className="text-muted-foreground text-base sm:text-lg max-w-xl mx-auto">
+                    Módulos adicionales de aprendizaje para llevar tu inglés al siguiente nivel.
+                  </p>
+                </motion.div>
+
+                {/* Banner de acceso */}
+                <motion.div
+                  variants={staggerItem}
+                  className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-gradient-to-r from-primary/8 via-violet-50 to-primary/8 border border-primary/20 rounded-2xl px-5 py-4 mb-7 shadow-sm"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Lock className="w-4 h-4 text-primary shrink-0" />
+                    <p className="text-sm sm:text-base font-semibold text-foreground">
+                      Regístrate gratis y accede a todo el contenido
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => onOpenAuth?.('register')}
+                    className="shrink-0 bg-gradient-to-r from-primary to-violet-600 hover:opacity-90 text-white font-bold text-sm px-5 py-2.5 rounded-xl shadow-md transition-opacity whitespace-nowrap"
+                  >
+                    Registrarse gratis →
+                  </button>
+                </motion.div>
+
+                {/* Grid de módulos */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+
+                  {/* ── Fonética: card desbloqueada con preview ── */}
+                  <motion.div
+                    variants={staggerItem}
+                    className={`
+                      sm:col-span-2 lg:col-span-2
+                      rounded-2xl overflow-hidden border border-border/50 shadow-sm
+                      bg-gradient-to-br ${fonetica.cardBg}
+                      ring-1 ${fonetica.ring} ring-offset-0
+                      flex flex-col
+                    `}
+                  >
+                    {/* Header gradiente */}
+                    <div className={`relative h-28 sm:h-32 bg-gradient-to-br ${fonetica.gradient} flex items-center justify-center overflow-hidden`}>
+                      <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-white/10" />
+                      <div className="absolute -bottom-4 -left-4 w-16 h-16 rounded-full bg-white/10" />
+                      <div className="absolute top-2 left-3 w-8 h-8 rounded-full bg-white/10" />
+                      <div className="flex items-center gap-3 z-10">
+                        <span className="text-5xl drop-shadow-md select-none">{fonetica.emoji}</span>
+                        <div>
+                          <span className="text-white/80 text-xs font-bold uppercase tracking-widest">{fonetica.category}</span>
+                          <p className="text-white font-black text-xl leading-tight">{fonetica.title}</p>
+                        </div>
+                      </div>
+                      {/* Badge "Vista previa" */}
+                      <span className="absolute top-3 right-3 bg-white/25 backdrop-blur text-white text-[11px] font-bold px-2.5 py-1 rounded-full border border-white/30">
+                        👁️ Vista previa
+                      </span>
+                    </div>
+
+                    {/* Contenido */}
+                    <div className="flex flex-col flex-1 p-4 sm:p-5 gap-4">
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        {fonetica.description}
+                      </p>
+
+                      {/* Preview de sonidos IPA */}
+                      <div>
+                        <p className="text-xs font-bold text-foreground/60 uppercase tracking-widest mb-2.5">
+                          🔬 Muestra de contenido
+                        </p>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                          {PHONETICS_PREVIEW.map((p, i) => (
+                            <div
+                              key={i}
+                              className="flex items-center gap-2 bg-background/70 rounded-xl px-3 py-2.5 border border-border/40 shadow-sm"
+                            >
+                              <span className={`text-xs font-black px-1.5 py-0.5 rounded-lg ${p.color} font-mono`}>
+                                {p.ipa}
+                              </span>
+                              <span className="text-sm font-semibold text-foreground">{p.word}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => onOpenAuth?.('register')}
+                        className={`mt-auto w-full rounded-xl bg-gradient-to-r ${fonetica.gradient} text-white font-semibold py-2.5 shadow-sm hover:shadow-md hover:opacity-90 transition-all flex items-center justify-center gap-2`}
+                      >
+                        Empezar ahora
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </motion.div>
+
+                  {/* ── Módulos bloqueados ── */}
+                  {lockedMods.map((mod, i) => (
+                    <motion.div
+                      key={mod.slug}
+                      variants={staggerItem}
+                      className="relative rounded-2xl overflow-hidden border border-border/50 shadow-sm cursor-pointer group"
+                      onClick={() => onOpenAuth?.('register')}
+                    >
+                      {/* Card base (atenuada) */}
+                      <div className={`h-full bg-gradient-to-br ${mod.cardBg} opacity-60`}>
+                        {/* Header gradiente */}
+                        <div className={`relative h-28 sm:h-32 bg-gradient-to-br ${mod.gradient} flex items-center justify-center overflow-hidden`}>
+                          <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-white/10" />
+                          <div className="absolute -bottom-4 -left-4 w-16 h-16 rounded-full bg-white/10" />
+                          <span className="text-5xl drop-shadow-md select-none z-10">{mod.emoji}</span>
+                        </div>
+
+                        {/* Contenido */}
+                        <div className="p-4 gap-2 flex flex-col">
+                          <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full w-fit ${mod.badge}`}>
+                            {mod.category}
+                          </span>
+                          <h3 className="font-bold text-base leading-snug text-foreground">
+                            {mod.title}
+                          </h3>
+                          <p className="text-sm text-muted-foreground leading-relaxed">
+                            {mod.description}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Overlay de candado */}
+                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-background/40 backdrop-blur-[2px] rounded-2xl transition-all group-hover:bg-background/50">
+                        <div className="w-12 h-12 rounded-2xl bg-background/90 border border-border shadow-lg flex items-center justify-center">
+                          <Lock className="w-5 h-5 text-foreground/70" />
+                        </div>
+                        <span className="text-xs font-bold text-foreground/80 bg-background/80 px-3 py-1 rounded-full border border-border/50 text-center">
+                          Regístrate para acceder
+                        </span>
+                      </div>
+                    </motion.div>
+                  ))}
+
+                </div>
+
+                {/* CTA final */}
+                <motion.div variants={staggerItem} className="text-center mt-8">
+                  <button
+                    onClick={() => onOpenAuth?.('register')}
+                    className="inline-flex items-center gap-2 bg-gradient-to-r from-primary to-violet-600 hover:opacity-90 text-white font-extrabold text-base sm:text-lg px-8 py-4 rounded-2xl shadow-lg shadow-primary/30 transition-opacity"
+                  >
+                    Desbloquear todos los módulos gratis
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                  <p className="text-xs text-muted-foreground mt-3">7 días de prueba gratis · Sin tarjeta requerida</p>
+                </motion.div>
+
+              </motion.div>
+            </div>
+          </section>
+        );
+      })()}
 
       {/* ── CLASES 1 A 1 ── */}
       <section id="sesiones-vivo" className="py-14 sm:py-24 relative overflow-hidden">
