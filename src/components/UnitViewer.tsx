@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,7 @@ import {
   X, Film, ExternalLink, Link2,
   Loader2, BookOpen, Lock, CheckCircle2,
   ChevronRight, ChevronLeft, Trophy, RefreshCw,
-  CheckCircle, XCircle, Volume2,
+  CheckCircle, XCircle, Volume2, Copy, Check,
 } from 'lucide-react';
 import { STAGES, MATERIAL_TYPE_CONFIG, type Stage, type UnitStageMaterial } from '@/lib/stages';
 
@@ -132,75 +132,178 @@ function VocabularyMaterial({ html }) {
   );
 }
 
-// ─── Reading renderer with click-to-translate ─────────────────────────────────
+// ─── Reading renderer with floating tooltip translation ───────────────────────
 function ReadingMaterial({ html }) {
-  const [translating, setTranslating] = useState(false);
-  const [translatedPara, setTranslatedPara] = useState(null);
+  // tooltip: posición en viewport + contenido
+  const [tooltip, setTooltip] = useState<{
+    anchorX: number;  // centro horizontal del anchor (viewport coords)
+    anchorY: number;  // borde superior del anchor (viewport coords)
+    original: string;
+    translated: string | null;
+    loading: boolean;
+    below: boolean;   // true = mostrar debajo del anchor (cuando está muy arriba)
+  } | null>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
 
-  const translateText = async (text) => {
-    if (!text || text.trim().length < 3) return;
-    setTranslating(true);
-    setTranslatedPara(null);
+  // ── Llama a la API y actualiza el tooltip en el mismo lugar ──
+  const fetchTranslation = async (text: string, anchorX: number, anchorY: number) => {
+    const trimmed = text.trim();
+    if (trimmed.length < 2) return;
+    const below = anchorY < 140; // poco espacio arriba → mostrar debajo
+    setTooltip({ anchorX, anchorY, original: trimmed, translated: null, loading: true, below });
     try {
       const res = await fetch(
-        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text.trim().slice(0, 500))}&langpair=en|es`
+        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(trimmed.slice(0, 500))}&langpair=en|es`
       );
       const data = await res.json();
       const translated = data?.responseData?.translatedText || 'No se pudo traducir';
-      setTranslatedPara({ original: text.trim(), translated });
+      setTooltip(prev => prev ? { ...prev, translated, loading: false } : null);
     } catch {
-      setTranslatedPara({ original: text.trim(), translated: 'Error al traducir.' });
-    } finally {
-      setTranslating(false);
+      setTooltip(prev => prev ? { ...prev, translated: 'Error al traducir.', loading: false } : null);
     }
   };
 
-  const handleMouseUp = () => {
+  // ── Selección de texto con ratón / arrastre ──
+  const handleMouseUp = (e: React.MouseEvent) => {
     const sel = window.getSelection();
     if (!sel || sel.isCollapsed) return;
     const selText = sel.toString().trim();
-    if (selText.length > 2) translateText(selText);
+    if (selText.length < 2) return;
+    // Usar el bounding rect de la selección para anclar el tooltip
+    const range = sel.getRangeAt(0);
+    const rect  = range.getBoundingClientRect();
+    fetchTranslation(selText, rect.left + rect.width / 2, rect.top);
+    e.stopPropagation();
   };
 
-  const handleClick = (e) => {
+  // ── Toque / click en párrafo (sin texto seleccionado) ──
+  const handleClick = (e: React.MouseEvent) => {
     const sel = window.getSelection();
-    if (sel && !sel.isCollapsed) return;
-    const para = e.target.closest('p, div');
-    if (para) {
-      const text = (para.textContent || '').trim();
-      if (text.length > 3) translateText(text);
-    }
+    if (sel && !sel.isCollapsed) return; // ya lo maneja mouseup
+    if (tooltipRef.current?.contains(e.target as Node)) return;
+
+    // Buscar el elemento de texto más próximo (párrafo, ítem de lista, etc.)
+    const el = (e.target as HTMLElement).closest('p, li, h1, h2, h3, h4, h5, h6, span, div');
+    if (!el) return;
+    const text = (el.textContent || '').trim();
+    if (text.length < 3) return;
+    fetchTranslation(text, e.clientX, e.clientY);
   };
+
+  // ── Cerrar al hacer click fuera del tooltip ──
+  useEffect(() => {
+    if (!tooltip) return;
+    const close = (e: MouseEvent | TouchEvent) => {
+      if (tooltipRef.current && !tooltipRef.current.contains(e.target as Node)) {
+        setTooltip(null);
+      }
+    };
+    // capture:true para que se ejecute antes de otros handlers
+    document.addEventListener('mousedown', close, true);
+    document.addEventListener('touchstart', close, true);
+    return () => {
+      document.removeEventListener('mousedown', close, true);
+      document.removeEventListener('touchstart', close, true);
+    };
+  }, [tooltip]);
+
+  // ── Calcular estilo del tooltip flotante ──
+  const tooltipStyle = (() => {
+    if (!tooltip) return {};
+    const vw       = window.innerWidth;
+    const tipW     = Math.min(256, vw - 16);
+    const left     = Math.min(Math.max(tooltip.anchorX - tipW / 2, 8), vw - tipW - 8);
+    const top      = tooltip.below
+      ? tooltip.anchorY + 20             // debajo del anchor
+      : tooltip.anchorY - 8;            // encima (translateY(-100%) lo sube)
+    return {
+      position: 'fixed' as const,
+      left,
+      top,
+      width: tipW,
+      transform: tooltip.below ? 'none' : 'translateY(-100%)',
+      zIndex: 9999,
+    };
+  })();
+
+  // Texto original truncado para el tooltip (sin desbordar)
+  const originalSnippet = tooltip
+    ? tooltip.original.length > 90
+      ? tooltip.original.slice(0, 90) + '…'
+      : tooltip.original
+    : '';
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2 p-2.5 rounded-lg bg-blue-50 border border-blue-200">
+      {/* Instrucción */}
+      <div className="flex items-center gap-2 p-2.5 rounded-lg bg-blue-50 border border-blue-200 dark:bg-blue-950/30 dark:border-blue-800">
         <span className="text-base">💡</span>
-        <p className="text-xs text-blue-700">
+        <p className="text-xs text-blue-700 dark:text-blue-300">
           <strong>Selecciona</strong> texto o <strong>toca</strong> un párrafo para traducirlo al español.
         </p>
       </div>
+
+      {/* Cuerpo del texto */}
       <div
         className="p-4 rounded-xl border-2 border-border bg-card leading-relaxed text-sm cursor-pointer hover:border-primary/30 transition-colors select-text"
         onMouseUp={handleMouseUp}
-        onClick={handleClick}>
+        onClick={handleClick}
+      >
         <RichContent html={html} />
       </div>
-      {(translating || translatedPara) && (
-        <div className="rounded-xl border-2 border-primary/30 bg-primary/5 p-4 space-y-2">
-          {translating ? (
-            <div className="flex items-center gap-2 text-sm text-primary">
-              <Loader2 className="w-4 h-4 animate-spin" /> Traduciendo...
+
+      {/* ── Tooltip flotante (portal visual con position:fixed) ── */}
+      {tooltip && (
+        <div
+          ref={tooltipRef}
+          style={tooltipStyle}
+          className="relative rounded-2xl border-2 border-primary/40 bg-card shadow-2xl shadow-black/20 p-3 pointer-events-auto"
+          onClick={e => e.stopPropagation()}
+        >
+          {/* Flecha decorativa */}
+          <div className={cn(
+            'absolute left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-card border-primary/40 rotate-45',
+            tooltip.below
+              ? 'top-[-6px] border-t-2 border-l-2'    // flecha apunta arriba
+              : 'bottom-[-6px] border-b-2 border-r-2', // flecha apunta abajo
+          )} />
+
+          {/* Contenido */}
+          <div className="flex items-start gap-2">
+            <div className="flex-1 min-w-0 space-y-1.5">
+              {/* Original */}
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider leading-none">
+                🇺🇸 Original
+              </p>
+              <p className="text-xs italic text-foreground/80 leading-snug">
+                "{originalSnippet}"
+              </p>
+
+              {/* Traducción / spinner */}
+              {tooltip.loading ? (
+                <div className="flex items-center gap-1.5 text-xs text-primary pt-0.5">
+                  <Loader2 className="w-3 h-3 animate-spin shrink-0" /> Traduciendo…
+                </div>
+              ) : tooltip.translated ? (
+                <>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider leading-none pt-0.5">
+                    🇨🇴 Traducción
+                  </p>
+                  <p className="text-xs font-semibold text-primary leading-snug">
+                    "{tooltip.translated}"
+                  </p>
+                </>
+              ) : null}
             </div>
-          ) : translatedPara ? (
-            <>
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">🇺🇸 Original</p>
-              <p className="text-sm italic text-foreground/80">"{translatedPara.original}"</p>
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mt-2">🇨🇴 Traducción</p>
-              <p className="text-sm font-semibold text-primary">"{translatedPara.translated}"</p>
-              <button onClick={() => setTranslatedPara(null)} className="text-xs text-muted-foreground underline mt-1">Cerrar</button>
-            </>
-          ) : null}
+
+            {/* Botón cerrar */}
+            <button
+              onClick={() => setTooltip(null)}
+              className="shrink-0 mt-0.5 p-0.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -965,6 +1068,51 @@ function InlineQuiz({ questions, onPassed }) {
   );
 }
 
+// ─── Botón copiar al portapapeles ────────────────────────────────────────────
+function CopyPromptButton({ html }: { html: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    const plain = html ? htmlToText(html).replace(/\n{3,}/g, '\n\n').trim() : '';
+    try {
+      await navigator.clipboard.writeText(plain);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback para navegadores sin clipboard API
+      const ta = document.createElement('textarea');
+      ta.value = plain;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      className={cn(
+        'flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border transition-all shrink-0',
+        copied
+          ? 'bg-green-100 border-green-300 text-green-700 dark:bg-green-900/30 dark:border-green-700 dark:text-green-400'
+          : 'bg-muted/60 border-border text-muted-foreground hover:bg-primary/10 hover:border-primary/40 hover:text-primary',
+      )}
+    >
+      {copied
+        ? <><Check className="w-3 h-3" /> ¡Copiado!</>
+        : <><Copy className="w-3 h-3" /> Copiar</>
+      }
+    </button>
+  );
+}
+
 // ─── Detect subtype for text materials ───────────────────────────────────────
 function detectSubtype(mat) {
   const title = (mat.title || '').toLowerCase();
@@ -989,10 +1137,11 @@ function detectSubtype(mat) {
 }
 
 // ─── Material renderer ────────────────────────────────────────────────────────
-function MaterialItem({ mat }) {
+function MaterialItem({ mat, stage }: { mat: any; stage?: string }) {
   const [playing, setPlaying] = useState(false);
   const [lightboxUrl, setLightboxUrl] = useState(null);
   const subtype = detectSubtype(mat);
+  const isPracticePrompt = stage === 'ai_practice' && mat.material_type === 'text' && !!mat.description;
 
   return (
     <div className="rounded-xl border border-border bg-card overflow-hidden">
@@ -1001,9 +1150,12 @@ function MaterialItem({ mat }) {
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold truncate">{mat.title}</p>
         </div>
-        <Badge variant="outline" className="text-[10px] shrink-0">
-          {MATERIAL_TYPE_CONFIG[mat.material_type]?.label || mat.material_type}
-        </Badge>
+        {isPracticePrompt
+          ? <CopyPromptButton html={mat.description} />
+          : <Badge variant="outline" className="text-[10px] shrink-0">
+              {MATERIAL_TYPE_CONFIG[mat.material_type]?.label || mat.material_type}
+            </Badge>
+        }
       </div>
 
       <div className="p-3">
@@ -1469,7 +1621,7 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
             {/* Materials */}
             {currentMaterials.length > 0 && (
               <div className="space-y-3">
-                {currentMaterials.map(mat => <MaterialItem key={mat.id} mat={mat} />)}
+                {currentMaterials.map(mat => <MaterialItem key={mat.id} mat={mat} stage={currentStage?.id} />)}
               </div>
             )}
 
