@@ -315,7 +315,10 @@ function InlineQuiz({ questions, onPassed }) {
   const [isCorrect, setIsCorrect] = useState(false);
   const [score, setScore] = useState(0);
   const [finished, setFinished] = useState(false);
-  const [continuarLoading, setContinuarLoading] = useState(false);
+  // results: un objeto por cada pregunta respondida, para mostrar el resumen
+  const [results, setResults] = useState([]);
+  // hasCalled: evita doble-llamada a onPassed()
+  const [hasCalled, setHasCalled] = useState(false);
 
   // match: {optText -> correctAnswer}
   const [matchMap, setMatchMap] = useState({});
@@ -451,6 +454,29 @@ function InlineQuiz({ questions, onPassed }) {
     setIsCorrect(correct);
     setSubmitted(true);
     if (correct) setScore(s => s + 1);
+
+    // Registrar resultado para el resumen final
+    const wt = ['fill_gap','image_write','listen_write','rewrite','organize'];
+    const sc = ['multiple_choice','true_false','listen_select','image_choice','image_url'];
+    const qOpts = q.options || [];
+    const correctAns = (() => {
+      if (wt.includes(q.type)) {
+        if (q.type === 'listen_write' && !q.correctAnswer) return q.question || '';
+        return q.correctAnswer || '';
+      }
+      if (sc.includes(q.type) || q.type === 'multiple_select')
+        return qOpts.filter(o => o.isCorrect).map(o => o.text).join(', ');
+      if (q.type === 'match')
+        return qOpts.map(o => `${o.text} → ${o.correctAnswer}`).join(' | ');
+      return '';
+    })();
+    const qTxt = (() => {
+      if (['listen_write','listen_select'].includes(q.type))
+        return `Pregunta de escucha ${cur + 1}`;
+      const plain = (q.question || '').replace(/<[^>]*>/g, '').trim();
+      return plain.length > 58 ? plain.slice(0, 58) + '…' : plain || `Pregunta ${cur + 1}`;
+    })();
+    setResults(prev => [...prev, { correct, correctAnswer: correctAns, questionText: qTxt }]);
   };
 
   const handleNext = () => {
@@ -460,43 +486,104 @@ function InlineQuiz({ questions, onPassed }) {
 
   // ─── Finished screen ──────────────────────────────────────────────────────
   if (finished) {
+    const resetQuiz = () => {
+      setCur(0); setScore(0); setFinished(false);
+      setResults([]); setHasCalled(false);
+    };
+
     return (
-      <div className="rounded-2xl border-2 border-primary/30 bg-card p-6 text-center space-y-4">
-        <div className="text-5xl">{passed ? '🎉' : '📚'}</div>
-        <p className="font-bold text-xl">{passed ? '¡Quiz superado!' : 'Sigue practicando'}</p>
-        <p className="text-sm text-muted-foreground">
-          Respondiste correctamente {score} de {total} ({pct}%)
-        </p>
-        <div className="w-full bg-muted rounded-full h-3">
-          <div className={cn('h-3 rounded-full transition-all', passed ? 'bg-green-500' : 'bg-orange-400')}
-            style={{ width: `${pct}%` }} />
+      <div className="rounded-2xl border-2 border-primary/30 bg-card p-5 space-y-4">
+
+        {/* ── Puntuación ── */}
+        <div className="text-center space-y-2.5">
+          <div className="text-5xl">{passed ? '🎉' : '📚'}</div>
+          <p className="font-bold text-xl">{passed ? '¡Quiz superado!' : 'Sigue practicando'}</p>
+          <p className="text-sm text-muted-foreground">
+            Respondiste correctamente <strong>{score}</strong> de <strong>{total}</strong> ({pct}%)
+          </p>
+          <div className="w-full bg-muted rounded-full h-3">
+            <div
+              className={cn('h-3 rounded-full transition-all', passed ? 'bg-green-500' : 'bg-orange-400')}
+              style={{ width: `${pct}%` }}
+            />
+          </div>
         </div>
+
+        {/* ── Resultados por pregunta ── */}
+        {results.length > 0 && (
+          <div className="space-y-1.5">
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider px-1">
+              📋 Resultados
+            </p>
+            <div className="max-h-60 overflow-y-auto space-y-1.5 pr-1">
+              {results.map((r, i) => (
+                <div
+                  key={i}
+                  className={cn(
+                    'rounded-xl px-3 py-2.5 flex items-start gap-2.5 border text-sm',
+                    r.correct
+                      ? 'bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800'
+                      : 'bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800',
+                  )}
+                >
+                  {r.correct
+                    ? <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
+                    : <XCircle    className="w-4 h-4 text-red-500  dark:text-red-400  shrink-0 mt-0.5" />
+                  }
+                  <div className="flex-1 min-w-0">
+                    <p className={cn(
+                      'font-medium leading-snug',
+                      r.correct ? 'text-green-800 dark:text-green-300' : 'text-red-700 dark:text-red-300',
+                    )}>
+                      {i + 1}. {r.questionText}
+                    </p>
+                    {!r.correct && r.correctAnswer && (
+                      <p className="text-xs text-red-600 dark:text-red-400 mt-0.5">
+                        Respuesta correcta: <strong>{r.correctAnswer}</strong>
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── Acciones ── */}
         {passed ? (
-          <Button
-            className="w-full rounded-xl font-bold gap-2 bg-green-600 hover:bg-green-700"
-            disabled={continuarLoading}
-            onClick={async () => {
-              setContinuarLoading(true);
-              await onPassed();
-              // El componente se desmonta después de navegar; no reseteamos el estado.
-            }}
-          >
-            {continuarLoading
-              ? <><Loader2 className="w-4 h-4 animate-spin" /> Guardando…</>
-              : <><CheckCircle className="w-4 h-4" /> Continuar →</>
-            }
-          </Button>
+          <div className="space-y-2">
+            {/* Reintentar disponible cuando no es 100% y no se llamó aún onPassed */}
+            {pct < 100 && !hasCalled && (
+              <Button variant="outline" className="w-full rounded-xl gap-2" onClick={resetQuiz}>
+                <RefreshCw className="w-4 h-4" /> Intentar de nuevo
+              </Button>
+            )}
+            <Button
+              className="w-full rounded-xl font-bold gap-2 bg-green-600 hover:bg-green-700"
+              disabled={hasCalled}
+              onClick={() => {
+                if (!hasCalled) {
+                  setHasCalled(true);
+                  // Sin await: la navegación es optimista e inmediata dentro de markCompleted.
+                  // El guardado en Supabase ocurre en segundo plano.
+                  onPassed();
+                }
+              }}
+            >
+              <CheckCircle className="w-4 h-4" /> Continuar →
+            </Button>
+          </div>
         ) : (
           <div className="space-y-3">
-            <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 font-medium">
+            <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 font-medium dark:bg-red-950/30 dark:border-red-800 dark:text-red-400">
               Necesitas al menos <strong>60%</strong> para avanzar. ¡Revisa el material y vuelve a intentarlo!
             </div>
-            <Button variant="outline" className="w-full rounded-xl gap-2"
-              onClick={() => { setCur(0); setScore(0); setFinished(false); setContinuarLoading(false); }}>
+            <Button variant="outline" className="w-full rounded-xl gap-2" onClick={resetQuiz}>
               <RefreshCw className="w-4 h-4" /> Intentar de nuevo
             </Button>
           </div>
         )}
+
       </div>
     );
   }
@@ -1201,9 +1288,9 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
       }, 400);
     }
 
-    // 3. Guardar en Supabase en segundo plano
+    // 3. Guardar en Supabase en segundo plano (timeout de seguridad: 6 s)
     try {
-      const { error } = await supabase.from('unit_progress').upsert(
+      const savePromise = supabase.from('unit_progress').upsert(
         {
           student_id: studentId,
           unit_id: unitId,
@@ -1215,11 +1302,21 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
         },
         { onConflict: 'student_id,unit_id,stage' },
       );
+      // Si Supabase tarda más de 6 s, el timeout resuelve con error falso pero
+      // la UI ya navegó (optimista), así que el estudiante nunca queda bloqueado.
+      const { error } = await Promise.race([
+        savePromise,
+        new Promise(resolve =>
+          setTimeout(() => resolve({ data: null, error: { message: 'Timeout (>6 s) al guardar progreso' } }), 6000),
+        ),
+      ]);
       if (error) {
-        console.error('[UnitViewer] Error guardando progreso:', error.message);
+        console.error('[UnitViewer] ❌ Error/timeout guardando progreso:', error.message);
+      } else {
+        console.log('[UnitViewer] ✅ Progreso guardado:', currentStage.id);
       }
     } catch (e) {
-      console.error('[UnitViewer] Error de red al guardar progreso:', e);
+      console.error('[UnitViewer] ❌ Excepción guardando progreso:', e);
     }
 
     setMarkingDone(false);
