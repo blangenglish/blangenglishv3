@@ -11,6 +11,7 @@ import type { AuthModal } from '@/lib/index';
 import { IMAGES } from '@/assets/images';
 import { supabase } from '@/integrations/supabase/client';
 import { MODULES } from '@/components/EnglishForYou';
+import { MUNDO_REAL_TOPICS } from '@/pages/MundoRealData';
 
 const staggerContainer = {
   hidden: { opacity: 0 },
@@ -70,12 +71,30 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
       .eq('is_published', true)
       .order('sort_order', { ascending: true })
       .then(({ data }) => {
-        if (!data) return;
         const grouped: Record<string, { id: string; title: string; rich_text: string; sort_order: number }[]> = {};
-        for (const row of data) {
+
+        // ── Contenido de Supabase (escritura, gramática, lectura, listening, vocabulario) ──
+        for (const row of (data ?? [])) {
           if (!grouped[row.module_id]) grouped[row.module_id] = [];
           grouped[row.module_id].push(row);
         }
+
+        // ── Fonética: contenido estático (no tiene tabla propia en Supabase) ──
+        grouped['fonetica'] = [
+          { id: 'fonetica-vowels',      title: 'Vocales del inglés',        rich_text: '/ɪ/ sit · /iː/ see · /ʊ/ look · /uː/ food · /e/ bed · /ə/ about · /ɜː/ bird · /ɔː/ more · /æ/ cat · /ʌ/ cup · /ɑː/ far · /ɒ/ hot', sort_order: 0 },
+          { id: 'fonetica-consonants',  title: 'Consonantes del inglés',    rich_text: '/p/ pen · /b/ bad · /t/ ten · /d/ dog · /k/ cat · /g/ go · /f/ fan · /v/ van · /θ/ think · /ð/ this · /s/ see · /z/ zoo · /ʃ/ she · /ʒ/ vision · /h/ hat · /tʃ/ chair · /dʒ/ jam', sort_order: 1 },
+          { id: 'fonetica-diphthongs',  title: 'Diptongos (diphthongs)',    rich_text: '/eɪ/ day · /aɪ/ my · /ɔɪ/ boy · /əʊ/ go · /aʊ/ now · /ɪə/ ear · /eə/ air · /ʊə/ pure', sort_order: 2 },
+          { id: 'fonetica-practice',    title: 'Práctica de pronunciación', rich_text: 'Ejercicios interactivos para entrenar cada sonido con audio real', sort_order: 3 },
+        ];
+
+        // ── Mundo Real: primeros temas de MUNDO_REAL_TOPICS ──
+        grouped['mundo-real'] = MUNDO_REAL_TOPICS.slice(0, 6).map((topic, i) => ({
+          id: `mr-${topic.id}`,
+          title: `${topic.emoji} ${topic.title}`,
+          rich_text: topic.vocabulary.slice(0, 4).map(v => `${v.word} = ${v.translation}`).join(' · '),
+          sort_order: i,
+        }));
+
         setModuleContent(grouped);
       });
   }, []);
