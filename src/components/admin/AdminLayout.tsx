@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { useState, useEffect } from 'react';
 import { useNavigate, NavLink, Navigate } from 'react-router-dom';
-import { LayoutDashboard, BookOpen, Menu, X, LogOut, Users, DollarSign, Sparkles, MessageSquare, CalendarDays, Globe } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Menu, X, LogOut, Users, DollarSign, Sparkles, MessageSquare, CalendarDays, Globe, GraduationCap } from 'lucide-react';
 import { useAdmin, useAdminAuth } from '@/hooks/useAdmin';
 import { ADMIN_ROUTES } from '@/lib/admin';
 import { ROUTE_PATHS } from '@/lib/index';
@@ -49,6 +49,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   const navItems = [
     { to: ADMIN_ROUTES.DASHBOARD, icon: LayoutDashboard, label: 'Dashboard' },
     { to: ADMIN_ROUTES.STUDENTS, icon: Users, label: 'Estudiantes' },
+    { to: ADMIN_ROUTES.TEACHERS, icon: GraduationCap, label: 'Profesores' },
     { to: ADMIN_ROUTES.COURSES, icon: BookOpen, label: 'Cursos' },
     { to: ADMIN_ROUTES.REVENUE, icon: DollarSign, label: 'Ingresos' },
     { to: ADMIN_ROUTES.ENGLISH_FOR_STUDENTS, icon: Sparkles, label: 'English for Students' },
