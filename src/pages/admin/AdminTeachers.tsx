@@ -9,7 +9,7 @@ import { Card } from '@/components/ui/card';
 import {
   UserPlus, Pencil, Trash2, X, Check, Loader2, GraduationCap,
   Mail, User, Lock, Eye, EyeOff, AlertCircle, CheckCircle,
-  Users, Search, UserCheck,
+  Users, Search, UserCheck, Send,
 } from 'lucide-react';
 
 // ─── Edge function helper ────────────────────────────────────────────────────
@@ -67,6 +67,13 @@ export default function AdminTeachers() {
   const [saving, setSaving]         = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [formError, setFormError]   = useState('');
+
+  // ── Send credentials modal state
+  const [credTeacher, setCredTeacher]   = useState<Teacher | null>(null);
+  const [credPassword, setCredPassword] = useState('');
+  const [credShowPass, setCredShowPass] = useState(false);
+  const [sendingCred, setSendingCred]   = useState(false);
+  const [credError, setCredError]       = useState('');
 
   // ── Assign students modal state
   const [assignTeacher, setAssignTeacher]       = useState<Teacher | null>(null);
@@ -138,6 +145,34 @@ export default function AdminTeachers() {
       alert(e instanceof Error ? e.message : 'Error eliminando');
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  // ─── Send credentials ────────────────────────────────────────────────────
+  const openCredModal = (t: Teacher) => {
+    setCredTeacher(t);
+    setCredPassword('');
+    setCredShowPass(false);
+    setCredError('');
+  };
+  const closeCredModal = () => {
+    setCredTeacher(null);
+    setCredPassword('');
+    setCredError('');
+  };
+  const handleSendCredentials = async () => {
+    if (!credTeacher) return;
+    if (credPassword.length < 6) { setCredError('La contraseña debe tener mínimo 6 caracteres'); return; }
+    setSendingCred(true);
+    setCredError('');
+    try {
+      await callTeachers({ action: 'send_credentials', teacher_id: credTeacher.id, password: credPassword });
+      closeCredModal();
+      showToast(`✅ Credenciales enviadas a ${credTeacher.email}`);
+    } catch (e: unknown) {
+      setCredError(e instanceof Error ? e.message : 'Error enviando el correo');
+    } finally {
+      setSendingCred(false);
     }
   };
 
@@ -288,6 +323,95 @@ export default function AdminTeachers() {
                     <Button className="flex-1 rounded-xl gap-2 bg-green-600 hover:bg-green-700" onClick={handleSave} disabled={saving}>
                       {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                       {editingId ? 'Guardar cambios' : 'Crear cuenta'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Modal: Enviar credenciales ── */}
+        {credTeacher && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+            <div className="bg-background rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
+              <div className="h-1.5 bg-gradient-to-r from-amber-400 via-orange-400 to-rose-400" />
+              <div className="p-6">
+
+                {/* Header */}
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                      <Send className="w-4 h-4" />
+                    </div>
+                    <h2 className="font-bold text-base">Enviar credenciales</h2>
+                  </div>
+                  <button onClick={closeCredModal} className="text-muted-foreground hover:text-foreground p-1 rounded-full hover:bg-muted">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Destinatario */}
+                <p className="text-sm text-muted-foreground ml-12 mb-5">
+                  Se enviará un correo a <strong className="text-foreground">{credTeacher.email}</strong>
+                </p>
+
+                <div className="space-y-4">
+                  {/* Campo contraseña */}
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium">Contraseña a incluir en el correo</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        type={credShowPass ? 'text' : 'password'}
+                        placeholder="Contraseña del profesor"
+                        value={credPassword}
+                        onChange={e => setCredPassword(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && handleSendCredentials()}
+                        className="pl-10 pr-10 rounded-xl"
+                        autoFocus
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setCredShowPass(p => !p)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {credShowPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Ingresa la contraseña que deseas enviar al profesor en el correo.
+                    </p>
+                  </div>
+
+                  {/* Vista previa del correo */}
+                  <div className="rounded-xl border border-border bg-muted/30 px-4 py-3 space-y-1.5 text-xs text-muted-foreground">
+                    <p><span className="font-semibold text-foreground">Asunto:</span> Tus credenciales de acceso - Blang English Academy</p>
+                    <p><span className="font-semibold text-foreground">Incluye:</span> Correo · Contraseña · Link de la plataforma · Nota de seguridad</p>
+                  </div>
+
+                  {/* Error */}
+                  {credError && (
+                    <div className="flex items-start gap-2 bg-destructive/10 text-destructive rounded-xl p-3 text-sm">
+                      <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" /><span>{credError}</span>
+                    </div>
+                  )}
+
+                  {/* Botones */}
+                  <div className="flex gap-2 pt-1">
+                    <Button variant="outline" className="flex-1 rounded-xl" onClick={closeCredModal} disabled={sendingCred}>
+                      Cancelar
+                    </Button>
+                    <Button
+                      className="flex-1 rounded-xl gap-2 bg-amber-500 hover:bg-amber-600 text-white"
+                      onClick={handleSendCredentials}
+                      disabled={sendingCred || !credPassword}
+                    >
+                      {sendingCred
+                        ? <Loader2 className="w-4 h-4 animate-spin" />
+                        : <Send className="w-4 h-4" />
+                      }
+                      Enviar correo
                     </Button>
                   </div>
                 </div>
@@ -482,6 +606,14 @@ export default function AdminTeachers() {
                       >
                         <Users className="w-3.5 h-3.5" />
                         Asignar estudiantes
+                      </Button>
+                      <Button
+                        variant="outline" size="sm"
+                        className="rounded-xl gap-1.5 h-8 border-amber-200 text-amber-700 hover:bg-amber-50"
+                        onClick={() => openCredModal(t)}
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                        Enviar credenciales
                       </Button>
                       <Button
                         variant="outline" size="sm"
