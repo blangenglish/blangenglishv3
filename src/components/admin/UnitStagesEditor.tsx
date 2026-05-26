@@ -609,11 +609,12 @@ function QuizPreview({ questions, onClose }: { questions: QuizQuestion[]; onClos
     } else if (isMatch) {
       correct = q.options.every(opt => matchPairs[opt.id] === opt.correctAnswer);
     } else {
-      const correctIds = q.options.filter(o => o.isCorrect).map(o => o.id);
+      // Use opt.text as key (opt.id may be undefined for some stored questions)
+      const correctTexts = q.options.filter(o => o.isCorrect).map(o => o.text);
       if (isMultiSelect) {
-        correct = correctIds.length === selected.length && correctIds.every(id => selected.includes(id));
+        correct = correctTexts.length === selected.length && correctTexts.every(t => selected.includes(t));
       } else {
-        correct = selected.length === 1 && correctIds.includes(selected[0]);
+        correct = selected.length === 1 && correctTexts.includes(selected[0]);
       }
     }
     setSubmitted(true);
@@ -749,8 +750,9 @@ function QuizPreview({ questions, onClose }: { questions: QuizQuestion[]; onClos
           {/* Options: multiple_choice / multiple_select / true_false / listen_select / image_choice */}
           {(q.type === 'multiple_choice' || q.type === 'multiple_select' || q.type === 'true_false' || q.type === 'listen_select' || q.type === 'image_choice') && (
             <div className="space-y-2">
-              {q.options.map(opt => {
-                const isSelected = selected.includes(opt.id);
+              {q.options.map((opt, oi) => {
+                // Use opt.text as the selection key — opt.id may be absent in older data
+                const isSelected = selected.includes(opt.text);
                 const showResult = submitted;
                 const bg = showResult
                   ? opt.isCorrect ? 'bg-green-50 border-green-400 text-green-800'
@@ -759,7 +761,7 @@ function QuizPreview({ questions, onClose }: { questions: QuizQuestion[]; onClos
                   : isSelected ? 'bg-primary/10 border-primary text-foreground'
                   : 'bg-background border-border hover:border-primary/50 hover:bg-primary/5 cursor-pointer';
                 return (
-                  <button key={opt.id} onClick={() => handleSelect(opt.id)} disabled={submitted}
+                  <button key={opt.id ?? oi} onClick={() => handleSelect(opt.text)} disabled={submitted}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all text-left ${bg}`}>
                     <div className={`w-5 h-5 rounded shrink-0 border-2 flex items-center justify-center ${
                       showResult ? opt.isCorrect ? 'bg-green-500 border-green-500' : isSelected ? 'bg-red-400 border-red-400' : 'border-muted-foreground'

@@ -431,6 +431,7 @@ function InlineQuiz({ questions, onPassed }) {
   // image_match: {word -> imgUrl} already provided in imagePairs
   const [imgMatchMap, setImgMatchMap] = useState({});  // imgUrl -> word (user picks word for each image)
   const [imgMatchShuffledWords, setImgMatchShuffledWords] = useState([]);
+  const [selImg, setSelImg] = useState(null);  // selected image URL in image_match
 
   // story_order: storyItems reordered
   const [storyOrder, setStoryOrder] = useState([]);
@@ -459,6 +460,7 @@ function InlineQuiz({ questions, onPassed }) {
     setMatchMap({});
     setMatchLeft(null);
     setImgMatchMap({});
+    setSelImg(null);
 
     // match: build right column shuffled
     if (q.type === 'match') {
@@ -873,56 +875,50 @@ function InlineQuiz({ questions, onPassed }) {
             {q.type === 'image_match' && (
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground italic">Toca una imagen, luego la palabra que le corresponde</p>
-                {(() => {
-                  const pairs = q.imagePairs || [];
-                  const [selImg, setSelImg] = useState(null);
-                  return (
-                    <div className="space-y-3">
-                      <div className="grid grid-cols-2 gap-2">
-                        {/* Images */}
-                        <div className="space-y-2">
-                          {pairs.map(p => (
-                            <button key={p.imageUrl}
-                              onClick={() => setSelImg(selImg === p.imageUrl ? null : p.imageUrl)}
-                              className={cn(
-                                'w-full rounded-xl border-2 overflow-hidden transition-all',
-                                imgMatchMap[p.imageUrl] ? 'border-green-400' :
-                                selImg === p.imageUrl ? 'border-primary' : 'border-border hover:border-primary/40'
-                              )}>
-                              <img src={p.imageUrl} alt="" className="w-full h-16 object-cover" />
-                              {imgMatchMap[p.imageUrl] && (
-                                <p className="text-[10px] text-green-700 bg-green-50 py-0.5 font-bold">{imgMatchMap[p.imageUrl]}</p>
-                              )}
-                            </button>
-                          ))}
-                        </div>
-                        {/* Words */}
-                        <div className="space-y-2">
-                          {imgMatchShuffledWords.map(word => (
-                            <button key={word}
-                              onClick={() => {
-                                if (!selImg) return;
-                                setImgMatchMap(prev => ({ ...prev, [selImg]: word }));
-                                setSelImg(null);
-                              }}
-                              className={cn(
-                                'w-full px-3 py-2.5 rounded-xl border-2 text-sm font-medium text-center transition-all',
-                                Object.values(imgMatchMap).includes(word) ? 'border-green-400 bg-green-50 text-green-800' :
-                                selImg ? 'border-primary/40 hover:border-primary hover:bg-primary/10 cursor-pointer' :
-                                'border-border bg-muted/30 opacity-60 cursor-not-allowed'
-                              )}>
-                              {word}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      {Object.keys(imgMatchMap).length > 0 && (
-                        <button onClick={() => { setImgMatchMap({}); setSelImg(null); }}
-                          className="text-xs text-muted-foreground underline">Reiniciar</button>
-                      )}
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    {/* Images */}
+                    <div className="space-y-2">
+                      {(q.imagePairs || []).map(p => (
+                        <button key={p.imageUrl}
+                          onClick={() => setSelImg(selImg === p.imageUrl ? null : p.imageUrl)}
+                          className={cn(
+                            'w-full rounded-xl border-2 overflow-hidden transition-all',
+                            imgMatchMap[p.imageUrl] ? 'border-green-400' :
+                            selImg === p.imageUrl ? 'border-primary' : 'border-border hover:border-primary/40'
+                          )}>
+                          <img src={p.imageUrl} alt="" className="w-full h-16 object-cover" />
+                          {imgMatchMap[p.imageUrl] && (
+                            <p className="text-[10px] text-green-700 bg-green-50 py-0.5 font-bold">{imgMatchMap[p.imageUrl]}</p>
+                          )}
+                        </button>
+                      ))}
                     </div>
-                  );
-                })()}
+                    {/* Words */}
+                    <div className="space-y-2">
+                      {imgMatchShuffledWords.map(word => (
+                        <button key={word}
+                          onClick={() => {
+                            if (!selImg) return;
+                            setImgMatchMap(prev => ({ ...prev, [selImg]: word }));
+                            setSelImg(null);
+                          }}
+                          className={cn(
+                            'w-full px-3 py-2.5 rounded-xl border-2 text-sm font-medium text-center transition-all',
+                            Object.values(imgMatchMap).includes(word) ? 'border-green-400 bg-green-50 text-green-800' :
+                            selImg ? 'border-primary/40 hover:border-primary hover:bg-primary/10 cursor-pointer' :
+                            'border-border bg-muted/30 opacity-60 cursor-not-allowed'
+                          )}>
+                          {word}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  {Object.keys(imgMatchMap).length > 0 && (
+                    <button onClick={() => { setImgMatchMap({}); setSelImg(null); }}
+                      className="text-xs text-muted-foreground underline">Reiniciar</button>
+                  )}
+                </div>
               </div>
             )}
 
