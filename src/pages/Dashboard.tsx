@@ -3406,15 +3406,21 @@ useEffect(() => {
           unitDescription={viewerUnit.description}
           studentId={currentUserId}
           isReview={!!viewerUnit.isReview}
-          onClose={async () => {
-            // Actualizar progreso de esta unidad en el mapa al cerrar
-            if (currentUserId && viewerUnit.id) {
-              const { data } = await supabase.from('unit_progress')
-                .select('unit_id').eq('unit_id', viewerUnit.id)
-                .eq('student_id', currentUserId).eq('completed', true);
-              setUnitProgressMap(prev => ({ ...prev, [viewerUnit.id]: data?.length || 0 }));
-            }
+          onClose={() => {
+            // 1. Cerrar el viewer inmediatamente (sin esperar a Supabase)
+            const closingUnit = viewerUnit;
             setViewerUnit(null);
+            // 2. Actualizar el mapa de progreso en segundo plano
+            if (currentUserId && closingUnit?.id) {
+              supabase.from('unit_progress')
+                .select('unit_id')
+                .eq('unit_id', closingUnit.id)
+                .eq('student_id', currentUserId)
+                .eq('completed', true)
+                .then(({ data }) => {
+                  setUnitProgressMap(prev => ({ ...prev, [closingUnit.id]: data?.length || 0 }));
+                });
+            }
           }}
         />
       )}
