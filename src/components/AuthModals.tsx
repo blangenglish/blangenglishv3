@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Eye, EyeOff, Mail, Lock, User, CheckCircle, AlertCircle, Calendar, GraduationCap, MapPin, ChevronDown, ArrowLeft, Search, ShieldCheck, BookOpen } from 'lucide-react';
+import { X, Eye, EyeOff, Mail, Lock, User, CheckCircle, AlertCircle, Calendar, GraduationCap, MapPin, ChevronDown, ArrowLeft, Search, ShieldCheck, BookOpen, School } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,7 +14,7 @@ type ViewMode = AuthModal | 'forgot' | 'forgot_sent';
 interface AuthModalsProps {
   open: AuthModal;
   onClose: () => void;
-  onLogin: (email: string, name: string, userId?: string, isAdmin?: boolean, country?: string, city?: string, isNewReg?: boolean) => void;
+  onLogin: (email: string, name: string, userId?: string, isAdmin?: boolean, country?: string, city?: string, isNewReg?: boolean, isTeacher?: boolean) => void;
 }
 
 // Popular countries list
@@ -106,7 +106,7 @@ const ADMIN_EMAIL = 'blangenglishlearning@blangenglish.com';
 
 export function AuthModals({ open, onClose, onLogin }: AuthModalsProps) {
   const [mode, setMode] = useState<ViewMode>(open);
-  const [loginTab, setLoginTab] = useState<'student' | 'admin'>('student');
+  const [loginTab, setLoginTab] = useState<'student' | 'teacher' | 'admin'>('student');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -251,11 +251,10 @@ export function AuthModals({ open, onClose, onLogin }: AuthModalsProps) {
         }
 
       } else {
-        // ── LOGIN (estudiante o admin) ──
+        // ── LOGIN (estudiante, profesor o admin) ──
 
         // SEGURIDAD: Si intentan acceder como admin, verificar ANTES de autenticar
         if (loginTab === 'admin') {
-          // Solo el correo exacto del admin puede usar esta pestaña
           if (email.trim().toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
             setLoading(false);
             setError('❌ Acceso denegado. Este correo no está autorizado como administrador.');
@@ -272,27 +271,52 @@ export function AuthModals({ open, onClose, onLogin }: AuthModalsProps) {
           'Usuario';
 
         if (loginTab === 'admin') {
-          // Verificación: el email que pasó la autenticación debe coincidir con el admin
-          // (ya se validó antes del login, pero doble check con el email real de Supabase)
           const confirmedEmail = data.user?.email?.trim().toLowerCase() ?? '';
           if (confirmedEmail !== ADMIN_EMAIL.toLowerCase()) {
-            // No es admin — cerrar sesión y bloquear
             await supabase.auth.signOut();
             setLoading(false);
             setError('❌ Este usuario no tiene permisos de administrador.');
             return;
           }
-
-          // ✅ Es admin confirmado por email
           setSuccess(true);
           setTimeout(() => {
-            onLogin(email, displayName, data.user?.id, true);
+            onLogin(email, displayName, data.user?.id, true, undefined, undefined, false, false);
             onClose();
             setSuccess(false);
           }, 900);
+
+        } else if (loginTab === 'teacher') {
+          // Verificar que el usuario tiene un perfil de profesor
+          const { data: teacherProfile } = await supabase
+            .from('teacher_profiles')
+            .select('full_name, is_active')
+            .eq('id', data.user?.id)
+            .maybeSingle();
+
+          if (!teacherProfile) {
+            await supabase.auth.signOut();
+            setLoading(false);
+            setError('❌ Este correo no está registrado como profesor. Contacta al administrador.');
+            return;
+          }
+
+          if (!teacherProfile.is_active) {
+            await supabase.auth.signOut();
+            setLoading(false);
+            setError('❌ Tu cuenta de profesor está inactiva. Contacta al administrador.');
+            return;
+          }
+
+          const teacherName = teacherProfile.full_name || displayName;
+          setSuccess(true);
+          setTimeout(() => {
+            onLogin(email, teacherName, data.user?.id, false, undefined, undefined, false, true);
+            onClose();
+            setSuccess(false);
+          }, 900);
+
         } else {
           // ✅ Estudiante normal — nunca recibe isAdmin=true
-          // SEGURIDAD EXTRA: Si el correo del admin intentó login como estudiante, bloquear
           if (email.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
             await supabase.auth.signOut();
             setLoading(false);
@@ -301,7 +325,7 @@ export function AuthModals({ open, onClose, onLogin }: AuthModalsProps) {
           }
           setSuccess(true);
           setTimeout(() => {
-            onLogin(email, displayName, data.user?.id, false);
+            onLogin(email, displayName, data.user?.id, false, undefined, undefined, false, false);
             onClose();
             setSuccess(false);
           }, 900);
@@ -328,7 +352,8 @@ export function AuthModals({ open, onClose, onLogin }: AuthModalsProps) {
   };
 
   const isLogin = mode === 'login';
-  const isAdminTab = loginTab === 'admin';
+  const isAdminTab   = loginTab === 'admin';
+  const isTeacherTab = loginTab === 'teacher';
 
   return (
     <AnimatePresence>
@@ -364,7 +389,7 @@ export function AuthModals({ open, onClose, onLogin }: AuthModalsProps) {
                   <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 400 }}>
                     <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-3" />
                     <h2 className="text-2xl font-bold text-foreground">
-                      {isAdminTab ? '¡Acceso Admin! 🛡️' : '¡Bienvenido de vuelta! 🎉'}
+                      {isAdminTab ? '¡Acceso Admin! 🛡️' : isTeacherTab ? '¡Bienvenido, Profesor! 🎓' : '¡Bienvenido de vuelta! 🎉'}
                     </h2>
                   </motion.div>
                 ) : success && !isLogin ? (
@@ -400,44 +425,56 @@ export function AuthModals({ open, onClose, onLogin }: AuthModalsProps) {
                   <>
                     <h2 className="text-2xl font-bold text-foreground mb-1">
                       {isLogin
-                        ? (isAdminTab ? 'Panel de Administración 🛡️' : '¡Hola de nuevo! 👋')
+                        ? (isAdminTab ? 'Panel de Administración 🛡️' : isTeacherTab ? 'Acceso Profesor 🎓' : '¡Hola de nuevo! 👋')
                         : (regStep === 1 ? '¡Únete a BLANG! 🎉' : 'Cuéntanos sobre ti 📋')}
                     </h2>
                     <p className="text-muted-foreground text-sm">
                       {isLogin
-                        ? (isAdminTab ? 'Acceso exclusivo para administradores' : 'Ingresa a tu cuenta para seguir aprendiendo')
+                        ? (isAdminTab ? 'Acceso exclusivo para administradores' : isTeacherTab ? 'Ingresa con tus credenciales de profesor' : 'Ingresa a tu cuenta para seguir aprendiendo')
                         : (regStep === 1 ? '7 días completamente gratis' : 'Paso 2 de 2 — Información personal (opcional)')}
                     </p>
                   </>
                 )}
               </div>
 
-              {/* ── TABS de login (estudiante / admin) ── */}
+              {/* ── TABS de login (admin / profesor / estudiante) ── */}
               {!success && isLogin && (
                 <div className="flex rounded-2xl bg-muted p-1 mb-5 gap-1">
                   <button
                     type="button"
-                    onClick={() => { setLoginTab('student'); setError(''); email && setEmail(email); }}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-sm font-semibold transition-all ${
-                      loginTab === 'student'
-                        ? 'bg-background text-foreground shadow-sm'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    <BookOpen className="w-4 h-4" />
-                    Estudiante
-                  </button>
-                  <button
-                    type="button"
                     onClick={() => { window.location.hash = '/adminblang/login'; }}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-sm font-semibold transition-all text-muted-foreground hover:text-foreground ${
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-semibold transition-all text-muted-foreground hover:text-foreground ${
                       loginTab === 'admin'
                         ? 'bg-primary text-primary-foreground shadow-sm'
                         : 'text-muted-foreground hover:text-foreground'
                     }`}
                   >
-                    <ShieldCheck className="w-4 h-4" />
+                    <ShieldCheck className="w-3.5 h-3.5" />
                     Administrador
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setLoginTab('teacher'); setError(''); }}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-semibold transition-all ${
+                      loginTab === 'teacher'
+                        ? 'bg-green-600 text-white shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <GraduationCap className="w-3.5 h-3.5" />
+                    Profesor
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setLoginTab('student'); setError(''); }}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-semibold transition-all ${
+                      loginTab === 'student'
+                        ? 'bg-background text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <BookOpen className="w-3.5 h-3.5" />
+                    Estudiante
                   </button>
                 </div>
               )}

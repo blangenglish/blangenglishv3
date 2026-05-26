@@ -13,6 +13,7 @@ export const ROUTE_PATHS = {
   ENGLISH_MODULE: '/english/:moduleSlug',
   ENGLISH: '/english',
   PHONETICS: '/phonetics',
+  TEACHER_DASHBOARD: '/profesor',
 } as const;
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
