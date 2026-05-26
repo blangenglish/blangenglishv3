@@ -41,6 +41,7 @@ interface Teacher {
   email: string;
   is_active: boolean;
   created_at: string;
+  student_count: number;
 }
 
 interface Student {
@@ -55,9 +56,8 @@ const emptyForm = { full_name: '', email: '', password: '' };
 // ─── Component ───────────────────────────────────────────────────────────────
 export default function AdminTeachers() {
   // ── Teacher list state
-  const [teachers, setTeachers]     = useState<Teacher[]>([]);
-  const [loading, setLoading]       = useState(true);
-  const [assignCounts, setAssignCounts] = useState<Record<string, number>>({});
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [loading, setLoading]   = useState(true);
 
   // ── Create / Edit form state
   const [showForm, setShowForm]     = useState(false);
@@ -80,16 +80,12 @@ export default function AdminTeachers() {
   const [toast, setToast] = useState('');
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3500); };
 
-  // ── Load teachers + counts
+  // ── Load teachers (1 sola llamada, incluye student_count embebido)
   const loadTeachers = async () => {
     setLoading(true);
     try {
-      const [data, counts] = await Promise.all([
-        callTeachers({ action: 'list_teachers' }),
-        callTeachers({ action: 'get_assignment_counts' }),
-      ]);
+      const data = await callTeachers({ action: 'list_teachers' });
       setTeachers(Array.isArray(data) ? data : []);
-      setAssignCounts(counts && typeof counts === 'object' ? counts : {});
     } catch (e: unknown) {
       console.error(e);
     } finally {
@@ -151,12 +147,10 @@ export default function AdminTeachers() {
     setStudentSearch('');
     setLoadingAssign(true);
     try {
-      const [students, assignedIds] = await Promise.all([
-        callTeachers({ action: 'list_students' }),
-        callTeachers({ action: 'get_assignments', teacher_id: t.id }),
-      ]);
-      setAllStudents(Array.isArray(students) ? students : []);
-      setSelectedIds(new Set(Array.isArray(assignedIds) ? assignedIds : []));
+      // 1 sola llamada: devuelve students + assigned_ids juntos
+      const result = await callTeachers({ action: 'get_assign_modal_data', teacher_id: t.id });
+      setAllStudents(Array.isArray(result?.students) ? result.students : []);
+      setSelectedIds(new Set(Array.isArray(result?.assigned_ids) ? result.assigned_ids : []));
     } catch (e: unknown) {
       alert(e instanceof Error ? e.message : 'Error cargando estudiantes');
       setAssignTeacher(null);
@@ -455,7 +449,7 @@ export default function AdminTeachers() {
         ) : (
           <div className="space-y-3">
             {teachers.map(t => {
-              const count = assignCounts[t.id] ?? 0;
+              const count = t.student_count ?? 0;
               return (
                 <Card key={t.id} className="p-4 rounded-2xl border-border/50 hover:shadow-md transition-shadow">
                   <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
