@@ -1301,6 +1301,10 @@ useEffect(() => {
    *  8. Plan activo + aprobado => acceso por nivel (sin nivel = A1 por defecto)
    */
   const isCourseVisible = (course: DBCourseRow): boolean => {
+    // Mientras el perfil/suscripción aún está cargando no bloqueamos nada
+    // (evita el flash de "todos los cursos bloqueados" en el primer render).
+    if (profileLoading) return true;
+
     // Prioridad 1: revocación explícita
     if (revokedModuleIds.includes(course.id)) return false;
     // Prioridad 2: concesión explícita
@@ -1736,7 +1740,8 @@ useEffect(() => {
                   </div>
 
                   {/* ── Banner: sin suscripción o cancelada → ir a pagos ── */}
-                  {(!subscription || subscription.status === 'cancelled') && (
+                  {/* Guardado con !profileLoading para no mostrar el mensaje mientras los datos cargan */}
+                  {!profileLoading && (!subscription || subscription.status === 'cancelled') && (
                     <div className="bg-primary/5 border-2 border-primary/30 rounded-2xl p-5 mb-5">
                       <div className="flex items-start gap-3">
                         <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center shrink-0">
@@ -1820,19 +1825,18 @@ useEffect(() => {
                     </div>
                   )}
 
-                  {dbCourses.length === 0 && (
-                    <div className="text-center py-12 text-muted-foreground">
-                      <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                      <p>Los cursos se cargarán pronto.</p>
-                    </div>
-                  )}
-
-                  {coursesLoading && (
+                  {/* Estado de carga / vacío — mutuamente excluyentes */}
+                  {(coursesLoading || profileLoading) ? (
                     <div className="text-center py-8 text-muted-foreground">
                       <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
                       <p className="text-sm">Cargando cursos...</p>
                     </div>
-                  )}
+                  ) : dbCourses.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                      <p>No hay cursos disponibles aún.</p>
+                    </div>
+                  ) : null}
 
                   <div className="space-y-4">
                     {dbCourses.map((course) => {
