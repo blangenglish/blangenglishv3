@@ -6,7 +6,6 @@ import { IMAGES } from '@/assets/images';
 import { ROUTE_PATHS } from '@/lib/index';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import {
   GraduationCap, Users, LogOut, Loader2, BookOpen, ChevronRight, Menu, X,
 } from 'lucide-react';
@@ -87,30 +86,45 @@ export default function TeacherDashboard({ onLogout, userName }: TeacherDashboar
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeNav, setActiveNav]     = useState<'students'>('students');
 
+  /* ── Safety timeout: si verify tarda más de 6s, redirigir al home ── */
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (loadingAuth) navigate(ROUTE_PATHS.HOME, { replace: true });
+    }, 6000);
+    return () => clearTimeout(t);
+  }, [loadingAuth]);
+
   /* ── Verify teacher auth on mount ── */
   useEffect(() => {
     const verify = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) {
+          navigate(ROUTE_PATHS.HOME, { replace: true });
+          return;
+        }
+
+        const { data: profile, error: profileErr } = await supabase
+          .from('teacher_profiles')
+          .select('full_name, is_active')
+          .eq('id', session.user.id)
+          .maybeSingle();
+
+        if (profileErr) throw profileErr;
+
+        if (!profile || !profile.is_active) {
+          await supabase.auth.signOut();
+          navigate(ROUTE_PATHS.HOME, { replace: true });
+          return;
+        }
+
+        setTeacherName(profile.full_name || userName || 'Profesor');
+        setTeacherId(session.user.id);
+        setLoadingAuth(false);
+      } catch (err) {
+        console.error('[TeacherDashboard] verify error:', err);
         navigate(ROUTE_PATHS.HOME, { replace: true });
-        return;
       }
-
-      const { data: profile } = await supabase
-        .from('teacher_profiles')
-        .select('full_name, is_active')
-        .eq('id', session.user.id)
-        .maybeSingle();
-
-      if (!profile || !profile.is_active) {
-        await supabase.auth.signOut();
-        navigate(ROUTE_PATHS.HOME, { replace: true });
-        return;
-      }
-
-      setTeacherName(profile.full_name || userName || 'Profesor');
-      setTeacherId(session.user.id);
-      setLoadingAuth(false);
     };
     verify();
   }, []);
@@ -145,7 +159,8 @@ export default function TeacherDashboard({ onLogout, userName }: TeacherDashboar
       }
 
       const json = await res.json();
-      setStudents(json.students || []);
+      // edge function returns { data: Student[] }
+      setStudents(json.data || []);
     } catch (e: any) {
       setErrorMsg('No se pudo cargar la lista de estudiantes. Intenta de nuevo.');
     } finally {
