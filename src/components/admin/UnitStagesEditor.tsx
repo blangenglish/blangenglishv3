@@ -527,7 +527,7 @@ function AddMaterialPicker({ onAdd }: { onAdd: (type: StageMaterialType) => void
 }
 
 // ─── Quiz Types ──────────────────────────────────────────────────────────────
-export type QuizType = 'multiple_choice' | 'multiple_select' | 'true_false' | 'match' | 'organize' | 'rewrite' | 'fill_gap' | 'listen_select' | 'listen_write' | 'image_choice';
+export type QuizType = 'multiple_choice' | 'multiple_select' | 'true_false' | 'match' | 'organize' | 'rewrite' | 'fill_gap' | 'listen_select' | 'listen_write' | 'image_choice' | 'image_write' | 'classify';
 
 export interface QuizOption { id: string; text: string; isCorrect?: boolean; correctAnswer?: string; }
 export interface QuizQuestion {
@@ -551,6 +551,8 @@ const QUIZ_TYPE_CONFIG: Record<QuizType, { label: string; emoji: string; desc: s
   listen_select:     { label: 'Escucha y selecciona',     emoji: '🔊', desc: 'Escucha la palabra y elige la opción correcta' },
   listen_write:      { label: 'Escucha y escribe',        emoji: '🎧', desc: 'Escucha la palabra y escríbela' },
   image_choice:      { label: 'Imagen + opción múltiple', emoji: '🖼️', desc: 'Muestra una imagen y el estudiante elige la opción correcta' },
+  image_write:       { label: 'Imagen + escribir',        emoji: '🖼️✍️', desc: 'Muestra una imagen y el estudiante escribe la respuesta' },
+  classify:          { label: 'Clasificar por categoría', emoji: '🗂️', desc: 'El estudiante arrastra palabras a la categoría correcta' },
 };
 
 // Fallback seguro: nunca crashea con tipos desconocidos (ej: 'listen' legacy)
@@ -569,6 +571,9 @@ function QuizPreview({ questions, onClose }: { questions: QuizQuestion[]; onClos
   const [finished, setFinished] = useState(false);
   const [matchPairs, setMatchPairs] = useState<Record<string, string>>({});
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  // classify state
+  const [classifyPlacements, setClassifyPlacements] = useState<Record<string, string>>({});
+  const [classifySelected, setClassifySelected] = useState<string | null>(null);
 
   const q = questions[current];
   if (!q) return null;
@@ -581,6 +586,12 @@ function QuizPreview({ questions, onClose }: { questions: QuizQuestion[]; onClos
   const isListenWrite = q.type === 'listen_write';
   const isListen = isListenSelect || isListenWrite;
   const isImageChoice = q.type === 'image_choice';
+  const isImageWrite = q.type === 'image_write';
+  const isClassify = q.type === 'classify';
+
+  // classify: categories from options.correctAnswer, words from options.text
+  const classifyCategories = isClassify ? [...new Set((q.options || []).map(o => o.correctAnswer).filter(Boolean))] as string[] : [];
+  const classifyWords = isClassify ? (q.options || []).map(o => o.text) : [];
 
   const handleSelect = (optId: string) => {
     if (submitted) return;
@@ -598,7 +609,7 @@ function QuizPreview({ questions, onClose }: { questions: QuizQuestion[]; onClos
 
   const checkAnswer = () => {
     let correct = false;
-    if (isTextInput || isFillGap) {
+    if (isTextInput || isFillGap || isImageWrite) {
       const userAns = inputVal.trim().toLowerCase().replace(/[.,!?]/g, '');
       const correctAns = (q.correctAnswer || '').toLowerCase().replace(/[.,!?]/g, '');
       correct = userAns === correctAns;
@@ -606,6 +617,10 @@ function QuizPreview({ questions, onClose }: { questions: QuizQuestion[]; onClos
       const userAns = inputVal.trim().toLowerCase().replace(/[.,!?]/g, '');
       const correctAns = q.question.trim().toLowerCase().replace(/[.,!?]/g, '');
       correct = userAns === correctAns;
+    } else if (isClassify) {
+      const optMap: Record<string, string> = {};
+      (q.options || []).forEach(o => { optMap[o.text] = o.correctAnswer || ''; });
+      correct = classifyWords.every(w => classifyPlacements[w] === optMap[w]);
     } else if (isMatch) {
       correct = q.options.every(opt => matchPairs[opt.id] === opt.correctAnswer);
     } else {
@@ -631,12 +646,15 @@ function QuizPreview({ questions, onClose }: { questions: QuizQuestion[]; onClos
       setSelected([]);
       setInputVal('');
       setMatchPairs({});
+      setClassifyPlacements({});
+      setClassifySelected(null);
       setSubmitted(false);
     }
   };
 
   const restart = () => {
     setCurrent(0); setSelected([]); setInputVal(''); setMatchPairs({});
+    setClassifyPlacements({}); setClassifySelected(null);
     setSubmitted(false); setScore(0); setAnswers([]); setFinished(false);
   };
 
@@ -708,7 +726,7 @@ function QuizPreview({ questions, onClose }: { questions: QuizQuestion[]; onClos
               <p className="text-xs text-muted-foreground font-medium">Presiona para escuchar</p>
               {submitted && <p className="text-xs text-muted-foreground italic">Palabra: <strong>{q.question}</strong></p>}
             </div>
-          ) : isImageChoice ? (
+          ) : (isImageChoice || isImageWrite) ? (
             <div className="space-y-3">
               {q.question && <p className="font-bold text-base leading-snug">{q.question}</p>}
               {q.imageUrl && (
@@ -742,6 +760,11 @@ function QuizPreview({ questions, onClose }: { questions: QuizQuestion[]; onClos
                   </div>
                 </>
               )}
+            </div>
+          ) : isClassify ? (
+            <div className="space-y-1">
+              {q.question && <p className="font-bold text-base leading-snug">{q.question}</p>}
+              <p className="text-xs text-muted-foreground">Coloca cada palabra en la categoría correcta</p>
             </div>
           ) : (
             <p className="font-bold text-base leading-snug">{q.question}</p>
@@ -799,6 +822,94 @@ function QuizPreview({ questions, onClose }: { questions: QuizQuestion[]; onClos
                   {submitted && <span>{opt.correctAnswer === matchPairs[opt.id] ? '✅' : '❌'}</span>}
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Image Write: campo de texto */}
+          {isImageWrite && (
+            <div className="space-y-3">
+              <input value={inputVal} onChange={e => setInputVal(e.target.value)} disabled={submitted}
+                placeholder="Escribe tu respuesta..."
+                className={`w-full border-2 rounded-xl px-4 py-3 text-sm focus:outline-none transition-colors ${
+                  submitted ? answers[answers.length - 1]?.correct ? 'border-green-400 bg-green-50' : 'border-red-400 bg-red-50'
+                  : 'border-border focus:border-primary'
+                }`} />
+              {submitted && (
+                <div className={`rounded-xl px-4 py-2.5 text-sm font-medium ${
+                  answers[answers.length - 1]?.correct ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
+                }`}>
+                  {answers[answers.length - 1]?.correct ? '✅ ¡Correcto!' : `❌ La respuesta correcta es: "${q.correctAnswer}"`}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Classify */}
+          {isClassify && (
+            <div className="space-y-3">
+              {/* Word pool */}
+              <div className="flex flex-wrap gap-2 min-h-[44px] p-2.5 rounded-xl border-2 border-dashed border-border bg-muted/20">
+                {classifyWords.filter(w => !classifyPlacements[w]).map(w => (
+                  <button key={w} disabled={submitted}
+                    onClick={() => setClassifySelected(classifySelected === w ? null : w)}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium border-2 transition-all ${
+                      classifySelected === w ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card hover:border-primary/60'
+                    }`}>
+                    {w}
+                  </button>
+                ))}
+                {classifyWords.filter(w => !classifyPlacements[w]).length === 0 && (
+                  <span className="text-xs text-muted-foreground self-center">Todas colocadas</span>
+                )}
+              </div>
+              {/* Category buckets */}
+              <div className="space-y-2">
+                {classifyCategories.map(cat => (
+                  <div key={cat}
+                    onClick={() => {
+                      if (!classifySelected || submitted) return;
+                      setClassifyPlacements(prev => ({ ...prev, [classifySelected]: cat }));
+                      setClassifySelected(null);
+                    }}
+                    className={`rounded-xl border-2 p-3 transition-all ${
+                      submitted
+                        ? 'border-border bg-muted/10 cursor-default'
+                        : classifySelected ? 'border-primary/50 bg-primary/5 hover:bg-primary/10 cursor-pointer' : 'border-border bg-muted/20'
+                    }`}>
+                    <p className="text-xs font-bold text-primary mb-2">{cat}</p>
+                    <div className="flex flex-wrap gap-1.5 min-h-[28px]">
+                      {classifyWords.filter(w => classifyPlacements[w] === cat).map(w => {
+                        const optMap: Record<string, string> = {};
+                        (q.options || []).forEach(o => { optMap[o.text] = o.correctAnswer || ''; });
+                        const isRight = submitted ? optMap[w] === cat : null;
+                        return (
+                          <button key={w}
+                            disabled={submitted}
+                            onClick={e => {
+                              e.stopPropagation();
+                              if (submitted) return;
+                              setClassifyPlacements(prev => { const next = { ...prev }; delete next[w]; return next; });
+                            }}
+                            className={`px-2.5 py-1 rounded-lg text-xs border transition-colors ${
+                              submitted
+                                ? isRight ? 'bg-green-100 text-green-800 border-green-300' : 'bg-red-100 text-red-700 border-red-300'
+                                : 'bg-primary/20 text-primary border-primary/30 hover:bg-red-100 hover:text-red-600 hover:border-red-300'
+                            }`}>
+                            {w}{!submitted && ' ✕'}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {submitted && (
+                <div className={`rounded-xl px-4 py-2.5 text-sm font-medium ${
+                  answers[answers.length - 1]?.correct ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
+                }`}>
+                  {answers[answers.length - 1]?.correct ? '✅ ¡Todas correctas!' : '❌ Algunas palabras están en la categoría incorrecta'}
+                </div>
+              )}
             </div>
           )}
 
@@ -906,7 +1017,7 @@ function QuizPreview({ questions, onClose }: { questions: QuizQuestion[]; onClos
           )}
 
           {/* Result summary */}
-          {submitted && !isTextInput && !isFillGap && !isListenWrite && q.type !== 'image_choice' && (
+          {submitted && !isTextInput && !isFillGap && !isListenWrite && !isImageWrite && !isClassify && q.type !== 'image_choice' && (
             <div className={`rounded-xl px-4 py-2.5 text-sm font-bold text-center ${
               answers[answers.length - 1]?.correct ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
             }`}>
@@ -919,7 +1030,12 @@ function QuizPreview({ questions, onClose }: { questions: QuizQuestion[]; onClos
         <div className="px-5 pb-5 flex gap-3">
           {!submitted ? (
             <button onClick={checkAnswer}
-              disabled={(isTextInput || isFillGap || isListenWrite) ? !inputVal.trim() : isMatch ? Object.keys(matchPairs).length < q.options.length : selected.length === 0}
+              disabled={
+                (isTextInput || isFillGap || isListenWrite || isImageWrite) ? !inputVal.trim()
+                : isMatch ? Object.keys(matchPairs).length < q.options.length
+                : isClassify ? classifyWords.some(w => !classifyPlacements[w])
+                : selected.length === 0
+              }
               className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm disabled:opacity-50">
               Comprobar ✓
             </button>
@@ -958,6 +1074,9 @@ function QuizEditor({ unitId, stage }: { unitId: string; stage: Stage; stageLabe
   const imgInputRef = useRef<HTMLInputElement>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  // classify-specific
+  const [formCategories, setFormCategories] = useState<string[]>(['', '']);
+  const [formClassifyWords, setFormClassifyWords] = useState<{ word: string; catIndex: number }[]>([{ word: '', catIndex: 0 }]);
 
   // Load quiz from DB on mount
   useEffect(() => {
@@ -1019,6 +1138,8 @@ function QuizEditor({ unitId, stage }: { unitId: string; stage: Stage; stageLabe
     setFormPairs([{left:'',right:''},{left:'',right:''},{left:'',right:''},{left:'',right:''}]);
     setFormImageUrl('');
     setImgUploadErr(null);
+    setFormCategories(['', '']);
+    setFormClassifyWords([{ word: '', catIndex: 0 }]);
     setFormError(null); setEditingId(null);
   };
 
@@ -1032,6 +1153,12 @@ function QuizEditor({ unitId, stage }: { unitId: string; stage: Stage; stageLabe
     setFormImageUrl(q.imageUrl ?? '');
     if (q.type === 'match') {
       setFormPairs(q.options.map(o => ({ left: o.text, right: o.correctAnswer ?? '' })));
+    } else if (q.type === 'classify') {
+      const cats = [...new Set(q.options.map(o => o.correctAnswer).filter(Boolean))] as string[];
+      setFormCategories(cats.length >= 2 ? cats : [...cats, ...['','']].slice(0, Math.max(cats.length, 2)));
+      setFormClassifyWords(q.options.map(o => ({ word: o.text, catIndex: cats.indexOf(o.correctAnswer ?? '') })));
+    } else if (q.type === 'image_write') {
+      setFormAnswer(q.correctAnswer ?? '');
     } else if (q.type === 'organize' || q.type === 'rewrite' || q.type === 'fill_gap') {
       setFormOptions([q.options[0]?.text ?? '', '', '', '']);
       setFormAnswer(q.correctAnswer ?? '');
@@ -1045,7 +1172,8 @@ function QuizEditor({ unitId, stage }: { unitId: string; stage: Stage; stageLabe
 
   const submitForm = () => {
     setFormError(null);
-    if (!formQuestion.trim()) { setFormError('Escribe la pregunta.'); return; }
+    const questionOptional = formType === 'image_write' || formType === 'image_choice' || formType === 'classify';
+    if (!questionOptional && !formQuestion.trim()) { setFormError('Escribe la pregunta.'); return; }
     const id = editingId ?? `q-manual-${Date.now()}`;
     let newQ: QuizQuestion;
 
@@ -1088,6 +1216,26 @@ function QuizEditor({ unitId, stage }: { unitId: string; stage: Stage; stageLabe
       newQ = { id, type: 'image_choice', question: formQuestion,
         imageUrl: formImageUrl.trim(),
         options: opts.map((text, oi) => ({ id: `opt-${id}-${oi}`, text, isCorrect: formCorrect.includes(oi) })),
+        explanation: formExplanation };
+    } else if (formType === 'image_write') {
+      if (!formImageUrl.trim()) { setFormError('Sube una imagen para continuar.'); return; }
+      if (!formAnswer.trim()) { setFormError('Escribe la respuesta correcta.'); return; }
+      newQ = { id, type: 'image_write', question: formQuestion,
+        imageUrl: formImageUrl.trim(),
+        options: [],
+        correctAnswer: formAnswer.trim(), explanation: formExplanation };
+    } else if (formType === 'classify') {
+      const validCats = formCategories.map(c => c.trim()).filter(Boolean);
+      if (validCats.length < 2) { setFormError('Define al menos 2 categorías.'); return; }
+      const validWords = formClassifyWords.filter(w => w.word.trim());
+      if (validWords.length < 2) { setFormError('Agrega al menos 2 palabras.'); return; }
+      const hasUnassigned = validWords.some(w => !validCats[w.catIndex]);
+      if (hasUnassigned) { setFormError('Todas las palabras deben tener una categoría asignada.'); return; }
+      newQ = { id, type: 'classify', question: formQuestion,
+        options: validWords.map((w, wi) => ({
+          id: `opt-${id}-${wi}`, text: w.word.trim(),
+          isCorrect: true, correctAnswer: validCats[w.catIndex],
+        })),
         explanation: formExplanation };
     } else if (formType === 'true_false') {
       // Opciones fijas: no depende de formOptions
@@ -1174,6 +1322,7 @@ function QuizEditor({ unitId, stage }: { unitId: string; stage: Stage; stageLabe
             <label className="text-xs font-semibold text-violet-700 mb-1 block">
               {formType === 'fill_gap' ? 'Oración con espacio en blanco *'
                 : (formType === 'listen_select' || formType === 'listen_write') ? '🔊 Palabra / frase a escuchar *'
+                : (formType === 'image_write' || formType === 'image_choice' || formType === 'classify') ? 'Instrucción / contexto (opcional)'
                 : 'Pregunta *'}
             </label>
             {formType === 'listen_select' && (
@@ -1334,8 +1483,74 @@ function QuizEditor({ unitId, stage }: { unitId: string; stage: Stage; stageLabe
             </div>
           )}
 
-          {/* Imagen — solo para image_choice */}
-          {formType === 'image_choice' && (
+          {/* Respuesta correcta — solo para image_write */}
+          {formType === 'image_write' && (
+            <div>
+              <label className="text-xs font-semibold text-violet-700 mb-1 block">Respuesta correcta *</label>
+              <Input value={formAnswer} onChange={e => setFormAnswer(e.target.value)}
+                placeholder="Escribe la respuesta que el estudiante debe escribir..."
+                className="text-xs border-violet-200 bg-white" />
+            </div>
+          )}
+
+          {/* Clasificar por categoría */}
+          {formType === 'classify' && (
+            <div className="space-y-3">
+              {/* Categories */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-violet-700 block">Categorías *</label>
+                  <button type="button" onClick={() => setFormCategories(prev => [...prev, ''])}
+                    className="text-xs text-violet-600 hover:text-violet-800 font-medium border border-violet-200 rounded-lg px-2 py-0.5">
+                    + Categoría
+                  </button>
+                </div>
+                {formCategories.map((cat, ci) => (
+                  <div key={ci} className="flex items-center gap-2">
+                    <Input value={cat} onChange={e => { const arr = [...formCategories]; arr[ci] = e.target.value; setFormCategories(arr); }}
+                      placeholder={`Categoría ${ci + 1} (ej: Animales)`}
+                      className="text-xs border-violet-200 bg-white h-8" />
+                    {formCategories.length > 2 && (
+                      <button type="button" onClick={() => {
+                        setFormCategories(prev => prev.filter((_, i) => i !== ci));
+                        setFormClassifyWords(prev => prev.map(w => ({ ...w, catIndex: w.catIndex === ci ? 0 : w.catIndex > ci ? w.catIndex - 1 : w.catIndex })));
+                      }} className="shrink-0 text-red-400 hover:text-red-600">✕</button>
+                    )}
+                  </div>
+                ))}
+              </div>
+              {/* Words */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-violet-700 block">Palabras *</label>
+                  <button type="button" onClick={() => setFormClassifyWords(prev => [...prev, { word: '', catIndex: 0 }])}
+                    className="text-xs text-violet-600 hover:text-violet-800 font-medium border border-violet-200 rounded-lg px-2 py-0.5">
+                    + Palabra
+                  </button>
+                </div>
+                {formClassifyWords.map((item, wi) => (
+                  <div key={wi} className="flex items-center gap-2">
+                    <Input value={item.word} onChange={e => { const arr = [...formClassifyWords]; arr[wi] = { ...arr[wi], word: e.target.value }; setFormClassifyWords(arr); }}
+                      placeholder="Palabra o frase" className="text-xs border-violet-200 bg-white h-8 flex-1" />
+                    <select value={item.catIndex}
+                      onChange={e => { const arr = [...formClassifyWords]; arr[wi] = { ...arr[wi], catIndex: Number(e.target.value) }; setFormClassifyWords(arr); }}
+                      className="text-xs border border-violet-200 rounded-lg px-2 py-1 bg-white focus:ring-1 focus:ring-violet-300 outline-none">
+                      {formCategories.map((cat, ci) => (
+                        <option key={ci} value={ci}>{cat || `Categoría ${ci + 1}`}</option>
+                      ))}
+                    </select>
+                    {formClassifyWords.length > 2 && (
+                      <button type="button" onClick={() => setFormClassifyWords(prev => prev.filter((_, i) => i !== wi))}
+                        className="shrink-0 text-red-400 hover:text-red-600">✕</button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Imagen — para image_choice e image_write */}
+          {(formType === 'image_choice' || formType === 'image_write') && (
             <div className="space-y-2">
               <label className="text-xs font-semibold text-violet-700 mb-1 block">🖼️ Imagen de la pregunta *</label>
 

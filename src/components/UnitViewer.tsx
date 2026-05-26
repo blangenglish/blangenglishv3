@@ -482,8 +482,8 @@ function InlineQuiz({ questions, onPassed }) {
       setStoryOrder([...items].sort(() => Math.random() - 0.5));
     }
 
-    // word_sort: options = [{text, correctAnswer (= category name)}]
-    if (q.type === 'word_sort') {
+    // word_sort / classify: options = [{text, correctAnswer (= category name)}]
+    if (q.type === 'word_sort' || q.type === 'classify') {
       const opts = q.options || [];
       const cats = [...new Set(opts.map(o => o.correctAnswer).filter(Boolean))];
       setCategories(cats);
@@ -544,8 +544,8 @@ function InlineQuiz({ questions, onPassed }) {
       return JSON.stringify(storyOrder) === JSON.stringify(correct);
     }
 
-    // Word sort: each wordItem goes to its correctAnswer category
-    if (type === 'word_sort') {
+    // Word sort / classify: each wordItem goes to its correctAnswer category
+    if (type === 'word_sort' || type === 'classify') {
       const optMap = {};
       (q.options || []).forEach(o => { optMap[o.text] = o.correctAnswer; });
       return wordItems.every(w => wordPlacements[w] === optMap[w]);
@@ -719,7 +719,7 @@ function InlineQuiz({ questions, onPassed }) {
     if (q.type === 'match') return opts.every(o => matchMap[o.text]);
     if (q.type === 'image_match') return (q.imagePairs || []).every(p => imgMatchMap[p.imageUrl]);
     if (q.type === 'story_order') return storyOrder.length === (q.storyItems || []).length;
-    if (q.type === 'word_sort') return wordItems.every(w => wordPlacements[w]);
+    if (q.type === 'word_sort' || q.type === 'classify') return wordItems.every(w => wordPlacements[w]);
     return false;
   })();
 
@@ -952,8 +952,8 @@ function InlineQuiz({ questions, onPassed }) {
               </div>
             )}
 
-            {/* Word sort */}
-            {q.type === 'word_sort' && (
+            {/* Word sort / Classify */}
+            {(q.type === 'word_sort' || q.type === 'classify') && (
               <div className="space-y-3">
                 <p className="text-xs text-muted-foreground italic">Toca una palabra y luego la categoría donde pertenece</p>
                 {/* Unplaced pool */}
