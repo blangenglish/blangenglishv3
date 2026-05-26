@@ -14,6 +14,7 @@ export const ROUTE_PATHS = {
   ENGLISH: '/english',
   PHONETICS: '/phonetics',
   TEACHER_DASHBOARD: '/profesor',
+  TEACHER_STUDENT_DETAIL: '/profesor/estudiante/:studentId',
 } as const;
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────

@@ -369,8 +369,7 @@ export default function TeacherDashboard({ onLogout, userName }: TeacherDashboar
                       variant="outline"
                       size="sm"
                       className="shrink-0 gap-1 text-xs rounded-lg"
-                      disabled
-                      title="Próximamente disponible"
+                      onClick={() => navigate(`/profesor/estudiante/${s.id}`)}
                     >
                       Ver detalle
                       <ChevronRight className="h-3.5 w-3.5" />
