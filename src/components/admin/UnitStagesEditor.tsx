@@ -970,7 +970,9 @@ function QuizEditor({ unitId, stage }: { unitId: string; stage: Stage; stageLabe
       .then(({ data, error }) => {
         if (cancelled) return;
         if (error) console.error('Error loading quiz:', error);
-        setQuestions(data?.questions ?? []);
+        // Safety check: ensure questions is always an array
+        const qs = data?.questions;
+        setQuestions(Array.isArray(qs) ? qs : []);
         setLoadingQ(false);
       });
     return () => { cancelled = true; };
@@ -1432,8 +1434,11 @@ function QuizEditor({ unitId, stage }: { unitId: string; stage: Stage; stageLabe
           </div>
           {questions.map((q, qi) => (
             <div key={q.id} className="border border-border rounded-xl overflow-hidden bg-background shadow-sm">
-              <button type="button" onClick={() => setActiveQ(activeQ === q.id ? null : q.id)}
-                className="w-full flex items-center gap-2 px-3 py-2.5 bg-muted/30 hover:bg-muted/50 transition-colors text-left">
+              {/* ⚠️ div, NOT button — nested <button> inside <button> is invalid HTML */}
+              <div
+                onClick={() => setActiveQ(activeQ === q.id ? null : q.id)}
+                className="w-full flex items-center gap-2 px-3 py-2.5 bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer select-none"
+              >
                 <span className="text-sm w-6 shrink-0 text-center font-bold text-primary">{qi + 1}</span>
                 <span className="text-base shrink-0">{getQTConfig(q.type).emoji}</span>
                 <div className="flex-1 min-w-0">
@@ -1449,7 +1454,7 @@ function QuizEditor({ unitId, stage }: { unitId: string; stage: Stage; stageLabe
                   <Trash2 className="h-3 w-3" />
                 </button>
                 {activeQ === q.id ? <ChevronUp className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />}
-              </button>
+              </div>
               {activeQ === q.id && (
                 <div className="px-3 py-2.5 space-y-1 border-t border-border/50 bg-muted/10">
                   {q.options.map(opt => (
