@@ -1,17 +1,16 @@
 // @ts-nocheck
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { IMAGES } from '@/assets/images';
 import { ROUTE_PATHS } from '@/lib/index';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
-  LogOut, Users, ArrowLeft, Loader2, BookOpen,
-  CheckCircle2, Circle, XCircle, Star, Flame,
-  Trophy, ChevronDown, ChevronUp, Menu, X,
+  LogOut, Users, BookOpen, ArrowLeft, Loader2,
+  ChevronDown, ChevronUp, Menu, X,
   FileText, Link2, Image, Volume2, Video, AlignLeft,
-  AlertCircle,
+  CheckCircle2, Circle, AlertCircle,
 } from 'lucide-react';
 
 /* ───────────── Config ───────────── */
@@ -29,7 +28,33 @@ const STAGE_META: Record<string, { label: string; emoji: string }> = {
   ai_practice: { label: 'Part 5 – Practice',   emoji: '🤖' },
 };
 
+const LEVEL_COLORS: Record<string, string> = {
+  A1: 'bg-slate-100 text-slate-700 border-slate-200',
+  A2: 'bg-blue-100 text-blue-700 border-blue-200',
+  B1: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+  B2: 'bg-violet-100 text-violet-700 border-violet-200',
+  C1: 'bg-amber-100 text-amber-700 border-amber-200',
+  C2: 'bg-rose-100 text-rose-700 border-rose-200',
+};
+
 /* ───────────── Types ───────────── */
+interface UnitItem {
+  id: string;
+  title: string;
+  sort_order: number;
+}
+
+interface CourseItem {
+  id: string;
+  title: string;
+  slug: string;
+  level: string;
+  level_label: string;
+  emoji: string;
+  sort_order: number;
+  units: UnitItem[];
+}
+
 interface Material {
   id: string;
   stage: string;
@@ -58,74 +83,18 @@ interface QuizQuestion {
   explanation?: string;
 }
 
-interface StageProgress {
-  completed: boolean;
-  completed_at: string | null;
-  quiz_passed: boolean | null;
-}
-
 interface StageData {
   id: string;
   materials: Material[];
   quiz: QuizQuestion[] | null;
-  progress: StageProgress | null;
+  progress: null;
 }
-
-interface UnitRow {
-  id: string;
-  title: string;
-  sort_order: number;
-  stages_total: number;
-  stages_done: number;
-  completed: boolean;
-  quiz_passed: boolean | null;
-}
-
-interface CourseSection {
-  id: string;
-  title: string;
-  slug: string;
-  level: string;
-  level_label: string;
-  emoji: string;
-  sort_order: number;
-  completed_units: number;
-  total_units: number;
-  units: UnitRow[];
-}
-
-interface StudentDetail {
-  student: {
-    id: string;
-    full_name: string;
-    email: string;
-    current_level: string | null;
-    avatar_url: string | null;
-  };
-  stats: {
-    total_points: number;
-    streak_days: number;
-    completed_units: number;
-    total_units: number;
-    progress_pct: number;
-  };
-  courses: CourseSection[];
-}
-
-interface Props { onLogout?: () => void }
 
 type UnitStagesState = StageData[] | 'loading' | 'error';
 
-/* ───────────── Helpers ───────────── */
-const LEVEL_COLORS: Record<string, string> = {
-  A1: 'bg-slate-100 text-slate-700 border-slate-200',
-  A2: 'bg-blue-100 text-blue-700 border-blue-200',
-  B1: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-  B2: 'bg-violet-100 text-violet-700 border-violet-200',
-  C1: 'bg-amber-100 text-amber-700 border-amber-200',
-  C2: 'bg-rose-100 text-rose-700 border-rose-200',
-};
+interface Props { onLogout?: () => void }
 
+/* ───────────── Helpers ───────────── */
 function LevelBadge({ level }: { level: string | null }) {
   const l = (level || 'A1').toUpperCase();
   const cls = LEVEL_COLORS[l] || 'bg-gray-100 text-gray-700 border-gray-200';
@@ -134,49 +103,6 @@ function LevelBadge({ level }: { level: string | null }) {
   );
 }
 
-function ProgressBar({ pct }: { pct: number }) {
-  const safe = Math.min(100, Math.max(0, Math.round(pct)));
-  const color = safe >= 75 ? 'bg-emerald-500' : safe >= 40 ? 'bg-amber-400' : 'bg-primary';
-  return (
-    <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
-      <div className={`h-2 rounded-full transition-all ${color}`} style={{ width: `${safe}%` }} />
-    </div>
-  );
-}
-
-function Avatar({ name, url }: { name: string; url?: string | null }) {
-  const initial = (name || '?')[0].toUpperCase();
-  if (url) return <img src={url} alt={name} className="w-14 h-14 rounded-full object-cover" />;
-  return (
-    <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center font-bold text-xl text-primary shrink-0">
-      {initial}
-    </div>
-  );
-}
-
-function QuizPassedBadge({ passed }: { passed: boolean | null | undefined }) {
-  if (passed === true) {
-    return (
-      <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-        <CheckCircle2 className="h-3 w-3" /> Aprobó el quiz
-      </span>
-    );
-  }
-  if (passed === false) {
-    return (
-      <span className="inline-flex items-center gap-1 text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full">
-        <XCircle className="h-3 w-3" /> Reprobó el quiz
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted border border-border px-2 py-0.5 rounded-full">
-      <Circle className="h-3 w-3" /> Sin intento
-    </span>
-  );
-}
-
-/* ── YouTube / Vimeo embed helpers ── */
 function getYoutubeEmbedUrl(url: string): string | null {
   const m = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
   return m ? `https://www.youtube.com/embed/${m[1]}` : null;
@@ -204,11 +130,10 @@ function MaterialCard({ mat }: { mat: Material }) {
             {mat.file_name || mat.title || 'Abrir PDF'}
           </a>
         );
-
       case 'url': {
         const rawUrl = mat.external_url || '';
-        const ytEmbed  = getYoutubeEmbedUrl(rawUrl);
-        const vmEmbed  = getVimeoEmbedUrl(rawUrl);
+        const ytEmbed = getYoutubeEmbedUrl(rawUrl);
+        const vmEmbed = getVimeoEmbedUrl(rawUrl);
         if (ytEmbed || vmEmbed) {
           return (
             <div className="relative w-full rounded-lg overflow-hidden bg-black" style={{ paddingTop: '56.25%' }}>
@@ -234,34 +159,18 @@ function MaterialCard({ mat }: { mat: Material }) {
           </a>
         );
       }
-
       case 'image':
         return mat.file_url ? (
-          <img
-            src={mat.file_url}
-            alt={mat.title}
-            className="max-w-full rounded-lg border border-border object-contain max-h-80"
-          />
+          <img src={mat.file_url} alt={mat.title} className="max-w-full rounded-lg border border-border object-contain max-h-80" />
         ) : null;
-
       case 'audio':
         return mat.file_url ? (
-          <audio
-            controls
-            src={mat.file_url}
-            className="w-full rounded-lg"
-          />
+          <audio controls src={mat.file_url} className="w-full rounded-lg" />
         ) : null;
-
       case 'video':
         return mat.file_url ? (
-          <video
-            controls
-            src={mat.file_url}
-            className="w-full rounded-lg border border-border max-h-72"
-          />
+          <video controls src={mat.file_url} className="w-full rounded-lg border border-border max-h-72" />
         ) : null;
-
       case 'text':
         return mat.description ? (
           <div
@@ -269,13 +178,11 @@ function MaterialCard({ mat }: { mat: Material }) {
             dangerouslySetInnerHTML={{ __html: mat.description }}
           />
         ) : null;
-
       default:
         return null;
     }
   };
 
-  /* Icon for the card header */
   const TypeIcon =
     type === 'pdf'   ? FileText :
     type === 'url'   ? Link2    :
@@ -292,14 +199,11 @@ function MaterialCard({ mat }: { mat: Material }) {
     type === 'video' ? 'Video'  :
     'Texto';
 
-  const mediaEl = renderMedia();
-
-  /* For "text" type, description IS the content — don't show it twice */
+  const mediaEl  = renderMedia();
   const showDesc = mat.description && type !== 'text';
 
   return (
     <div className="rounded-lg border border-border bg-card p-4 space-y-3">
-      {/* Header */}
       <div className="flex items-center gap-2">
         <TypeIcon className="h-4 w-4 text-primary shrink-0" />
         <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{typeLabel}</span>
@@ -307,44 +211,37 @@ function MaterialCard({ mat }: { mat: Material }) {
           <span className="text-sm font-medium text-foreground truncate">{mat.title}</span>
         )}
       </div>
-
-      {/* Description / additional text */}
       {showDesc && (
         <div
           className="prose prose-sm dark:prose-invert max-w-none text-foreground"
           dangerouslySetInnerHTML={{ __html: mat.description! }}
         />
       )}
-
-      {/* Main media */}
       {mediaEl && <div>{mediaEl}</div>}
     </div>
   );
 }
 
-/* ── Quiz viewer (read-only) ── */
+/* ── Quiz viewer (read-only, correct answers highlighted) ── */
 function QuizReview({ questions }: { questions: QuizQuestion[] }) {
   if (!questions || questions.length === 0) {
     return <p className="text-sm text-muted-foreground italic">Sin preguntas disponibles.</p>;
   }
-
   return (
     <div className="space-y-4">
       {questions.map((q, idx) => (
         <div key={q.id || idx} className="rounded-lg border border-border bg-card p-4 space-y-3">
-          {/* Question */}
           <p className="text-sm font-semibold text-foreground">
             <span className="text-muted-foreground mr-1">{idx + 1}.</span>
             {q.question}
           </p>
 
-          {/* Answers by type */}
           {(q.type === 'multiple_choice' || q.type === 'true_false' || q.type === 'listen_select') && q.options && (
             <div className="space-y-1.5 pl-2">
               {q.options.map((opt, oi) => (
                 <div
                   key={opt.id || oi}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm ${
                     opt.isCorrect
                       ? 'bg-emerald-50 border border-emerald-300 text-emerald-800 font-semibold dark:bg-emerald-950/40 dark:border-emerald-700 dark:text-emerald-300'
                       : 'bg-muted/30 border border-border text-muted-foreground'
@@ -385,11 +282,8 @@ function QuizReview({ questions }: { questions: QuizQuestion[] }) {
             </div>
           )}
 
-          {/* Explanation */}
           {q.explanation && q.explanation !== q.correctAnswer && (
-            <p className="text-xs text-muted-foreground italic pl-2">
-              Nota: {q.explanation}
-            </p>
+            <p className="text-xs text-muted-foreground italic pl-2">Nota: {q.explanation}</p>
           )}
         </div>
       ))}
@@ -405,7 +299,6 @@ function StageSection({ stage }: { stage: StageData }) {
 
   return (
     <div className="border border-border rounded-xl overflow-hidden">
-      {/* Stage header */}
       <button
         onClick={() => setOpen(o => !o)}
         className="w-full flex items-center gap-3 px-4 py-3 hover:bg-accent/40 transition-colors text-left"
@@ -420,15 +313,6 @@ function StageSection({ stage }: { stage: StageData }) {
             {stage.quiz ? ' · Quiz disponible' : ''}
           </p>
         </div>
-        {/* Quiz badge */}
-        <div className="shrink-0">
-          <QuizPassedBadge passed={stage.progress?.quiz_passed} />
-        </div>
-        {/* Completion indicator */}
-        {stage.progress?.completed
-          ? <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-          : <Circle className="h-4 w-4 text-muted-foreground/40 shrink-0" />
-        }
         {open
           ? <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" />
           : <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -443,7 +327,6 @@ function StageSection({ stage }: { stage: StageData }) {
             </p>
           )}
 
-          {/* Materials */}
           {stage.materials.length > 0 && (
             <div className="space-y-3">
               <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Material</p>
@@ -453,18 +336,9 @@ function StageSection({ stage }: { stage: StageData }) {
             </div>
           )}
 
-          {/* Quiz */}
           {stage.quiz && (
             <div className="space-y-3">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Quiz</p>
-                <QuizPassedBadge passed={stage.progress?.quiz_passed} />
-              </div>
-              <div className="rounded-lg border border-amber-200 bg-amber-50/60 dark:bg-amber-950/20 dark:border-amber-800 px-3 py-2">
-                <p className="text-xs text-amber-700 dark:text-amber-400">
-                  ℹ️ Solo se muestran las respuestas correctas. Las respuestas del estudiante no se almacenan individualmente.
-                </p>
-              </div>
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Quiz — respuestas correctas</p>
               <QuizReview questions={stage.quiz} />
             </div>
           )}
@@ -475,12 +349,11 @@ function StageSection({ stage }: { stage: StageData }) {
 }
 
 /* ───────────── Main component ───────────── */
-export default function TeacherStudentDetail({ onLogout }: Props) {
-  const navigate       = useNavigate();
-  const { studentId }  = useParams<{ studentId: string }>();
+export default function TeacherUnits({ onLogout }: Props) {
+  const navigate = useNavigate();
 
   const [teacherName, setTeacherName]         = useState('');
-  const [detail, setDetail]                   = useState<StudentDetail | null>(null);
+  const [courses, setCourses]                 = useState<CourseItem[]>([]);
   const [loadingAuth, setLoadingAuth]         = useState(true);
   const [loadingData, setLoadingData]         = useState(false);
   const [errorMsg, setErrorMsg]               = useState('');
@@ -520,20 +393,20 @@ export default function TeacherStudentDetail({ onLogout }: Props) {
         setTeacherName(profile.full_name || 'Profesor');
         setLoadingAuth(false);
       } catch (err) {
-        console.error('[TeacherStudentDetail] verify error:', err);
+        console.error('[TeacherUnits] verify error:', err);
         navigate(ROUTE_PATHS.HOME, { replace: true });
       }
     };
     verify();
   }, []);
 
-  /* ── Load student detail when auth ready ── */
+  /* ── Load all units when auth ready ── */
   useEffect(() => {
-    if (loadingAuth || !studentId) return;
-    loadDetail();
-  }, [loadingAuth, studentId]);
+    if (loadingAuth) return;
+    loadAllUnits();
+  }, [loadingAuth]);
 
-  const loadDetail = async () => {
+  const loadAllUnits = async () => {
     setLoadingData(true);
     setErrorMsg('');
     try {
@@ -548,7 +421,7 @@ export default function TeacherStudentDetail({ onLogout }: Props) {
           Authorization: `Bearer ${token}`,
           apikey: SUPABASE_ANON_KEY,
         },
-        body: JSON.stringify({ action: 'get_student_detail', student_id: studentId }),
+        body: JSON.stringify({ action: 'get_all_units' }),
       });
 
       if (!res.ok) {
@@ -557,23 +430,23 @@ export default function TeacherStudentDetail({ onLogout }: Props) {
       }
 
       const json = await res.json();
-      setDetail(json.data);
+      const courseList: CourseItem[] = json.data?.courses || [];
+      setCourses(courseList);
 
       // Expand first course by default
-      const courses: CourseSection[] = json.data?.courses || [];
-      if (courses.length > 0) {
-        setExpandedCourses({ [courses[0].id]: true });
+      if (courseList.length > 0) {
+        setExpandedCourses({ [courseList[0].id]: true });
       }
     } catch (e: any) {
-      setErrorMsg('No se pudo cargar la información del estudiante. Intenta de nuevo.');
+      setErrorMsg('No se pudo cargar las unidades. Intenta de nuevo.');
     } finally {
       setLoadingData(false);
     }
   };
 
-  /* ── Lazy-load stages for a unit ── */
+  /* ── Lazy-load stages for a unit (no student_id) ── */
   const loadUnitStages = async (unitId: string) => {
-    if (unitStages[unitId]) return; // already loaded or loading
+    if (unitStages[unitId]) return;
     setUnitStages(prev => ({ ...prev, [unitId]: 'loading' }));
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -587,7 +460,8 @@ export default function TeacherStudentDetail({ onLogout }: Props) {
           Authorization: `Bearer ${token}`,
           apikey: SUPABASE_ANON_KEY,
         },
-        body: JSON.stringify({ action: 'get_unit_stages', student_id: studentId, unit_id: unitId }),
+        // No student_id — teacher's own view
+        body: JSON.stringify({ action: 'get_unit_stages', unit_id: unitId }),
       });
 
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -595,7 +469,7 @@ export default function TeacherStudentDetail({ onLogout }: Props) {
       const json = await res.json();
       const stages: StageData[] = json.data?.stages || [];
 
-      // Make sure all 5 stages are present (fill missing ones as empty)
+      // Fill missing stages so all 5 always appear
       const byId: Record<string, StageData> = {};
       stages.forEach(s => { byId[s.id] = s; });
 
@@ -607,7 +481,7 @@ export default function TeacherStudentDetail({ onLogout }: Props) {
       });
 
       setUnitStages(prev => ({ ...prev, [unitId]: full }));
-    } catch (e) {
+    } catch {
       setUnitStages(prev => ({ ...prev, [unitId]: 'error' }));
     }
   };
@@ -634,9 +508,7 @@ export default function TeacherStudentDetail({ onLogout }: Props) {
     );
   }
 
-  const s      = detail?.student;
-  const stats  = detail?.stats;
-  const courses = detail?.courses || [];
+  const totalUnits = courses.reduce((acc, c) => acc + c.units.length, 0);
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -685,7 +557,7 @@ export default function TeacherStudentDetail({ onLogout }: Props) {
           </button>
           <button
             onClick={() => { navigate(ROUTE_PATHS.TEACHER_UNITS); setSidebarOpen(false); }}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground font-medium"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-sm bg-primary text-primary-foreground shadow-sm font-semibold"
           >
             <BookOpen className="h-4 w-4 shrink-0" />
             <span>Unidades</span>
@@ -704,20 +576,22 @@ export default function TeacherStudentDetail({ onLogout }: Props) {
       <main className="lg:ml-64 flex-1 min-h-screen">
         <div className="pt-16 lg:pt-0 p-6 max-w-4xl mx-auto">
 
-          {/* Back button */}
-          <button
-            onClick={() => navigate(ROUTE_PATHS.TEACHER_DASHBOARD)}
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Volver a Mis Estudiantes
-          </button>
+          {/* Header */}
+          <div className="mb-8">
+            <h1 className="text-2xl font-extrabold tracking-tight text-foreground flex items-center gap-2">
+              <BookOpen className="h-6 w-6 text-primary" />
+              Unidades del Curso
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Material y quizzes de todas las unidades habilitadas
+            </p>
+          </div>
 
           {/* Loading */}
           {loadingData && (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
-              <p className="text-sm text-muted-foreground">Cargando información del estudiante...</p>
+              <p className="text-sm text-muted-foreground">Cargando unidades...</p>
             </div>
           )}
 
@@ -725,210 +599,147 @@ export default function TeacherStudentDetail({ onLogout }: Props) {
           {!loadingData && errorMsg && (
             <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-5 py-4 flex items-center justify-between gap-4">
               <p className="text-sm text-destructive">{errorMsg}</p>
-              <Button variant="outline" size="sm" onClick={loadDetail}>Reintentar</Button>
+              <Button variant="outline" size="sm" onClick={loadAllUnits}>Reintentar</Button>
             </div>
           )}
 
-          {/* Content */}
-          {!loadingData && !errorMsg && detail && (
-            <div className="space-y-6">
-
-              {/* ── Student header card ── */}
-              <Card className="p-5 rounded-2xl border border-border">
-                <div className="flex items-center gap-4">
-                  <Avatar name={s?.full_name || '?'} url={s?.avatar_url} />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                      <h1 className="text-lg font-bold text-foreground">{s?.full_name || 'Estudiante'}</h1>
-                      <LevelBadge level={s?.current_level} />
-                    </div>
-                    <p className="text-sm text-muted-foreground">{s?.email}</p>
-                    <div className="mt-2 flex items-center gap-2">
-                      <ProgressBar pct={stats?.progress_pct || 0} />
-                      <span className="text-xs font-semibold text-muted-foreground shrink-0 w-10 text-right">
-                        {stats?.progress_pct || 0}%
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-
-              {/* ── Stats row ── */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {[
-                  { icon: Trophy,        label: 'Puntos',   value: (stats?.total_points || 0).toLocaleString(), color: 'text-amber-500',   bg: 'bg-amber-50 dark:bg-amber-950/30'   },
-                  { icon: Flame,         label: 'Racha',    value: `${stats?.streak_days || 0} días`,           color: 'text-orange-500',  bg: 'bg-orange-50 dark:bg-orange-950/30' },
-                  { icon: CheckCircle2,  label: 'Unidades', value: `${stats?.completed_units || 0}/${stats?.total_units || 0}`, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-950/30' },
-                  { icon: Star,          label: 'Progreso', value: `${stats?.progress_pct || 0}%`,              color: 'text-primary',     bg: 'bg-primary/5'                       },
-                ].map(stat => {
-                  const Icon = stat.icon;
-                  return (
-                    <Card key={stat.label} className={`p-4 rounded-xl border border-border ${stat.bg}`}>
-                      <Icon className={`h-5 w-5 ${stat.color} mb-2`} />
-                      <p className="text-lg font-bold text-foreground">{stat.value}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{stat.label}</p>
-                    </Card>
-                  );
-                })}
+          {/* Empty */}
+          {!loadingData && !errorMsg && courses.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
+              <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center">
+                <BookOpen className="w-8 h-8 text-muted-foreground" />
               </div>
+              <div>
+                <p className="font-semibold text-foreground">No hay cursos publicados</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  El administrador debe publicar cursos y unidades desde el panel de administración.
+                </p>
+              </div>
+            </div>
+          )}
 
-              {/* ── Courses ── */}
-              <div className="space-y-4">
-                <h2 className="text-base font-bold text-foreground flex items-center gap-2">
-                  <BookOpen className="h-5 w-5 text-primary" />
-                  Progreso por Curso
-                </h2>
+          {/* Courses + units */}
+          {!loadingData && !errorMsg && courses.length > 0 && (
+            <div className="space-y-4">
+              <p className="text-xs text-muted-foreground font-medium mb-4">
+                {courses.length} {courses.length === 1 ? 'curso' : 'cursos'} · {totalUnits} {totalUnits === 1 ? 'unidad' : 'unidades'}
+              </p>
 
-                {courses.length === 0 && (
-                  <div className="rounded-xl border border-border bg-muted/30 px-6 py-10 text-center">
-                    <p className="text-sm text-muted-foreground">No hay cursos disponibles.</p>
-                  </div>
-                )}
+              {courses.map(course => {
+                const isCourseOpen = !!expandedCourses[course.id];
 
-                {courses.map(course => {
-                  const isCourseOpen = !!expandedCourses[course.id];
-                  const coursePct    = course.total_units > 0
-                    ? Math.round((course.completed_units / course.total_units) * 100)
-                    : 0;
+                return (
+                  <Card key={course.id} className="rounded-2xl border border-border overflow-hidden">
 
-                  return (
-                    <Card key={course.id} className="rounded-2xl border border-border overflow-hidden">
+                    {/* Course header */}
+                    <button
+                      onClick={() =>
+                        setExpandedCourses(prev => ({ ...prev, [course.id]: !prev[course.id] }))
+                      }
+                      className="w-full px-5 py-4 flex items-center gap-4 hover:bg-accent/50 transition-colors text-left"
+                    >
+                      <span className="text-2xl shrink-0">{course.emoji || '📘'}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          <p className="font-semibold text-foreground text-sm">{course.title}</p>
+                          <LevelBadge level={course.level} />
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {course.units.length} {course.units.length === 1 ? 'unidad' : 'unidades'}
+                        </p>
+                      </div>
+                      {isCourseOpen
+                        ? <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" />
+                        : <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                      }
+                    </button>
 
-                      {/* ── Course header ── */}
-                      <button
-                        onClick={() =>
-                          setExpandedCourses(prev => ({ ...prev, [course.id]: !prev[course.id] }))
-                        }
-                        className="w-full px-5 py-4 flex items-center gap-4 hover:bg-accent/50 transition-colors text-left"
-                      >
-                        <span className="text-2xl shrink-0">{course.emoji || '📘'}</span>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap mb-1">
-                            <p className="font-semibold text-foreground text-sm">{course.title}</p>
-                            <LevelBadge level={course.level} />
+                    {/* Units list */}
+                    {isCourseOpen && (
+                      <div className="border-t border-border divide-y divide-border">
+                        {course.units.length === 0 && (
+                          <div className="px-5 py-6 text-center">
+                            <p className="text-sm text-muted-foreground">No hay unidades en este curso.</p>
                           </div>
-                          <p className="text-xs text-muted-foreground">
-                            {course.completed_units}/{course.total_units} unidades completadas · {coursePct}%
-                          </p>
-                        </div>
-                        {isCourseOpen
-                          ? <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" />
-                          : <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
-                        }
-                      </button>
+                        )}
 
-                      {/* ── Units list ── */}
-                      {isCourseOpen && (
-                        <div className="border-t border-border divide-y divide-border">
-                          {course.units.length === 0 && (
-                            <div className="px-5 py-6 text-center">
-                              <p className="text-sm text-muted-foreground">No hay unidades en este curso.</p>
+                        {course.units.map(unit => {
+                          const isUnitOpen  = !!expandedUnits[unit.id];
+                          const stagesState = unitStages[unit.id];
+
+                          return (
+                            <div key={unit.id}>
+                              {/* Unit row */}
+                              <button
+                                onClick={() => toggleUnit(unit.id)}
+                                className="w-full px-5 py-3.5 flex items-center gap-3 hover:bg-accent/30 transition-colors text-left"
+                              >
+                                <span className="text-xs font-bold shrink-0 w-6 text-center text-muted-foreground">
+                                  {String(unit.sort_order).padStart(2, '0')}
+                                </span>
+                                <p className="flex-1 text-sm font-medium text-foreground leading-tight">
+                                  {unit.title}
+                                </p>
+                                {isUnitOpen
+                                  ? <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" />
+                                  : <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                                }
+                              </button>
+
+                              {/* Stages panel */}
+                              {isUnitOpen && (
+                                <div className="border-t border-border bg-muted/5 px-5 py-4 space-y-3">
+
+                                  {stagesState === 'loading' && (
+                                    <div className="flex items-center gap-3 py-4">
+                                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                                      <p className="text-sm text-muted-foreground">Cargando partes de la unidad...</p>
+                                    </div>
+                                  )}
+
+                                  {stagesState === 'error' && (
+                                    <div className="flex items-center gap-3 py-3 text-destructive">
+                                      <AlertCircle className="h-4 w-4 shrink-0" />
+                                      <p className="text-sm">No se pudo cargar el contenido.</p>
+                                      <button
+                                        className="text-xs underline ml-auto"
+                                        onClick={() => {
+                                          setUnitStages(prev => {
+                                            const next = { ...prev };
+                                            delete next[unit.id];
+                                            return next;
+                                          });
+                                          loadUnitStages(unit.id);
+                                        }}
+                                      >
+                                        Reintentar
+                                      </button>
+                                    </div>
+                                  )}
+
+                                  {Array.isArray(stagesState) && (
+                                    <>
+                                      {stagesState.every(s => s.materials.length === 0 && !s.quiz) ? (
+                                        <p className="text-sm text-muted-foreground italic text-center py-4">
+                                          Esta unidad no tiene contenido cargado aún.
+                                        </p>
+                                      ) : (
+                                        stagesState.map(stage => (
+                                          <StageSection key={stage.id} stage={stage} />
+                                        ))
+                                      )}
+                                    </>
+                                  )}
+                                </div>
+                              )}
                             </div>
-                          )}
-
-                          {course.units.map(unit => {
-                            const isUnitOpen   = !!expandedUnits[unit.id];
-                            const stagesState  = unitStages[unit.id];
-
-                            return (
-                              <div key={unit.id}>
-                                {/* Unit row — click to expand */}
-                                <button
-                                  onClick={() => toggleUnit(unit.id)}
-                                  className="w-full px-5 py-3.5 flex items-center gap-3 hover:bg-accent/30 transition-colors text-left"
-                                >
-                                  {/* Number */}
-                                  <span className={`text-xs font-bold shrink-0 w-6 text-center ${unit.completed ? 'text-emerald-600' : 'text-muted-foreground'}`}>
-                                    {String(unit.sort_order).padStart(2, '0')}
-                                  </span>
-
-                                  {/* Title */}
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium text-foreground leading-tight">{unit.title}</p>
-                                    <p className="text-xs text-muted-foreground mt-0.5">
-                                      {unit.stages_done > 0
-                                        ? `${unit.stages_done} de 5 partes completadas`
-                                        : 'Sin iniciar'}
-                                    </p>
-                                  </div>
-
-                                  {/* Status chip */}
-                                  {unit.completed ? (
-                                    <span className="hidden sm:inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full shrink-0">
-                                      <CheckCircle2 className="h-3 w-3" /> Completada
-                                    </span>
-                                  ) : unit.stages_done > 0 ? (
-                                    <span className="hidden sm:inline-flex items-center gap-1 text-xs font-semibold text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full shrink-0">
-                                      <Circle className="h-3 w-3" /> En progreso
-                                    </span>
-                                  ) : null}
-
-                                  {isUnitOpen
-                                    ? <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" />
-                                    : <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
-                                  }
-                                </button>
-
-                                {/* ── Stages panel ── */}
-                                {isUnitOpen && (
-                                  <div className="border-t border-border bg-muted/5 px-5 py-4 space-y-3">
-
-                                    {/* Loading stages */}
-                                    {stagesState === 'loading' && (
-                                      <div className="flex items-center gap-3 py-4">
-                                        <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                                        <p className="text-sm text-muted-foreground">Cargando partes de la unidad...</p>
-                                      </div>
-                                    )}
-
-                                    {/* Error loading stages */}
-                                    {stagesState === 'error' && (
-                                      <div className="flex items-center gap-3 py-3 text-destructive">
-                                        <AlertCircle className="h-4 w-4 shrink-0" />
-                                        <p className="text-sm">No se pudo cargar el contenido de esta unidad.</p>
-                                        <button
-                                          className="text-xs underline ml-auto"
-                                          onClick={() => {
-                                            // Remove error state to allow retry
-                                            setUnitStages(prev => {
-                                              const next = { ...prev };
-                                              delete next[unit.id];
-                                              return next;
-                                            });
-                                            loadUnitStages(unit.id);
-                                          }}
-                                        >
-                                          Reintentar
-                                        </button>
-                                      </div>
-                                    )}
-
-                                    {/* Stages content */}
-                                    {Array.isArray(stagesState) && (
-                                      <>
-                                        {stagesState.every(s => s.materials.length === 0 && !s.quiz) ? (
-                                          <p className="text-sm text-muted-foreground italic text-center py-4">
-                                            Esta unidad no tiene contenido cargado aún.
-                                          </p>
-                                        ) : (
-                                          stagesState.map(stage => (
-                                            <StageSection key={stage.id} stage={stage} />
-                                          ))
-                                        )}
-                                      </>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </Card>
-                  );
-                })}
-              </div>
-
+                          );
+                        })}
+                      </div>
+                    )}
+                  </Card>
+                );
+              })}
             </div>
           )}
 

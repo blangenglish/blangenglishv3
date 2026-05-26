@@ -7,7 +7,7 @@ import { ROUTE_PATHS } from '@/lib/index';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
-  GraduationCap, Users, LogOut, Loader2, BookOpen, ChevronRight, Menu, X,
+  Users, LogOut, Loader2, BookOpen, ChevronRight, Menu, X,
 } from 'lucide-react';
 
 /* ───────────── Config ───────────── */
@@ -187,7 +187,8 @@ export default function TeacherDashboard({ onLogout, userName }: TeacherDashboar
 
   /* ── Nav items ── */
   const navItems = [
-    { id: 'students', icon: Users, label: 'Mis Estudiantes' },
+    { id: 'students', icon: Users,     label: 'Mis Estudiantes', path: null },
+    { id: 'units',    icon: BookOpen,  label: 'Unidades',        path: ROUTE_PATHS.TEACHER_UNITS },
   ];
 
   return (
@@ -244,7 +245,11 @@ export default function TeacherDashboard({ onLogout, userName }: TeacherDashboar
             return (
               <button
                 key={item.id}
-                onClick={() => { setActiveNav(item.id as any); setSidebarOpen(false); }}
+                onClick={() => {
+                  if (item.path) { navigate(item.path); }
+                  else { setActiveNav(item.id as any); }
+                  setSidebarOpen(false);
+                }}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-sm ${
                   isActive
                     ? 'bg-primary text-primary-foreground shadow-sm font-semibold'

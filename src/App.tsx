@@ -36,6 +36,7 @@ import AdminMundoReal from '@/pages/admin/AdminMundoReal';
 import AdminTeachers from '@/pages/admin/AdminTeachers';
 import TeacherDashboard from '@/pages/TeacherDashboard';
 import TeacherStudentDetail from '@/pages/TeacherStudentDetail';
+import TeacherUnits from '@/pages/TeacherUnits';
 
 const queryClient = new QueryClient();
 
@@ -212,6 +213,7 @@ function AppRoutes() {
         <Route path={ROUTE_PATHS.PHONETICS} element={<Phonetics {...sharedProps} />} />
         <Route path={ROUTE_PATHS.TEACHER_DASHBOARD} element={<TeacherDashboard onLogout={handleLogout} userName={userName} />} />
         <Route path={ROUTE_PATHS.TEACHER_STUDENT_DETAIL} element={<TeacherStudentDetail onLogout={handleLogout} />} />
+        <Route path={ROUTE_PATHS.TEACHER_UNITS} element={<TeacherUnits onLogout={handleLogout} />} />
       </Routes>
 
       <AuthModals
