@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
@@ -6,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ROUTE_PATHS } from '@/lib/index';
 import type { AuthModal } from '@/lib/index';
 import { IMAGES } from '@/assets/images';
+import LevelQuiz from '@/components/LevelQuiz';
 
 interface MethodologyPageProps {
   isLoggedIn?: boolean;
@@ -125,6 +127,8 @@ const LEVELS = [
 ];
 
 export default function Methodology({ isLoggedIn = false, onOpenAuth, onLogout, userName }: MethodologyPageProps) {
+  const [quizOpen, setQuizOpen] = useState(false);
+
   return (
     <Layout isLoggedIn={isLoggedIn} onOpenAuth={onOpenAuth} onLogout={onLogout} userName={userName}>
 
@@ -361,6 +365,58 @@ export default function Methodology({ isLoggedIn = false, onOpenAuth, onLogout, 
         </div>
       </section>
 
+      {/* ── NIVEL TEST ── */}
+      <section className="py-16 bg-gradient-to-br from-violet-50 to-purple-50/60">
+        <div className="container mx-auto px-4">
+          <motion.div
+            className="max-w-3xl mx-auto"
+            initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger}
+          >
+            <motion.div variants={fadeUp}
+              className="rounded-3xl bg-gradient-to-br from-violet-600 via-purple-600 to-primary p-1 shadow-xl shadow-purple-200"
+            >
+              <div className="rounded-[22px] bg-background/95 backdrop-blur px-8 py-10 text-center">
+                <div className="text-5xl mb-4">🎯</div>
+                <h2 className="text-2xl md:text-3xl font-extrabold mb-3">
+                  Conoce tu nivel de inglés
+                </h2>
+                <p className="text-muted-foreground text-base mb-2 max-w-xl mx-auto">
+                  ¿En qué nivel estás? Descúbrelo con nuestro test de 30 preguntas que evalúa
+                  vocabulario, gramática, lectura y comprensión auditiva.
+                </p>
+                <p className="text-sm text-muted-foreground mb-7">
+                  ~10 minutos &nbsp;·&nbsp; Gratuito &nbsp;·&nbsp; Sin registro &nbsp;·&nbsp; Resultado inmediato
+                </p>
+
+                {/* Level scale decorative */}
+                <div className="flex gap-2 justify-center mb-8">
+                  {[
+                    { lv: 'A1', emoji: '🌱', from: 'from-green-400', to: 'to-emerald-500' },
+                    { lv: 'A2', emoji: '📗', from: 'from-teal-400', to: 'to-cyan-500' },
+                    { lv: 'B1', emoji: '📘', from: 'from-blue-400', to: 'to-indigo-500' },
+                    { lv: 'B2', emoji: '📙', from: 'from-purple-400', to: 'to-violet-500' },
+                    { lv: 'C1', emoji: '🏆', from: 'from-amber-400', to: 'to-orange-500' },
+                  ].map(({ lv, emoji, from, to }) => (
+                    <div key={lv} className={`flex-1 max-w-[80px] rounded-2xl bg-gradient-to-br ${from} ${to} py-3 text-center shadow-sm`}>
+                      <p className="text-lg">{emoji}</p>
+                      <p className="text-white font-black text-sm mt-0.5">{lv}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <Button
+                  size="lg"
+                  className="bg-gradient-to-r from-violet-600 to-primary hover:opacity-90 text-white rounded-full px-10 py-6 font-extrabold text-base shadow-lg shadow-primary/30 gap-2"
+                  onClick={() => setQuizOpen(true)}
+                >
+                  🚀 Comenzar test de nivel
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
       {/* ── CTA FINAL ── */}
       <section className="py-20 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary via-purple-600 to-violet-700" />
@@ -409,6 +465,13 @@ export default function Methodology({ isLoggedIn = false, onOpenAuth, onLogout, 
           </motion.div>
         </div>
       </section>
+
+      {/* ── Level Quiz Modal ── */}
+      <LevelQuiz
+        open={quizOpen}
+        onClose={() => setQuizOpen(false)}
+        onRegister={() => onOpenAuth?.('register')}
+      />
 
     </Layout>
   );
