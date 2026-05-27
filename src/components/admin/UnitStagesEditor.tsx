@@ -527,7 +527,7 @@ function AddMaterialPicker({ onAdd }: { onAdd: (type: StageMaterialType) => void
 }
 
 // ─── Quiz Types ──────────────────────────────────────────────────────────────
-export type QuizType = 'multiple_choice' | 'multiple_select' | 'true_false' | 'match' | 'organize' | 'rewrite' | 'fill_gap' | 'listen_select' | 'listen_write' | 'image_choice' | 'image_write' | 'classify';
+export type QuizType = 'multiple_choice' | 'multiple_select' | 'true_false' | 'match' | 'organize' | 'rewrite' | 'fill_gap' | 'listen_select' | 'listen_write' | 'image_choice' | 'image_write' | 'classify' | 'image_match' | 'story_order';
 
 export interface QuizOption { id: string; text: string; isCorrect?: boolean; correctAnswer?: string; }
 export interface QuizQuestion {
@@ -538,6 +538,8 @@ export interface QuizQuestion {
   correctAnswer?: string;
   explanation?: string;
   imageUrl?: string;
+  imagePairs?: { id: string; word: string; imageUrl: string }[];
+  storyItems?: string[];
 }
 
 const QUIZ_TYPE_CONFIG: Record<QuizType, { label: string; emoji: string; desc: string }> = {
@@ -552,7 +554,9 @@ const QUIZ_TYPE_CONFIG: Record<QuizType, { label: string; emoji: string; desc: s
   listen_write:      { label: 'Escucha y escribe',        emoji: '🎧', desc: 'Escucha la palabra y escríbela' },
   image_choice:      { label: 'Imagen + opción múltiple', emoji: '🖼️', desc: 'Muestra una imagen y el estudiante elige la opción correcta' },
   image_write:       { label: 'Imagen + escribir',        emoji: '🖼️✍️', desc: 'Muestra una imagen y el estudiante escribe la respuesta' },
-  classify:          { label: 'Clasificar por categoría', emoji: '🗂️', desc: 'El estudiante arrastra palabras a la categoría correcta' },
+  classify:          { label: 'Clasificar por categoría', emoji: '🗂️',   desc: 'El estudiante arrastra palabras a la categoría correcta' },
+  image_match:       { label: 'Palabra con imagen',       emoji: '🖼️🔗', desc: 'Relaciona cada palabra con su imagen correcta' },
+  story_order:       { label: 'Ordenar la historia',      emoji: '📖🔢', desc: 'Ordena los eventos en el orden correcto' },
 };
 
 // Fallback seguro: nunca crashea con tipos desconocidos (ej: 'listen' legacy)
@@ -574,6 +578,12 @@ function QuizPreview({ questions, onClose }: { questions: QuizQuestion[]; onClos
   // classify state
   const [classifyPlacements, setClassifyPlacements] = useState<Record<string, string>>({});
   const [classifySelected, setClassifySelected] = useState<string | null>(null);
+  // image_match state
+  const [imgMatchMap, setImgMatchMap] = useState<Record<string, string>>({});   // imageUrl -> word
+  const [imgMatchShuffled, setImgMatchShuffled] = useState<string[]>([]);
+  const [selImg, setSelImg] = useState<string | null>(null);
+  // story_order state
+  const [storyOrder, setStoryOrder] = useState<string[]>([]);
 
   const q = questions[current];
   if (!q) return null;
@@ -588,10 +598,36 @@ function QuizPreview({ questions, onClose }: { questions: QuizQuestion[]; onClos
   const isImageChoice = q.type === 'image_choice';
   const isImageWrite = q.type === 'image_write';
   const isClassify = q.type === 'classify';
+  const isImageMatch = q.type === 'image_match';
+  const isStoryOrder = q.type === 'story_order';
 
   // classify: categories from options.correctAnswer, words from options.text
   const classifyCategories = isClassify ? [...new Set((q.options || []).map(o => o.correctAnswer).filter(Boolean))] as string[] : [];
   const classifyWords = isClassify ? (q.options || []).map(o => o.text) : [];
+
+  // Init per-question state for image_match and story_order
+  const initQuestionState = (idx: number) => {
+    const nq = questions[idx];
+    if (!nq) return;
+    if (nq.type === 'image_match') {
+      const words = (nq.imagePairs || []).map(p => p.word);
+      setImgMatchShuffled([...words].sort(() => Math.random() - 0.5));
+      setImgMatchMap({});
+      setSelImg(null);
+    }
+    if (nq.type === 'story_order') {
+      setStoryOrder([...(nq.storyItems || [])].sort(() => Math.random() - 0.5));
+    }
+  };
+
+  // Lazy-init on first render for question 0
+  if (current === 0 && isImageMatch && imgMatchShuffled.length === 0 && (q.imagePairs || []).length > 0) {
+    const words = (q.imagePairs || []).map(p => p.word);
+    setImgMatchShuffled([...words].sort(() => Math.random() - 0.5));
+  }
+  if (current === 0 && isStoryOrder && storyOrder.length === 0 && (q.storyItems || []).length > 0) {
+    setStoryOrder([...(q.storyItems || [])].sort(() => Math.random() - 0.5));
+  }
 
   const handleSelect = (optId: string) => {
     if (submitted) return;
@@ -621,6 +657,11 @@ function QuizPreview({ questions, onClose }: { questions: QuizQuestion[]; onClos
       const optMap: Record<string, string> = {};
       (q.options || []).forEach(o => { optMap[o.text] = o.correctAnswer || ''; });
       correct = classifyWords.every(w => classifyPlacements[w] === optMap[w]);
+    } else if (isImageMatch) {
+      const pairs = q.imagePairs || [];
+      correct = pairs.every(p => imgMatchMap[p.imageUrl] === p.word);
+    } else if (isStoryOrder) {
+      correct = JSON.stringify(storyOrder) === JSON.stringify(q.storyItems || []);
     } else if (isMatch) {
       correct = q.options.every(opt => matchPairs[opt.id] === opt.correctAnswer);
     } else {
@@ -642,20 +683,28 @@ function QuizPreview({ questions, onClose }: { questions: QuizQuestion[]; onClos
     if (current + 1 >= questions.length) {
       setFinished(true);
     } else {
-      setCurrent(c => c + 1);
+      const nextIdx = current + 1;
+      setCurrent(nextIdx);
       setSelected([]);
       setInputVal('');
       setMatchPairs({});
       setClassifyPlacements({});
       setClassifySelected(null);
+      setImgMatchMap({});
+      setSelImg(null);
       setSubmitted(false);
+      initQuestionState(nextIdx);
     }
   };
 
   const restart = () => {
-    setCurrent(0); setSelected([]); setInputVal(''); setMatchPairs({});
+    setCurrent(0);
+    setSelected([]); setInputVal(''); setMatchPairs({});
     setClassifyPlacements({}); setClassifySelected(null);
+    setImgMatchMap({}); setSelImg(null);
+    setStoryOrder([]);
     setSubmitted(false); setScore(0); setAnswers([]); setFinished(false);
+    initQuestionState(0);
   };
 
   if (finished) {
@@ -1009,6 +1058,101 @@ function QuizPreview({ questions, onClose }: { questions: QuizQuestion[]; onClos
             </div>
           )}
 
+          {/* Image Match */}
+          {isImageMatch && (
+            <div className="space-y-3">
+              <p className="text-xs text-muted-foreground italic">Toca una imagen y luego la palabra que le corresponde</p>
+              <div className="grid grid-cols-2 gap-2">
+                {/* Images */}
+                <div className="space-y-2">
+                  {(q.imagePairs || []).map(p => {
+                    const isMatched = !!imgMatchMap[p.imageUrl];
+                    const isSelected = selImg === p.imageUrl;
+                    const isCorrectMatch = submitted && imgMatchMap[p.imageUrl] === p.word;
+                    const isWrongMatch = submitted && imgMatchMap[p.imageUrl] && imgMatchMap[p.imageUrl] !== p.word;
+                    return (
+                      <button key={p.imageUrl} disabled={submitted}
+                        onClick={() => setSelImg(isSelected ? null : p.imageUrl)}
+                        className={`w-full rounded-xl border-2 overflow-hidden transition-all ${
+                          submitted ? isCorrectMatch ? 'border-green-400' : isWrongMatch ? 'border-red-400' : 'border-border'
+                          : isMatched ? 'border-green-400'
+                          : isSelected ? 'border-primary' : 'border-border hover:border-primary/40'
+                        }`}>
+                        <img src={p.imageUrl} alt={p.word} className="w-full h-16 object-cover" />
+                        {isMatched && <p className={`text-[10px] font-bold py-0.5 ${submitted ? isCorrectMatch ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>{imgMatchMap[p.imageUrl]}</p>}
+                      </button>
+                    );
+                  })}
+                </div>
+                {/* Words */}
+                <div className="space-y-2">
+                  {imgMatchShuffled.map(word => {
+                    const isUsed = Object.values(imgMatchMap).includes(word);
+                    return (
+                      <button key={word} disabled={submitted}
+                        onClick={() => {
+                          if (!selImg) return;
+                          setImgMatchMap(prev => ({ ...prev, [selImg]: word }));
+                          setSelImg(null);
+                        }}
+                        className={`w-full px-3 py-2.5 rounded-xl border-2 text-sm font-medium text-center transition-all ${
+                          isUsed ? 'border-green-400 bg-green-50 text-green-800'
+                          : selImg ? 'border-primary/40 bg-primary/5 hover:bg-primary/15 hover:border-primary cursor-pointer'
+                          : 'border-border bg-muted/30 opacity-60 cursor-not-allowed'
+                        }`}>
+                        {word}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              {Object.keys(imgMatchMap).length > 0 && !submitted && (
+                <button onClick={() => { setImgMatchMap({}); setSelImg(null); }} className="text-xs text-muted-foreground underline">Reiniciar</button>
+              )}
+              {submitted && (
+                <div className={`rounded-xl px-4 py-2.5 text-sm font-medium ${
+                  answers[answers.length - 1]?.correct ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
+                }`}>
+                  {answers[answers.length - 1]?.correct ? '✅ ¡Todas correctas!' : '❌ Algunas palabras no coinciden con su imagen'}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Story Order */}
+          {isStoryOrder && (
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground italic">Usa ▲▼ para ordenar los eventos correctamente</p>
+              {storyOrder.map((item, idx) => (
+                <div key={item + idx} className={`flex items-start gap-2 p-2.5 rounded-xl border transition-all ${
+                  submitted
+                    ? (q.storyItems || [])[idx] === item ? 'border-green-400 bg-green-50' : 'border-red-300 bg-red-50'
+                    : 'border-border bg-muted/20'
+                }`}>
+                  <span className="text-xs font-bold text-muted-foreground w-5 text-center mt-0.5 shrink-0">{idx + 1}</span>
+                  <span className="flex-1 text-sm leading-snug">{item}</span>
+                  {!submitted && (
+                    <div className="flex flex-col gap-0.5 shrink-0">
+                      <button disabled={idx === 0} onClick={() => {
+                        const arr = [...storyOrder]; [arr[idx - 1], arr[idx]] = [arr[idx], arr[idx - 1]]; setStoryOrder(arr);
+                      }} className="text-xs text-muted-foreground hover:text-primary disabled:opacity-30 px-1 leading-none">▲</button>
+                      <button disabled={idx === storyOrder.length - 1} onClick={() => {
+                        const arr = [...storyOrder]; [arr[idx + 1], arr[idx]] = [arr[idx], arr[idx + 1]]; setStoryOrder(arr);
+                      }} className="text-xs text-muted-foreground hover:text-primary disabled:opacity-30 px-1 leading-none">▼</button>
+                    </div>
+                  )}
+                </div>
+              ))}
+              {submitted && (
+                <div className={`rounded-xl px-4 py-2.5 text-sm font-medium ${
+                  answers[answers.length - 1]?.correct ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
+                }`}>
+                  {answers[answers.length - 1]?.correct ? '✅ ¡Orden correcto!' : '❌ El orden no es correcto'}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Explanation after submit */}
           {submitted && q.explanation && (
             <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm text-blue-800">
@@ -1017,7 +1161,7 @@ function QuizPreview({ questions, onClose }: { questions: QuizQuestion[]; onClos
           )}
 
           {/* Result summary */}
-          {submitted && !isTextInput && !isFillGap && !isListenWrite && !isImageWrite && !isClassify && q.type !== 'image_choice' && (
+          {submitted && !isTextInput && !isFillGap && !isListenWrite && !isImageWrite && !isClassify && !isImageMatch && !isStoryOrder && q.type !== 'image_choice' && (
             <div className={`rounded-xl px-4 py-2.5 text-sm font-bold text-center ${
               answers[answers.length - 1]?.correct ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
             }`}>
@@ -1034,6 +1178,8 @@ function QuizPreview({ questions, onClose }: { questions: QuizQuestion[]; onClos
                 (isTextInput || isFillGap || isListenWrite || isImageWrite) ? !inputVal.trim()
                 : isMatch ? Object.keys(matchPairs).length < q.options.length
                 : isClassify ? classifyWords.some(w => !classifyPlacements[w])
+                : isImageMatch ? Object.keys(imgMatchMap).length < (q.imagePairs || []).length
+                : isStoryOrder ? storyOrder.length < (q.storyItems || []).length
                 : selected.length === 0
               }
               className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm disabled:opacity-50">
@@ -1077,6 +1223,10 @@ function QuizEditor({ unitId, stage }: { unitId: string; stage: Stage; stageLabe
   // classify-specific
   const [formCategories, setFormCategories] = useState<string[]>(['', '']);
   const [formClassifyWords, setFormClassifyWords] = useState<{ word: string; catIndex: number }[]>([{ word: '', catIndex: 0 }]);
+  // image_match-specific
+  const [formImagePairs, setFormImagePairs] = useState<{ word: string; imageUrl: string }[]>([{ word: '', imageUrl: '' }, { word: '', imageUrl: '' }]);
+  // story_order-specific
+  const [formStoryItems, setFormStoryItems] = useState<string[]>(['', '']);
 
   // Load quiz from DB on mount
   useEffect(() => {
@@ -1140,6 +1290,8 @@ function QuizEditor({ unitId, stage }: { unitId: string; stage: Stage; stageLabe
     setImgUploadErr(null);
     setFormCategories(['', '']);
     setFormClassifyWords([{ word: '', catIndex: 0 }]);
+    setFormImagePairs([{ word: '', imageUrl: '' }, { word: '', imageUrl: '' }]);
+    setFormStoryItems(['', '']);
     setFormError(null); setEditingId(null);
   };
 
@@ -1157,6 +1309,12 @@ function QuizEditor({ unitId, stage }: { unitId: string; stage: Stage; stageLabe
       const cats = [...new Set(q.options.map(o => o.correctAnswer).filter(Boolean))] as string[];
       setFormCategories(cats.length >= 2 ? cats : [...cats, ...['','']].slice(0, Math.max(cats.length, 2)));
       setFormClassifyWords(q.options.map(o => ({ word: o.text, catIndex: cats.indexOf(o.correctAnswer ?? '') })));
+    } else if (q.type === 'image_match') {
+      const pairs = (q.imagePairs || []).map(p => ({ word: p.word, imageUrl: p.imageUrl }));
+      setFormImagePairs(pairs.length >= 2 ? pairs : [...pairs, ...Array(2 - pairs.length).fill({ word: '', imageUrl: '' })]);
+    } else if (q.type === 'story_order') {
+      const items = q.storyItems || [];
+      setFormStoryItems(items.length >= 2 ? items : [...items, ...Array(2 - items.length).fill('')]);
     } else if (q.type === 'image_write') {
       setFormAnswer(q.correctAnswer ?? '');
     } else if (q.type === 'organize' || q.type === 'rewrite' || q.type === 'fill_gap') {
@@ -1172,7 +1330,7 @@ function QuizEditor({ unitId, stage }: { unitId: string; stage: Stage; stageLabe
 
   const submitForm = () => {
     setFormError(null);
-    const questionOptional = formType === 'image_write' || formType === 'image_choice' || formType === 'classify';
+    const questionOptional = formType === 'image_write' || formType === 'image_choice' || formType === 'classify' || formType === 'image_match' || formType === 'story_order';
     if (!questionOptional && !formQuestion.trim()) { setFormError('Escribe la pregunta.'); return; }
     const id = editingId ?? `q-manual-${Date.now()}`;
     let newQ: QuizQuestion;
@@ -1224,6 +1382,17 @@ function QuizEditor({ unitId, stage }: { unitId: string; stage: Stage; stageLabe
         imageUrl: formImageUrl.trim(),
         options: [],
         correctAnswer: formAnswer.trim(), explanation: formExplanation };
+    } else if (formType === 'image_match') {
+      const validPairs = formImagePairs.filter(p => p.word.trim() && p.imageUrl.trim());
+      if (validPairs.length < 2) { setFormError('Agrega al menos 2 pares de palabra + imagen.'); return; }
+      newQ = { id, type: 'image_match', question: formQuestion,
+        imagePairs: validPairs.map((p, pi) => ({ id: `pair-${id}-${pi}`, word: p.word.trim(), imageUrl: p.imageUrl.trim() })),
+        options: [], explanation: formExplanation };
+    } else if (formType === 'story_order') {
+      const validItems = formStoryItems.map(s => s.trim()).filter(Boolean);
+      if (validItems.length < 2) { setFormError('Agrega al menos 2 eventos o frases.'); return; }
+      newQ = { id, type: 'story_order', question: formQuestion,
+        storyItems: validItems, options: [], explanation: formExplanation };
     } else if (formType === 'classify') {
       const validCats = formCategories.map(c => c.trim()).filter(Boolean);
       if (validCats.length < 2) { setFormError('Define al menos 2 categorías.'); return; }
@@ -1322,7 +1491,7 @@ function QuizEditor({ unitId, stage }: { unitId: string; stage: Stage; stageLabe
             <label className="text-xs font-semibold text-violet-700 mb-1 block">
               {formType === 'fill_gap' ? 'Oración con espacio en blanco *'
                 : (formType === 'listen_select' || formType === 'listen_write') ? '🔊 Palabra / frase a escuchar *'
-                : (formType === 'image_write' || formType === 'image_choice' || formType === 'classify') ? 'Instrucción / contexto (opcional)'
+                : (formType === 'image_write' || formType === 'image_choice' || formType === 'classify' || formType === 'image_match' || formType === 'story_order') ? 'Instrucción / contexto (opcional)'
                 : 'Pregunta *'}
             </label>
             {formType === 'listen_select' && (
@@ -1490,6 +1659,66 @@ function QuizEditor({ unitId, stage }: { unitId: string; stage: Stage; stageLabe
               <Input value={formAnswer} onChange={e => setFormAnswer(e.target.value)}
                 placeholder="Escribe la respuesta que el estudiante debe escribir..."
                 className="text-xs border-violet-200 bg-white" />
+            </div>
+          )}
+
+          {/* Image Match — word + image URL pairs */}
+          {formType === 'image_match' && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-violet-700 block">Pares: Palabra + URL de imagen *</label>
+                <button type="button" onClick={() => setFormImagePairs(prev => [...prev, { word: '', imageUrl: '' }])}
+                  className="text-xs text-violet-600 hover:text-violet-800 font-medium border border-violet-200 rounded-lg px-2 py-0.5">
+                  + Par
+                </button>
+              </div>
+              <div className="bg-blue-50 border border-blue-100 rounded-xl px-3 py-2 text-xs text-blue-700">
+                💡 Escribe la palabra y pega la URL directa de la imagen (termina en .jpg, .png, etc.)
+              </div>
+              {formImagePairs.map((pair, pi) => (
+                <div key={pi} className="space-y-1.5 p-2.5 rounded-xl border border-violet-100 bg-white">
+                  <div className="flex items-center gap-2">
+                    <Input value={pair.word} onChange={e => { const arr = [...formImagePairs]; arr[pi] = { ...arr[pi], word: e.target.value }; setFormImagePairs(arr); }}
+                      placeholder={`Palabra ${pi + 1} (ej: cat)`} className="text-xs border-violet-200 bg-white h-8 flex-1" />
+                    {formImagePairs.length > 2 && (
+                      <button type="button" onClick={() => setFormImagePairs(prev => prev.filter((_, i) => i !== pi))}
+                        className="shrink-0 text-red-400 hover:text-red-600 text-xs">✕</button>
+                    )}
+                  </div>
+                  <Input value={pair.imageUrl} onChange={e => { const arr = [...formImagePairs]; arr[pi] = { ...arr[pi], imageUrl: e.target.value }; setFormImagePairs(arr); }}
+                    placeholder="https://ejemplo.com/imagen.jpg" className="text-xs border-violet-200 bg-white h-8" />
+                  {pair.imageUrl.trim() && (
+                    <img src={pair.imageUrl.trim()} alt={pair.word} className="h-16 rounded-lg object-cover border border-violet-100" onError={e => { (e.target as HTMLImageElement).style.display='none'; }} />
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Story Order */}
+          {formType === 'story_order' && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-violet-700 block">Eventos en el orden correcto *</label>
+                <button type="button" onClick={() => setFormStoryItems(prev => [...prev, ''])}
+                  className="text-xs text-violet-600 hover:text-violet-800 font-medium border border-violet-200 rounded-lg px-2 py-0.5">
+                  + Evento
+                </button>
+              </div>
+              <div className="bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 text-xs text-amber-700">
+                📌 Escríbelos en el orden correcto. El sistema los mezclará automáticamente para el estudiante.
+              </div>
+              {formStoryItems.map((item, si) => (
+                <div key={si} className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-muted-foreground w-5 text-center shrink-0">{si + 1}</span>
+                  <Input value={item} onChange={e => { const arr = [...formStoryItems]; arr[si] = e.target.value; setFormStoryItems(arr); }}
+                    placeholder={`Evento ${si + 1}...`} className="text-xs border-violet-200 bg-white h-8 flex-1" />
+                  {formStoryItems.length > 2 && (
+                    <button type="button" onClick={() => setFormStoryItems(prev => prev.filter((_, i) => i !== si))}
+                      className="shrink-0 text-red-400 hover:text-red-600 text-xs">✕</button>
+                  )}
+                </div>
+              ))}
             </div>
           )}
 
