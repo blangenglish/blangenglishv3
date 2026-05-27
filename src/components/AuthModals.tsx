@@ -536,7 +536,7 @@ export function AuthModals({ open, onClose, onLogin }: AuthModalsProps) {
                         <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                         Entrando...
                       </span>
-                    ) : isAdminTab ? '🛡️ Acceder al Panel Admin' : 'Iniciar sesion 1 🚀'}
+                    ) : isAdminTab ? '🛡️ Acceder al Panel Admin' : 'Iniciar sesión 🚀'}
                   </Button>
                   {isAdminTab && (
                     <p className="text-xs text-center text-muted-foreground">
