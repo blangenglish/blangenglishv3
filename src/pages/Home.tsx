@@ -50,13 +50,13 @@ const METHODOLOGY_STEPS = [
 export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
   const [ctaEmail, setCtaEmail] = useState('');
   const navigate = useNavigate();
-  const [reviews, setReviews] = useState<{ full_name: string; rating: number; comment: string }[]>([]);
+  const [reviews, setReviews] = useState<{ rating: number; comment: string }[]>([]);
   const [moduleContent, setModuleContent] = useState<Record<string, { id: string; title: string; rich_text: string; sort_order: number }[]>>({});
 
   useEffect(() => {
     supabase
       .from('student_reviews')
-      .select('full_name, rating, comment')
+      .select('rating, comment')
       .eq('is_published', true)
       .order('created_at', { ascending: false })
       .limit(12)
@@ -744,13 +744,6 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
                       "{r.comment}"
                     </p>
 
-                    {/* Autor */}
-                    <div className="flex items-center gap-2.5 pt-1 border-t border-border/40">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shrink-0">
-                        {r.full_name.charAt(0).toUpperCase()}
-                      </div>
-                      <span className="text-sm font-semibold text-foreground">{r.full_name}</span>
-                    </div>
                   </motion.div>
                 ))}
               </div>
