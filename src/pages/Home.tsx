@@ -295,12 +295,19 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
 
                 {/* Diseñado para hispanohablantes */}
                 <div className="bg-gradient-to-br from-violet-50 to-indigo-50 border border-violet-200/70 rounded-2xl p-4 sm:p-5 shadow-sm">
-                  <p className="text-xs font-black text-violet-600 uppercase tracking-widest mb-2">✨ Diseñado especialmente para hispanohablantes</p>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    <strong className="text-foreground">Metodología intuitiva</strong> por unidades,{' '}
-                    <strong className="text-foreground">clases en vivo</strong> y{' '}
-                    <strong className="text-foreground">práctica real con IA</strong>. ¡Todo en un solo lugar!
-                  </p>
+                  <p className="text-xs font-black text-violet-600 uppercase tracking-widest mb-3">✨ Diseñado para todo aquel que quiera aprender inglés desde su propia comodidad y tiempo</p>
+                  <ul className="space-y-2.5">
+                    {[
+                      { icon: '📚', strong: 'Metodología intuitiva por unidades:', rest: ' todo el contenido está listo, solo estudia a tu ritmo y desde donde estés' },
+                      { icon: '🎥', strong: 'Clases en vivo:', rest: ' servicio adicional disponible cuando lo desees, no incluido en el plan mensual' },
+                      { icon: '🤖', strong: 'Práctica real con IA:', rest: ' usa prompts ya creados en ChatGPT para practicar escritura y speaking' },
+                    ].map((item, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground leading-relaxed">
+                        <span className="shrink-0 mt-0.5">{item.icon}</span>
+                        <span><strong className="text-foreground">{item.strong}</strong>{item.rest}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
 
                 <p className="text-sm text-muted-foreground">🌟 ¡Sé parte de los primeros estudiantes de BLANG!</p>
@@ -312,9 +319,9 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
                   <span className="inline-block bg-primary/10 text-primary text-xs font-extrabold px-4 py-1.5 rounded-full uppercase tracking-widest">🎯 Empieza en 3 pasos</span>
                 </div>
                 {[
-                  { num: '01', emoji: '👤', title: 'Crea tu cuenta', desc: 'Regístrate gratis en segundos. Empieza con 7 días de prueba.', color: 'from-violet-500 to-purple-600', bg: 'from-violet-50 to-purple-50', border: 'border-violet-200/60' },
+                  { num: '01', emoji: '👤', title: 'Crea tu cuenta', desc: 'Regístrate gratis en segundos. Empieza con 7 días de prueba o activa tu plan mensual en minutos.', color: 'from-violet-500 to-purple-600', bg: 'from-violet-50 to-purple-50', border: 'border-violet-200/60' },
                   { num: '02', emoji: '📋', title: 'Elige tu nivel', desc: 'De A1 principiante a C1 avanzado. Empieza desde donde realmente estás.', color: 'from-blue-500 to-cyan-500', bg: 'from-blue-50 to-cyan-50', border: 'border-blue-200/60' },
-                  { num: '03', emoji: '🎓', title: '¡A aprender!', desc: 'Una unidad por semana: gramática, vocabulario, lectura, escucha y práctica con IA.', color: 'from-emerald-500 to-teal-500', bg: 'from-emerald-50 to-teal-50', border: 'border-emerald-200/60' },
+                  { num: '03', emoji: '🎓', title: '¡A aprender!', desc: 'Estudia una unidad por semana o avanza a tu propio ritmo, sin límites.', color: 'from-emerald-500 to-teal-500', bg: 'from-emerald-50 to-teal-50', border: 'border-emerald-200/60' },
                 ].map((step) => (
                   <div key={step.num} className={`flex items-start gap-3 sm:gap-4 bg-gradient-to-br ${step.bg} border ${step.border} rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow`}>
                     <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-br ${step.color} flex items-center justify-center flex-shrink-0 shadow-md`}>
