@@ -219,8 +219,8 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
                   <ul className="space-y-2 sm:space-y-3 flex-1">
                     {[
                       'Acceso completo a TODOS los cursos',
-                      'Práctica con IA incluida',
-                      'Seguimiento de progreso semanal',
+                      'Práctica con ChatGPT usando prompts ya creados',
+                      'Acceso completo a English for you: Fonética, Inglés para el Mundo Real, Escritura, Lectura, Gramática, Listening y Vocabulario',
                       'Soporte prioritario',
                       'Sin contratos anuales',
                     ].map((f, i) => (
