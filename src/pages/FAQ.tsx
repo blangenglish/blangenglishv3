@@ -24,12 +24,12 @@ const ALL_FAQS = [
   {
     id: 'q1', category: 'General',
     question: '¿Qué es BLANG English Academy?',
-    answer: 'BLANG es una plataforma de aprendizaje de inglés en línea, diseñada especialmente para hispanohablantes. Ofrecemos cursos estructurados por unidades semanales, sesiones en vivo con profesores y práctica con inteligencia artificial, todo en un solo lugar.',
+    answer: 'BLANG es una plataforma de aprendizaje de inglés en línea, diseñada para todo aquel que quiera aprender inglés desde su propia comodidad y tiempo. Ofrecemos cursos estructurados por unidades semanales, sesiones en vivo con profesores y práctica con inteligencia artificial, todo en un solo lugar.',
   },
   {
     id: 'q2', category: 'General',
     question: '¿Para quién está diseñado BLANG?',
-    answer: 'BLANG está diseñado para hispanohablantes (cualquier país) que quieren aprender inglés de forma autónoma, efectiva y a su propio ritmo. No importa si eres principiante total o si ya tienes bases — tenemos desde el nivel A1 hasta C1.',
+    answer: 'BLANG está diseñado para todo aquel que quiera aprender inglés desde su propia comodidad y tiempo, sin importar de dónde seas. No importa si eres principiante total o si ya tienes bases — tenemos desde el nivel A1 hasta C1.',
   },
   {
     id: 'q3', category: 'General',

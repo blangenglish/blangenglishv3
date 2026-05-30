@@ -170,7 +170,7 @@ export function Layout({ children, isLoggedIn = false, onOpenAuth, onLogout, use
             <div className="col-span-1 md:col-span-2">
               <img src={IMAGES.BLANG_LOGO} alt="BLANG English Academy" className="h-10 w-auto mb-4 brightness-0 invert" />
               <p className="text-sm text-background/70 max-w-md">
-                Aprende inglés de forma fácil, divertida y efectiva. Diseñado especialmente para hispanohablantes que quieren hablar inglés con confianza. 🌎
+                Aprende inglés de forma fácil, divertida y efectiva. Diseñado para todo aquel que quiera aprender inglés desde su propia comodidad y tiempo. 🌎
               </p>
               <div className="flex gap-4 mt-6">
                 {socialLinks.map((social) => {
@@ -237,7 +237,7 @@ export function Layout({ children, isLoggedIn = false, onOpenAuth, onLogout, use
 
           <div className="border-t border-background/10 mt-8 pt-8 text-center">
             <p className="text-sm text-background/40">
-              © 2026 BLANG English Academy. Todos los derechos reservados. Hecho con 💜 para hispanohablantes.
+              © 2026 BLANG English Academy. Todos los derechos reservados. Diseñado para todo aquel que quiera aprender inglés desde su propia comodidad y tiempo.
             </p>
           </div>
         </div>

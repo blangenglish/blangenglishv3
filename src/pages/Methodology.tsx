@@ -158,7 +158,7 @@ export default function Methodology({ isLoggedIn = false, onOpenAuth, onLogout, 
                 <span className="text-amber-400">intuitiva y progresiva</span> 🚀
               </motion.h1>
               <motion.p variants={fadeUp} className="text-lg text-white/80 max-w-xl mb-6">
-                Diseñada especialmente para hispanohablantes. Sin memorizar listas aburridas. Aprendes inglés <strong className="text-white">usándolo desde el primer día</strong>.
+                Diseñada para todo aquel que quiera aprender inglés desde su propia comodidad y tiempo. Sin memorizar listas aburridas. Aprendes inglés <strong className="text-white">usándolo desde el primer día</strong>.
               </motion.p>
               <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-4">
                 <Button

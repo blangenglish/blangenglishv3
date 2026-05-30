@@ -24,7 +24,7 @@ export default function Terms({ isLoggedIn, onOpenAuth, onLogout, userName }: Te
     },
     {
       id: '2', title: '2. Descripción del Servicio',
-      content: `BLANG es una plataforma de aprendizaje de inglés en línea dirigida principalmente a hispanohablantes. Ofrece:\n\n• Cursos estructurados por unidades semanales (niveles A1 a C1)\n• Práctica con inteligencia artificial (IA)\n• Sesiones en vivo 1 a 1 con profesores a través de Google Meet\n• Herramientas de seguimiento de progreso\n\nTodos los servicios se prestan de forma digital a través del sitio web de BLANG.`,
+      content: `BLANG es una plataforma de aprendizaje de inglés en línea dirigida a todo aquel que quiera aprender inglés desde su propia comodidad y tiempo. Ofrece:\n\n• Cursos estructurados por unidades semanales (niveles A1 a C1)\n• Práctica con inteligencia artificial (IA)\n• Sesiones en vivo 1 a 1 con profesores a través de Google Meet\n• Herramientas de seguimiento de progreso\n\nTodos los servicios se prestan de forma digital a través del sitio web de BLANG.`,
     },
     {
       id: '3', title: '3. Registro y Cuenta de Usuario',

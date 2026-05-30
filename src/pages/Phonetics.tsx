@@ -771,7 +771,7 @@ const SOUNDS = [
     exercises: [
       { id: 'r-1', question: '¿La "r" inglesa vibra como la española?', options: ['Sí', 'No', 'Solo en algunas palabras'], correct: 1, explanation: 'La [r] inglesa no vibra — la lengua se curva sin tocar el paladar.' },
       { id: 'r-2', question: '"write" se pronuncia…', options: ['/raɪt/', '/raɪt/ (la w es muda)', '/wraɪt/'], correct: 1, explanation: 'La "w" en "write" es muda: /raɪt/.' },
-      { id: 'r-3', question: '¿Cuál es un error común de hispanohablantes con la [r] inglesa?', options: ['Hacerla muda', 'Hacerla vibrar como en español', 'Pronunciarla como [l]'], correct: 1, explanation: 'Muchos hispanohablantes vibran la [r] como en español, lo cual suena extraño en inglés.' },
+      { id: 'r-3', question: '¿Cuál es un error común de hablantes de español con la [r] inglesa?', options: ['Hacerla muda', 'Hacerla vibrar como en español', 'Pronunciarla como [l]'], correct: 1, explanation: 'Muchos hablantes de español vibran la [r] como en español, lo cual suena extraño en inglés.' },
     ],
   },
   {

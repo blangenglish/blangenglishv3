@@ -293,7 +293,7 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
                   <p className="text-base sm:text-lg text-muted-foreground font-medium mt-4 sm:mt-5">Aprende inglés desde ya 🌎</p>
                 </div>
 
-                {/* Diseñado para hispanohablantes */}
+                {/* Diseñado para todos */}
                 <div className="bg-gradient-to-br from-violet-50 to-indigo-50 border border-violet-200/70 rounded-2xl p-4 sm:p-5 shadow-sm">
                   <p className="text-xs font-black text-violet-600 uppercase tracking-widest mb-3">✨ Diseñado para todo aquel que quiera aprender inglés desde su propia comodidad y tiempo</p>
                   <ul className="space-y-2.5">
