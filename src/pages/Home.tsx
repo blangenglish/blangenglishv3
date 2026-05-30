@@ -613,10 +613,11 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
               {/* Columna izquierda: beneficios */}
               <motion.div variants={staggerItem} className="flex flex-col gap-4 sm:gap-5">
                 {[
-                  { icon: '🗓️', title: 'Tú eliges el horario', desc: 'Reserva la sesión cuando más te convenga, sin restricciones de días ni horas.' },
+                  { icon: '🗓️', title: 'Tú eliges el horario', desc: 'Reserva la sesión según la disponibilidad del docente, en los horarios disponibles.' },
                   { icon: '🎯', title: 'Temas a la medida', desc: 'Trabaja exactamente lo que necesitas: gramática, conversación, pronunciación, negocios...' },
                   { icon: '💻', title: 'Google Meet', desc: 'Sesiones cómodas por videollamada, desde cualquier lugar del mundo.' },
-                  { icon: '🔓', title: 'Sin matrícula obligatoria', desc: 'No necesitas el curso completo para reservar. Puedes contratar solo las horas que quieras.' },
+                  { icon: '🔓', title: 'Sin matrícula obligatoria', desc: 'No necesitas registrarte para reservar un cupo, puedes contratar este servicio cuando lo desees.' },
+                  { icon: 'ℹ️', title: 'Servicio adicional', desc: 'Este servicio no está incluido en el plan mensual. Tiene un costo según las horas que desees. Si quieres agendar más horas o un paquete mensual escríbenos a blangenglishlearning@blangenglish.com' },
                 ].map((item, i) => (
                   <motion.div
                     key={i}
@@ -649,18 +650,13 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
                       </div>
                     </div>
                     <div className="flex items-end gap-2 mb-2">
-                      <span className="text-5xl sm:text-7xl font-black leading-none">$10</span>
-                      <div className="mb-2 sm:mb-3">
-                        <p className="text-white/90 font-bold text-base sm:text-lg">USD</p>
-                        <p className="text-white/60 text-xs sm:text-sm">por hora</p>
-                      </div>
+                      <span className="text-5xl sm:text-7xl font-black leading-none">$35,000</span>
                     </div>
-                    <p className="text-white/70 text-xs sm:text-sm mb-4 sm:mb-6">o $45,000 COP por hora · Sin contratos</p>
+                    <p className="text-white/70 text-xs sm:text-sm mb-4 sm:mb-6">COP por hora · Sin contratos</p>
                     <ul className="space-y-2 sm:space-y-2.5 mb-6 sm:mb-8">
                       {[
                         '✓  Corrección en tiempo real',
                         '✓  Feedback personalizado',
-                        '✓  Grabación de la sesión',
                         '✓  Cancela con 24h de anticipación',
                       ].map((f, i) => (
                         <li key={i} className="text-white/90 font-medium text-xs sm:text-sm">{f}</li>
@@ -680,8 +676,8 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
                 <div className="flex items-center gap-3 sm:gap-4 bg-white/80 backdrop-blur border border-border/50 rounded-2xl p-3 sm:p-4 shadow-sm">
                   <span className="text-2xl sm:text-3xl">⭐</span>
                   <div>
-                    <p className="font-extrabold text-xs sm:text-sm text-foreground">Profes verificados</p>
-                    <p className="text-xs text-muted-foreground">Nativos o bilingües con experiencia comprobada en enseñanza de inglés</p>
+                    <p className="font-extrabold text-xs sm:text-sm text-foreground">Profesores verificados</p>
+                    <p className="text-xs text-muted-foreground">Bilingües con experiencia comprobada en enseñanza de inglés</p>
                   </div>
                 </div>
               </motion.div>
