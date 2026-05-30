@@ -67,6 +67,11 @@ const ALL_FAQS = [
     question: '¿Me garantizan que aprenderé inglés?',
     answer: 'BLANG te ofrece todas las herramientas y el contenido necesario para aprender inglés. Sin embargo, el aprendizaje es un proceso autónomo — el estudiante es el responsable de su propio progreso. Los resultados dependen directamente de la constancia y práctica de cada persona. No garantizamos fluidez en un tiempo específico.',
   },
+  {
+    id: 'q30', category: 'Cursos',
+    question: '¿Qué es "English for you" y está incluido en el plan?',
+    answer: 'English for you es una sección especial de la plataforma con módulos temáticos: Fonética, Inglés para el Mundo Real, Escritura, Lectura, Gramática, Listening y Vocabulario. Está incluida completamente en el plan mensual, sin costo adicional.',
+  },
   // 💳 Precios y Pagos
   {
     id: 'q10', category: 'Precios',
@@ -76,12 +81,12 @@ const ALL_FAQS = [
   {
     id: 'q11', category: 'Precios',
     question: '¿Hay prueba gratis?',
-    answer: 'Sí. Puedes probar BLANG gratis por 7 días. Al terminar los 7 días, si decides continuar, pagarás el valor del plan mensual: $15 USD o $55,000 COP.',
+    answer: 'Sí. Puedes probar BLANG gratis por 7 días sin necesidad de tarjeta de crédito. Al terminar los 7 días, si decides continuar, activa tu plan mensual por $15 USD o $55,000 COP al mes.',
   },
   {
     id: 'q12', category: 'Precios',
     question: '¿Qué métodos de pago aceptan?',
-    answer: 'Aceptamos PayPal (disponible desde cualquier país del mundo) y PSE / Transferencia bancaria (para residentes en Colombia).',
+    answer: 'Aceptamos PayPal (disponible desde cualquier país del mundo) y Bold — PSE (para pagos desde Colombia). El proceso de pago y las instrucciones se coordinan escribiéndonos a blangenglishlearning@blangenglish.com.',
   },
   {
     id: 'q13', category: 'Precios',
@@ -97,17 +102,17 @@ const ALL_FAQS = [
   {
     id: 'q15', category: 'Sesiones',
     question: '¿Qué son las sesiones en vivo?',
-    answer: 'Son clases 1 a 1 con un profesor de inglés a través de Google Meet. Puedes reservarlas de forma independiente, sin necesidad de tener una suscripción activa. Eliges el día, hora y tema que quieres practicar.',
+    answer: 'Son clases 1 a 1 con un profesor de inglés verificado, realizadas a través de Google Meet. Es un servicio adicional que no está incluido en el plan mensual — puedes contratarlo cuando lo desees, con o sin suscripción activa. Los horarios disponibles los publica el equipo de BLANG y tú eliges el que más te convenga entre las opciones publicadas.',
   },
   {
     id: 'q16', category: 'Sesiones',
     question: '¿Cuánto cuesta una sesión en vivo?',
-    answer: 'Cada sesión tiene un costo de $10 USD por hora. Puedes reservar múltiples sesiones a la vez y el enlace de pago te llegará por correo.',
+    answer: 'Cada sesión tiene un costo de $35,000 COP por hora. Para agendar escríbenos a blangenglishlearning@blangenglish.com — allí te informamos los horarios disponibles y coordinamos el pago.',
   },
   {
     id: 'q17', category: 'Sesiones',
     question: '¿Cómo cancelo o reprogramo una sesión?',
-    answer: 'Puedes cancelar o reprogramar una sesión con al menos 5 horas de anticipación enviándonos un mensaje. Si no se cancela con ese tiempo de anticipación o no se asiste, la sesión se considera realizada y no habrá reembolso.',
+    answer: 'Puedes cancelar o reprogramar una sesión con al menos 24 horas de anticipación escribiéndonos a blangenglishlearning@blangenglish.com. Si no se cancela dentro de ese plazo o no asistes, la sesión se considera realizada y no habrá reembolso.',
   },
   {
     id: 'q18', category: 'Sesiones',
@@ -119,16 +124,21 @@ const ALL_FAQS = [
     question: '¿Las sesiones quedan grabadas?',
     answer: 'No, las sesiones no se graban de forma predeterminada. Si deseas una grabación, coméntalo al inicio de la sesión y el profesor podrá indicarte cómo hacerlo desde tu propia plataforma.',
   },
+  {
+    id: 'q31', category: 'Sesiones',
+    question: '¿Cómo agendo una sesión en vivo?',
+    answer: 'Escríbenos a blangenglishlearning@blangenglish.com. Te informaremos los horarios disponibles publicados por nuestro equipo y coordinaremos el pago. Una vez confirmado, recibirás el enlace de Google Meet para tu sesión.',
+  },
   // 🤖 Práctica con IA
   {
     id: 'q20', category: 'IA',
     question: '¿Qué es la práctica con IA?',
-    answer: 'Es el quinto paso de cada unidad. Consiste en conversaciones escritas y orales con un asistente de inteligencia artificial que te ayuda a practicar lo aprendido en esa unidad, corrige tus errores y te da retroalimentación inmediata.',
+    answer: 'La práctica con IA está incluida en tu plan mensual y funciona con ChatGPT. En cada unidad encontrarás prompts ya creados que puedes usar directamente en ChatGPT para practicar escritura, vocabulario y speaking sobre lo que acabas de estudiar. Los prompts están listos en la plataforma — no necesitas configurar nada extra.',
   },
   {
     id: 'q21', category: 'IA',
     question: '¿La práctica con IA reemplaza las clases en vivo?',
-    answer: 'No, son complementos. La IA te permite practicar en cualquier momento sin horarios, perfecta para reforzar el contenido. Las sesiones en vivo te dan la oportunidad de practicar con una persona real, con pronunciación natural y situaciones más espontáneas.',
+    answer: 'No, son complementos. Los prompts para ChatGPT te permiten practicar en cualquier momento sin horarios, ideal para reforzar el contenido a tu ritmo. Las sesiones en vivo con nuestros profesores te dan la oportunidad de practicar con una persona real, con pronunciación natural y conversaciones más espontáneas. Las sesiones en vivo son un servicio adicional con costo separado.',
   },
   // 🔒 Cuenta y Seguridad
   {

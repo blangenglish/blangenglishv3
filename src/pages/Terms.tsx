@@ -12,7 +12,7 @@ interface TermsProps {
   userName?: string;
 }
 
-const LAST_UPDATED = '14 de abril de 2026';
+const LAST_UPDATED = '29 de mayo de 2026';
 
 export default function Terms({ isLoggedIn, onOpenAuth, onLogout, userName }: TermsProps) {
   const navigate = useNavigate();
@@ -24,7 +24,7 @@ export default function Terms({ isLoggedIn, onOpenAuth, onLogout, userName }: Te
     },
     {
       id: '2', title: '2. Descripción del Servicio',
-      content: `BLANG es una plataforma de aprendizaje de inglés en línea dirigida a todo aquel que quiera aprender inglés desde su propia comodidad y tiempo. Ofrece:\n\n• Cursos estructurados por unidades semanales (niveles A1 a C1)\n• Práctica con inteligencia artificial (IA)\n• Sesiones en vivo 1 a 1 con profesores a través de Google Meet\n• Herramientas de seguimiento de progreso\n\nTodos los servicios se prestan de forma digital a través del sitio web de BLANG.`,
+      content: `BLANG es una plataforma de aprendizaje de inglés en línea diseñada para todo aquel que quiera aprender inglés desde su propia comodidad y tiempo. Ofrece:\n\n• Cursos estructurados por unidades semanales (niveles A1 a C1)\n• Sección "English for you" con módulos temáticos: Fonética, Inglés para el Mundo Real, Escritura, Lectura, Gramática, Listening y Vocabulario\n• Práctica con inteligencia artificial mediante prompts ya creados para usar en ChatGPT\n• Prueba gratuita de 7 días sin tarjeta de crédito\n• Sesiones en vivo 1 a 1 con profesores a través de Google Meet (servicio adicional, no incluido en el plan mensual)\n• Herramientas de seguimiento de progreso\n\nTodos los servicios se prestan de forma digital a través del sitio web de BLANG.`,
     },
     {
       id: '3', title: '3. Registro y Cuenta de Usuario',
@@ -36,15 +36,15 @@ export default function Terms({ isLoggedIn, onOpenAuth, onLogout, userName }: Te
     },
     {
       id: '5', title: '5. Precios, Pagos y Suscripciones',
-      content: `Los precios vigentes están publicados en la página de precios de BLANG. Actualmente:\n\n• Plan Mensual: $15 USD o $55,000 COP por mes\n• Prueba gratuita: 7 días acceso a las primeras 5 lecciones del nivel A1\n• Sesiones en vivo: $10 USD por hora (sin suscripción)\n\nLos pagos se procesan de forma fácil y segura a través de PayPal y PSE. BLANG se reserva el derecho de modificar los precios con previo aviso. Los cambios de precio no afectarán períodos ya pagados.`,
+      content: `Los precios vigentes están publicados en la página de precios de BLANG. Actualmente:\n\n• Plan Mensual: $15 USD o $55,000 COP al mes (acceso completo a todos los cursos y módulos)\n• Prueba gratuita: 7 días sin necesidad de tarjeta de crédito\n• Sesiones en vivo: $35,000 COP por hora (servicio adicional, no incluido en el plan mensual)\n\nMétodos de pago aceptados:\n• PayPal — disponible desde cualquier país\n• Bold — PSE — para pagos desde Colombia\n\nEl proceso de pago se coordina por correo a blangenglishlearning@blangenglish.com. BLANG se reserva el derecho de modificar los precios con previo aviso. Los cambios de precio no afectarán períodos ya pagados.`,
     },
     {
       id: '6', title: '6. Política de Reembolsos',
-      content: `BLANG no realiza reembolsos por suscripciones una vez procesado el pago. Recomendamos aprovechar la prueba gratuita de 7 días para conocer la plataforma antes de suscribirse.\n\nEn caso de problemas técnicos graves atribuibles a BLANG que impidan el uso del servicio, se evaluará cada caso de forma individual.\n\nPara sesiones en vivo: no se realizará reembolso si el estudiante no asiste a la sesión agendada o si cancela con menos de 5 horas de anticipación. Las sesiones no asistidas se consideran realizadas.`,
+      content: `BLANG no realiza reembolsos por suscripciones una vez procesado el pago. Recomendamos aprovechar la prueba gratuita de 7 días (sin tarjeta de crédito) para conocer la plataforma antes de suscribirse.\n\nEn caso de problemas técnicos graves atribuibles a BLANG que impidan el uso del servicio, se evaluará cada caso de forma individual.\n\nPara sesiones en vivo: no se realizará reembolso si el estudiante no asiste a la sesión agendada o si cancela con menos de 24 horas de anticipación. Las sesiones no asistidas se consideran realizadas.`,
     },
     {
       id: '7', title: '7. Cancelación y Reprogramación de Sesiones en Vivo',
-      content: `Las sesiones en vivo pueden cancelarse o reprogramarse con al menos 5 (cinco) horas de anticipación al horario agendado, enviando la solicitud por los canales de comunicación oficiales de BLANG.\n\nSi la cancelación se realiza con menos de 5 horas de anticipación, la sesión se considerará realizada y no habrá lugar a reembolso ni reprogramación sin costo adicional.\n\nSi el profesor no se presenta a la sesión por razones atribuibles a BLANG, se ofrecerá reprogramación o reembolso total de la sesión afectada.`,
+      content: `Las sesiones en vivo son un servicio adicional con costo separado al plan mensual ($35,000 COP por hora). Para agendar una sesión, el estudiante debe escribir a blangenglishlearning@blangenglish.com, donde se le informarán los horarios disponibles publicados por el equipo de BLANG.\n\nCancelaciones y reprogramaciones:\n\n• Las sesiones pueden cancelarse o reprogramarse con al menos 24 (veinticuatro) horas de anticipación, enviando la solicitud a blangenglishlearning@blangenglish.com.\n• Si la cancelación se realiza con menos de 24 horas de anticipación, la sesión se considerará realizada y no habrá lugar a reembolso ni reprogramación sin costo adicional.\n• Si el profesor no se presenta a la sesión por razones atribuibles a BLANG, se ofrecerá reprogramación o reembolso total de la sesión afectada.`,
     },
     {
       id: '8', title: '8. Propiedad Intelectual y Uso del Contenido',
@@ -72,7 +72,7 @@ export default function Terms({ isLoggedIn, onOpenAuth, onLogout, userName }: Te
     },
     {
       id: '14', title: '14. Contacto',
-      content: `Si tienes preguntas sobre estos Términos de Servicio, puedes contactarnos a través del formulario de la sección de Preguntas Frecuentes o escribirnos directamente por nuestros canales de WhatsApp o Instagram.`,
+      content: `Si tienes preguntas sobre estos Términos de Servicio, puedes contactarnos por cualquiera de estos canales:\n\n• Correo electrónico: blangenglishlearning@blangenglish.com\n• Formulario de contacto en la sección de Preguntas Frecuentes\n• WhatsApp o Instagram (canales oficiales de BLANG)`,
     },
   ];
 
