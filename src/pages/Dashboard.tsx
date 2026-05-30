@@ -358,6 +358,189 @@ function PlanSelector({ currentUserId, currentEmail, onPlanSaved, onOpenPaypal, 
   );
 }
 
+// ── PagoSolicitudForm: formulario directo para solicitar plan mensual ──
+// Usado en: prueba_activa, prueba_finalizada, deshabilitado
+function PagoSolicitudForm({
+  defaultName,
+  defaultEmail,
+  userId,
+  onSuccess,
+}: {
+  defaultName: string;
+  defaultEmail: string;
+  userId: string;
+  onSuccess: () => void;
+}) {
+  const [nombre, setNombre] = useState(defaultName);
+  const [correo, setCorreo] = useState(defaultEmail);
+  const [metodo, setMetodo] = useState<'paypal' | 'bold_pse'>('paypal');
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [formError, setFormError] = useState('');
+
+  const canSubmit = nombre.trim() && correo.trim();
+
+  const handleSubmit = async () => {
+    if (!canSubmit) return;
+    setSending(true);
+    setFormError('');
+    try {
+      // 1. Enviar email al admin (non-fatal)
+      try {
+        await supabase.functions.invoke('send-trial-request-2026', {
+          body: {
+            userName: nombre.trim(),
+            userEmail: correo.trim(),
+            requestType: 'payment_request',
+            paymentMethod: metodo === 'paypal' ? 'PayPal' : 'Bold / PSE',
+            message: `Solicitud de plan mensual. Método: ${metodo === 'paypal' ? 'PayPal' : 'Bold / PSE'}.`,
+          },
+        });
+      } catch (_) { /* non-fatal */ }
+
+      // 2. Actualizar estado en BD
+      if (userId) {
+        await supabase.from('student_profiles').update({
+          trial_active: false,
+          account_status: 'pending_payment',
+          updated_at: new Date().toISOString(),
+        }).eq('id', userId);
+
+        const { error: subUpErr } = await supabase.from('subscriptions').update({
+          trial_active: false,
+          status: 'pending_approval',
+          account_enabled: false,
+          payment_method: metodo === 'paypal' ? 'paypal' : 'bold_pse',
+          updated_at: new Date().toISOString(),
+        }).eq('student_id', userId);
+
+        // Si no había suscripción previa, insertar una nueva
+        if (subUpErr) {
+          const monthEnd = new Date();
+          monthEnd.setMonth(monthEnd.getMonth() + 1);
+          await supabase.from('subscriptions').insert({
+            student_id: userId,
+            plan_slug: 'monthly',
+            plan_name: 'Plan Mensual',
+            status: 'pending_approval',
+            amount_usd: 15,
+            payment_method: metodo === 'paypal' ? 'paypal' : 'bold_pse',
+            approved_by_admin: false,
+            account_enabled: false,
+            current_period_end: monthEnd.toISOString(),
+          });
+        }
+      }
+
+      setSent(true);
+      onSuccess();
+    } catch (_err) {
+      setFormError('Hubo un error al enviar. Por favor intenta de nuevo.');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  if (sent) {
+    return (
+      <div className="rounded-2xl bg-green-50 border-2 border-green-300 p-6 text-center space-y-3">
+        <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mx-auto">
+          <Check className="w-6 h-6 text-green-600" />
+        </div>
+        <h3 className="font-extrabold text-lg">¡Solicitud enviada! 🎉</h3>
+        <p className="text-sm text-muted-foreground">
+          Activaremos tu cuenta en máximo 48 horas hábiles. Recibirás confirmación en <strong>{correo}</strong>.
+        </p>
+        <p className="text-xs text-muted-foreground">
+          ¿Dudas?{' '}
+          <a href="mailto:blangenglishlearning@blangenglish.com" className="text-primary font-semibold hover:underline">
+            blangenglishlearning@blangenglish.com
+          </a>
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-2xl border-2 border-primary/20 bg-background p-5 space-y-4">
+      <div>
+        <h3 className="font-extrabold text-base mb-0.5">💳 Adquirir Plan Mensual</h3>
+        <p className="text-sm text-muted-foreground">$15 USD / $55,000 COP al mes · Acceso completo a todos los cursos</p>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label className="text-sm font-semibold">Nombre completo *</Label>
+        <Input
+          value={nombre}
+          onChange={e => setNombre(e.target.value)}
+          placeholder="Tu nombre completo"
+          className="rounded-xl"
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <Label className="text-sm font-semibold">Correo electrónico *</Label>
+        <Input
+          type="email"
+          value={correo}
+          onChange={e => setCorreo(e.target.value)}
+          placeholder="tucorreo@ejemplo.com"
+          className="rounded-xl"
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <Label className="text-sm font-semibold">Método de pago *</Label>
+        <div className="grid grid-cols-2 gap-2">
+          {(['paypal', 'bold_pse'] as const).map(m => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => setMetodo(m)}
+              className={`py-3 rounded-xl font-bold text-sm border-2 transition-all ${
+                metodo === m
+                  ? 'border-primary bg-primary/10 text-primary shadow-sm'
+                  : 'border-border/50 text-muted-foreground hover:border-primary/40 hover:text-foreground'
+              }`}
+            >
+              {m === 'paypal' ? '💳 PayPal' : '🏦 Bold / PSE'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="bg-muted/30 rounded-xl p-3 text-xs text-muted-foreground leading-relaxed">
+        Al enviar, el administrador verificará el pago y activará tu cuenta en máximo 48 horas hábiles. Escríbenos a{' '}
+        <a href="mailto:blangenglishlearning@blangenglish.com" className="text-primary font-semibold">
+          blangenglishlearning@blangenglish.com
+        </a>{' '}con cualquier duda.
+      </div>
+
+      {formError && (
+        <p className="text-sm text-destructive bg-destructive/10 rounded-xl px-4 py-2">{formError}</p>
+      )}
+
+      <Button
+        className="w-full rounded-xl py-5 font-bold"
+        onClick={handleSubmit}
+        disabled={sending || !canSubmit}
+      >
+        {sending ? (
+          <span className="flex items-center gap-2">
+            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            Enviando solicitud...
+          </span>
+        ) : (
+          <span className="flex items-center gap-2">
+            <Mail className="w-4 h-4" />
+            Enviar solicitud de pago
+          </span>
+        )}
+      </Button>
+    </div>
+  );
+}
+
 // ── TrialPaymentActiveBlock: pantalla de pagos DURANTE el período de prueba ──
 // SOLO muestra: mensaje bienvenida + fecha vencimiento + 2 botones exactos
 // ⚠️ NUNCA muestra planes adicionales, precios ni más opciones aquí
@@ -2682,69 +2865,91 @@ useEffect(() => {
                     }
 
                     // ─── PRUEBA_ACTIVA: período de 7 días en curso ───
-                    // Solo 2 botones: "Quiero pagar" (abre OnboardingFlow en PAYMENT_SELECTION) y "Terminar"
                     if (estado === 'prueba_activa') {
                       return (
-                        <TrialPaymentActiveBlock
-                          fmt={fmt}
-                          trialEnd={trialEnd}
-                          regDate={regDate}
-                          payConfig={payConfig}
-                          onCancelTrial={async () => {
-                            // Botón 2: Cancelar suscripción — desactiva cuenta completamente en BD
-                            if (currentUserId) {
-                              await supabase.from('student_profiles').update({
-                                trial_active: false,
-                                account_status: 'disabled',
-                                account_enabled: false,
-                              }).eq('id', currentUserId);
-                              await supabase.from('subscriptions').update({
-                                trial_active: false,
-                                status: 'cancelled',
-                                account_enabled: false,
-                              }).eq('student_id', currentUserId);
-                              await supabase.from('payment_history').insert({
-                                student_id: currentUserId,
-                                event_type: 'cancelled',
-                                amount_usd: 0,
-                                payment_method: 'none',
-                                notes: 'Usuario canceló suscripción desde prueba activa',
-                              });
-                              // Recargar perfil reactivamente (sin reload de página)
-                              await refreshProfile(currentUserId);
-                            }
-                          }}
-                          onWantPay={async () => {
-                            // Botón 1: Pagar plan mensual — finaliza trial y abre formulario de pago
-                            if (currentUserId) {
-                              await supabase.from('student_profiles').update({
-                                trial_active: false,
-                                account_status: 'pending_payment',
-                              }).eq('id', currentUserId);
-                              await supabase.from('subscriptions').update({
-                                trial_active: false,
-                                status: 'pending',
-                              }).eq('student_id', currentUserId);
-                            }
-                            setOnboardingInitialStep('plan');
-                            setShowLevelOnboarding(true);
-                          }}
-                        />
+                        <div className="space-y-4">
+                          {/* Banner prueba activa */}
+                          <div className="rounded-2xl border-2 border-green-400 bg-gradient-to-br from-green-50 to-emerald-50/60 p-5 shadow-sm relative overflow-hidden">
+                            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-green-400 to-emerald-500" />
+                            <div className="flex items-start gap-4">
+                              <div className="w-12 h-12 rounded-2xl bg-green-100 flex items-center justify-center text-2xl shrink-0">🌱</div>
+                              <div className="flex-1">
+                                <span className="inline-block text-xs font-bold px-3 py-1 rounded-full mb-2 bg-green-100 text-green-700 border border-green-200">
+                                  ✅ Prueba activa
+                                </span>
+                                <h2 className="font-extrabold text-lg leading-snug mb-1">
+                                  Tienes acceso completo hasta el{' '}
+                                  <span className="text-green-700 underline decoration-dotted">{fmt(trialEnd)}</span>
+                                </h2>
+                                <p className="text-xs text-muted-foreground">Solicita el plan mensual ahora para no perder el acceso al vencer</p>
+                              </div>
+                            </div>
+                            <div className="mt-4 grid grid-cols-2 gap-3">
+                              <div className="bg-white/70 rounded-xl p-3 border border-green-200/60">
+                                <p className="text-xs text-muted-foreground mb-0.5">📅 Activación</p>
+                                <p className="font-bold text-sm">{fmt(regDate)}</p>
+                              </div>
+                              <div className="bg-white/70 rounded-xl p-3 border border-green-200/60">
+                                <p className="text-xs text-muted-foreground mb-0.5">⏰ Vencimiento</p>
+                                <p className="font-bold text-sm text-green-700">{fmt(trialEnd)}</p>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Formulario de pago */}
+                          <PagoSolicitudForm
+                            defaultName={profileForm.name || userName || ''}
+                            defaultEmail={currentEmail || ''}
+                            userId={currentUserId}
+                            onSuccess={async () => { if (currentUserId) await refreshProfile(currentUserId); }}
+                          />
+
+                          {/* Cancelar */}
+                          <div className="text-center pt-1">
+                            <button
+                              className="text-xs text-muted-foreground hover:text-destructive transition-colors underline-offset-2 hover:underline"
+                              onClick={async () => {
+                                if (currentUserId) {
+                                  await supabase.from('student_profiles').update({
+                                    trial_active: false, account_status: 'disabled', account_enabled: false,
+                                  }).eq('id', currentUserId);
+                                  await supabase.from('subscriptions').update({
+                                    trial_active: false, status: 'cancelled', account_enabled: false,
+                                  }).eq('student_id', currentUserId);
+                                  await refreshProfile(currentUserId);
+                                }
+                              }}
+                            >
+                              🚪 No me interesa por ahora — cancelar suscripción
+                            </button>
+                          </div>
+                        </div>
                       );
                     }
 
-                    // ─── PRUEBA_FINALIZADA / sin suscripción / cancelada ───
-                    // ⚠️ SOLO llegan aquí estudiantes cuya prueba ya venció
-                    // ⚠️ No es lo mismo que 'deshabilitado' — usa modo trial_expired
+                    // ─── PRUEBA_FINALIZADA / cancelada ───
                     if (estado === 'prueba_finalizada') {
                       return (
-                        <TrialPaymentBlock
-                          fmtDate={fmt}
-                          trialEnd={trialEnd}
-                          payConfig={payConfig}
-                          mode="trial_expired"
-                          onSelectPlan={onPay}
-                        />
+                        <div className="space-y-4">
+                          <div className="rounded-2xl bg-orange-50 border-2 border-orange-200 p-5 shadow-sm relative overflow-hidden">
+                            <div className="absolute top-0 left-0 right-0 h-1 bg-orange-400" />
+                            <div className="flex items-center gap-3">
+                              <span className="text-3xl shrink-0">⌛</span>
+                              <div>
+                                <p className="font-extrabold text-orange-900">Tu período de prueba ha terminado</p>
+                                <p className="text-sm text-orange-800 mt-0.5">
+                                  La prueba gratuita venció el <strong>{fmt(trialEnd)}</strong>. Solicita el plan mensual para continuar aprendiendo.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                          <PagoSolicitudForm
+                            defaultName={profileForm.name || userName || ''}
+                            defaultEmail={currentEmail || ''}
+                            userId={currentUserId}
+                            onSuccess={async () => { if (currentUserId) await refreshProfile(currentUserId); }}
+                          />
+                        </div>
                       );
                     }
 
@@ -2776,57 +2981,82 @@ useEffect(() => {
                       );
                     }
 
-                    // ─── DESHABILITADO: admin deshabilitó cuenta ───
-                    // ⚠️ ÚNICO estado donde se muestran planes, precios y métodos de pago
+                    // ─── DESHABILITADO: cuenta desactivada (plan vencido o admin) ───
                     if (estado === 'deshabilitado') {
                       return (
-                        <TrialPaymentBlock
-                          fmtDate={fmt}
-                          trialEnd={trialEnd}
-                          payConfig={payConfig}
-                          mode="reactivate"
-                          onSelectPlan={onPay}
-                        />
+                        <div className="space-y-4">
+                          <div className="rounded-2xl bg-red-50 border-2 border-red-200 p-5 shadow-sm relative overflow-hidden">
+                            <div className="absolute top-0 left-0 right-0 h-1 bg-red-400" />
+                            <div className="flex items-center gap-3">
+                              <span className="text-3xl shrink-0">🔒</span>
+                              <div>
+                                <p className="font-extrabold text-red-900">Tu cuenta está deshabilitada</p>
+                                <p className="text-sm text-red-800 mt-0.5">
+                                  {sub?.status === 'expired'
+                                    ? `Tu plan venció el ${fmt(nextBilling)}. Envía tu solicitud de renovación para reactivar el acceso.`
+                                    : 'Solicita el plan mensual para reactivar tu acceso completo a todos los cursos.'
+                                  }
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                          <PagoSolicitudForm
+                            defaultName={profileForm.name || userName || ''}
+                            defaultEmail={currentEmail || ''}
+                            userId={currentUserId}
+                            onSuccess={async () => { if (currentUserId) await refreshProfile(currentUserId); }}
+                          />
+                        </div>
                       );
                     }
 
-                    // ─── ACTIVO: pago aprobado, todo OK ───
+                    // ─── ACTIVO: plan mensual activo ───
                     return (
                       <div className="space-y-4">
-                        <div className="rounded-2xl border-2 border-green-300 bg-green-50/30 p-5 shadow-sm relative overflow-hidden">
-                          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-green-400 to-emerald-400" />
-                          <div className="flex items-start justify-between gap-3">
+                        {/* Card principal: Plan activo */}
+                        <div className="rounded-2xl border-2 border-green-300 bg-gradient-to-br from-green-50 to-emerald-50/40 p-5 shadow-sm relative overflow-hidden">
+                          <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-green-400 to-emerald-400" />
+                          <div className="flex items-start justify-between gap-3 mb-4">
                             <div className="flex-1">
-                              <span className="inline-block text-xs font-bold px-3 py-1 rounded-full mb-3 bg-green-100 text-green-700">✅ Suscripción activa</span>
-                              <h2 className="font-extrabold text-xl">{sub?.plan_name}</h2>
+                              <span className="inline-block text-xs font-bold px-3 py-1 rounded-full mb-2 bg-green-100 text-green-700 border border-green-200">
+                                ✅ Plan activo
+                              </span>
+                              <h2 className="font-extrabold text-xl text-green-900">{sub?.plan_name || 'Plan Mensual'}</h2>
                             </div>
                             <div className="text-right shrink-0">
-                              <p className="font-extrabold text-2xl">${sub?.amount_usd} <span className="text-sm font-normal text-muted-foreground">USD/mes</span></p>
+                              <p className="font-extrabold text-2xl text-green-800">${sub?.amount_usd}</p>
+                              <p className="text-xs text-muted-foreground">USD / mes</p>
                             </div>
                           </div>
-                          <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
-                            <div className="bg-background/70 rounded-xl p-3 border border-border/40">
+                          {/* Fechas y método */}
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            <div className="bg-white/70 rounded-xl p-3 border border-green-200/60">
                               <p className="text-xs text-muted-foreground mb-0.5">📅 Fecha de inicio</p>
                               <p className="font-bold text-sm">{fmt(regDate)}</p>
                             </div>
-                            {nextBilling && (
-                              <div className="bg-background/70 rounded-xl p-3 border border-border/40">
-                                <p className="text-xs text-muted-foreground mb-0.5">📆 Próximo cobro</p>
-                                <p className="font-bold text-sm">{fmt(nextBilling)}</p>
-                              </div>
-                            )}
-                            <div className="bg-background/70 rounded-xl p-3 border border-border/40">
-                              <p className="text-xs text-muted-foreground mb-0.5">💰 Monto</p>
-                              <p className="font-bold text-sm">${sub?.amount_usd} USD</p>
+                            <div className="bg-white/70 rounded-xl p-3 border border-green-200/60">
+                              <p className="text-xs text-muted-foreground mb-0.5">📆 Vence el</p>
+                              <p className="font-bold text-sm text-green-700">{fmt(nextBilling)}</p>
+                            </div>
+                            <div className="bg-white/70 rounded-xl p-3 border border-green-200/60 col-span-2 sm:col-span-1">
+                              <p className="text-xs text-muted-foreground mb-0.5">💳 Método de pago</p>
+                              <p className="font-bold text-sm capitalize">{sub?.payment_method?.replace('_', ' / ') || '—'}</p>
                             </div>
                           </div>
                         </div>
-                        <div className="rounded-2xl bg-green-50 border-2 border-green-200 p-5 shadow-sm">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Check className="w-5 h-5 text-green-600" />
-                            <p className="font-bold text-green-900">✅ Pago confirmado — acceso completo habilitado</p>
+
+                        {/* Confirmación */}
+                        <div className="rounded-2xl bg-green-50 border border-green-200 p-4 flex items-start gap-3">
+                          <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center shrink-0 mt-0.5">
+                            <Check className="w-4 h-4 text-green-600" />
                           </div>
-                          <p className="text-sm text-green-800">Tienes acceso completo a todos tus cursos.</p>
+                          <div>
+                            <p className="font-bold text-green-900 text-sm">Pago confirmado — acceso completo habilitado</p>
+                            <p className="text-xs text-green-700 mt-0.5">
+                              Tienes acceso a todos los cursos y módulos de BLANG English. Al vencer tu plan,
+                              encontrarás aquí el formulario de renovación.
+                            </p>
+                          </div>
                         </div>
                       </div>
                     );
