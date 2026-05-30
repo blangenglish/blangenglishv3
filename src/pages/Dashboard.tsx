@@ -26,6 +26,7 @@ import {
   ExternalLink, Copy, MessageSquare, Sparkles, Globe,
 } from 'lucide-react';
 import { EnglishForYou } from '@/components/EnglishForYou';
+import { ClasesVirtualesModal } from '@/components/ClasesVirtualesModal';
 import { MUNDO_REAL_TOPICS, MR_CATEGORIES } from '@/pages/MundoRealData';
 
 interface DashboardProps {
@@ -48,7 +49,7 @@ const LEVEL_COLORS: Record<string, { color: string; badge: string }> = {
 const FAQ_QUICK = [
   { q: '¿Cómo cancelo mi suscripción?', a: 'Ve a la pestaña "Pagos" en tu perfil y selecciona "Cancelar suscripción". Tu acceso continuará hasta el final del período pagado.' },
   { q: '¿Puedo cambiar mi correo?', a: 'Por seguridad el correo no se puede cambiar directamente. Escríbenos a blangenglishlearning@blangenglish.com con tu solicitud.' },
-  { q: '¿Cómo reservo una sesión en vivo?', a: 'Desde la sección "Sesiones en Vivo" en el inicio podrás reservar. Recuerda que el costo es de $10 USD por hora.' },
+  { q: '¿Cómo reservo una sesión en vivo?', a: 'Desde la sección "Sesión con Profesor" del menú podrás ver los horarios disponibles y reservar. El costo es de $35,000 COP por hora. Para un plan mensual personalizado escríbenos a blangenglishlearning@blangenglish.com.' },
   { q: '¿Cómo funciona la práctica con IA?', a: 'Al final de cada unidad encontrarás el paso 5 de práctica con IA, donde podrás conversar y escribir con inteligencia artificial para reforzar lo aprendido.' },
   { q: '¿Qué pasa si tengo un problema técnico?', a: 'Escríbenos usando el formulario de la sección de Preguntas Frecuentes o por nuestros canales de WhatsApp e Instagram.' },
 ];
@@ -806,6 +807,8 @@ const [loadingUnits, setLoadingUnits] = useState<string | null>(null);
   // Modal payment tab state (used in showPaypalModal)
   const [modalTab, setModalTab] = useState<'paypal'|'pse'>('paypal');
   const [modalCopied, setModalCopied] = useState(false);
+
+  const [showClasesModal, setShowClasesModal] = useState(false);
 
   // Schedule slots (sesión con profesor)
   const [scheduleSlots, setScheduleSlots] = useState<{ id: string; date: string; start_time: string; end_time: string; teacher_name: string; available_spots: number }[]>([]);
@@ -2140,8 +2143,31 @@ useEffect(() => {
                       )}
 
                       <p className="text-xs text-muted-foreground text-center mt-5">
-                        💳 El pago se coordina directamente con el profesor · $10 USD / hora
+                        💳 El pago se coordina por correo · $35,000 COP / hora
                       </p>
+                    </div>
+                  </div>
+
+                  {/* ── CLASES VIRTUALES PERSONALIZADAS MENSUALES ── */}
+                  <div className="bg-gradient-to-br from-indigo-50 to-violet-50 border-2 border-indigo-200 rounded-2xl p-5">
+                    <div className="flex items-start gap-4">
+                      <div className="w-12 h-12 rounded-2xl bg-indigo-100 flex items-center justify-center text-2xl shrink-0">
+                        📅
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-extrabold text-base text-foreground mb-1">
+                          Clases Virtuales Personalizadas Mensuales
+                        </h3>
+                        <p className="text-sm text-muted-foreground leading-relaxed mb-3">
+                          ¿Quieres un plan mensual fijo? Elige tus días, horario y frecuencia semanal. Nosotros te asignamos el mismo horario todos los meses.
+                        </p>
+                        <Button
+                          className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-5 py-2.5 h-auto"
+                          onClick={() => setShowClasesModal(true)}
+                        >
+                          Solicitar plan mensual →
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </motion.div>
@@ -3667,6 +3693,14 @@ useEffect(() => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ── MODAL: CLASES VIRTUALES PERSONALIZADAS MENSUALES ── */}
+      <ClasesVirtualesModal
+        open={showClasesModal}
+        onClose={() => setShowClasesModal(false)}
+        defaultName={profileForm.name || userName || ''}
+        defaultEmail={currentEmail || ''}
+      />
     </div>
   );
 }

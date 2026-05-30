@@ -12,6 +12,7 @@ import { IMAGES } from '@/assets/images';
 import { supabase } from '@/integrations/supabase/client';
 import { MODULES } from '@/components/EnglishForYou';
 import { MUNDO_REAL_TOPICS } from '@/pages/MundoRealData';
+import { ClasesVirtualesModal } from '@/components/ClasesVirtualesModal';
 
 const staggerContainer = {
   hidden: { opacity: 0 },
@@ -50,6 +51,7 @@ const METHODOLOGY_STEPS = [
 export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
   const [ctaEmail, setCtaEmail] = useState('');
   const navigate = useNavigate();
+  const [showClasesModal, setShowClasesModal] = useState(false);
   const [reviews, setReviews] = useState<{ rating: number; comment: string }[]>([]);
   const [moduleContent, setModuleContent] = useState<Record<string, { id: string; title: string; rich_text: string; sort_order: number }[]>>({});
 
@@ -669,6 +671,13 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
                     >
                       Reservar sesión 📅
                     </Button>
+                    <Button
+                      size="lg"
+                      className="w-full bg-white/20 hover:bg-white/30 border border-white/40 text-white font-bold text-sm sm:text-base py-4 sm:py-5 rounded-2xl transition-all active:scale-[0.98]"
+                      onClick={() => setShowClasesModal(true)}
+                    >
+                      📅 Clases Virtuales Personalizadas Mensuales
+                    </Button>
                   </div>
                 </div>
 
@@ -755,6 +764,10 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
         </section>
       )}
 
+      <ClasesVirtualesModal
+        open={showClasesModal}
+        onClose={() => setShowClasesModal(false)}
+      />
     </Layout>
   );
 }
