@@ -524,6 +524,7 @@ export default function AdminStudents() {
     notes: string;
   }>>({});
   const [activating, setActivating] = useState<string | null>(null);
+  const [activatingTrial, setActivatingTrial] = useState<string | null>(null);
   const getActivationForm = (studentId: string) => activationForm[studentId] || {
     activationDate: new Date().toISOString().split('T')[0],
     amount: '15',
@@ -842,6 +843,26 @@ export default function AdminStudents() {
     try { await adminUpdate('subscriptions', { status: 'cancelled', account_enabled: false, updated_at: new Date().toISOString() }, studentId); } catch(e) { console.error(e); }
     try { await adminUpdate('student_profiles', { account_enabled: false, account_status: 'cancelled', updated_at: new Date().toISOString() }, studentId); } catch(e) { console.error(e); }
     await loadStudents();
+  };
+
+  const activateTrial = async (studentId: string) => {
+    setActivatingTrial(studentId);
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-update-student', {
+        body: { action: 'activate_trial', student_id: studentId },
+      });
+      if (error || !data?.success) {
+        showMsg('error', `Error: ${error?.message || data?.error || 'Error inesperado'}`);
+        return;
+      }
+      const trialEnd = data.trial_ends_at
+        ? new Date(data.trial_ends_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'long' })
+        : '7 días';
+      showMsg('success', `🎉 Prueba de 7 días activada. Vence el ${trialEnd}. Se notificó al estudiante por correo.`);
+      await loadStudents();
+    } finally {
+      setActivatingTrial(null);
+    }
   };
 
   const changeStatus = async (studentId: string, status: string) => {
@@ -1646,7 +1667,46 @@ export default function AdminStudents() {
                                 );
                               })()}
 
-                              {/* ════ 6. ELIMINAR CUENTA PERMANENTEMENTE ════ */}
+                              {/* ════ 6. HABILITAR 7 DÍAS DE PRUEBA ════ */}
+                              <div className="flex items-start gap-3 bg-indigo-50 border border-indigo-200 rounded-xl p-4">
+                                <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center shrink-0 mt-0.5">
+                                  <span className="text-base">🎁</span>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-bold text-sm text-indigo-900">Habilitar 7 días de prueba gratuita</p>
+                                  <p className="text-xs text-indigo-700 mt-0.5 leading-relaxed">
+                                    Activa acceso completo por exactamente 7 días. Al vencer, la cuenta se desactiva automáticamente y el estudiante recibe un correo. Se envía notificación de bienvenida al activar.
+                                    {sub?.status === 'trial' && sub?.trial_ends_at && (
+                                      <span className="block mt-1 font-semibold text-indigo-800">
+                                        ⚠️ Ya tiene prueba activa — vence el{' '}
+                                        {new Date(sub.trial_ends_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                      </span>
+                                    )}
+                                  </p>
+                                </div>
+                                <Button
+                                  size="sm"
+                                  className="rounded-xl text-xs shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white gap-1 whitespace-nowrap"
+                                  disabled={activatingTrial === student.id}
+                                  onClick={() => setConfirmAction({
+                                    open: true,
+                                    title: '🎁 ¿Activar prueba de 7 días?',
+                                    msg: `Se habilitará acceso completo para ${student.full_name} durante 7 días. Al vencer se desactivará automáticamente.`,
+                                    fn: async () => activateTrial(student.id),
+                                  })}
+                                >
+                                  {activatingTrial === student.id ? (
+                                    <span className="flex items-center gap-1.5">
+                                      <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                      Activando...
+                                    </span>
+                                  ) : (
+                                    '🎁 Activar prueba'
+                                  )}
+                                </Button>
+                              </div>
+
+                              {/* ════ 7. ELIMINAR CUENTA PERMANENTEMENTE ════ */}
                               <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-xl p-4">
                                 <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center shrink-0 mt-0.5">
                                   <Trash2 className="w-4 h-4 text-red-600" />
@@ -1667,7 +1727,7 @@ export default function AdminStudents() {
                                 </Button>
                               </div>
 
-                              {/* ════ 7. DETALLES DE LA SUSCRIPCIÓN ════ */}
+                              {/* ════ 8. DETALLES DE LA SUSCRIPCIÓN ════ */}
                               <div className="rounded-xl border border-border/50 bg-muted/20 overflow-hidden">
                                 <div className="bg-muted/40 px-4 py-2.5 border-b border-border/40 flex items-center gap-2">
                                   <CreditCard className="w-4 h-4 text-primary" />
@@ -1690,7 +1750,7 @@ export default function AdminStudents() {
                                 </div>
                               </div>
 
-                              {/* ════ 8. HABILITAR PAGOS (FORMULARIO) ════ */}
+                              {/* ════ 9. HABILITAR PAGOS (FORMULARIO) ════ */}
                               <div className="rounded-xl border-2 border-primary/30 overflow-hidden">
                                 <div className={`px-4 py-3 flex items-center gap-2 ${sub && sub.status === 'active' && sub.approved_by_admin === true ? 'bg-blue-600' : 'bg-primary'}`}>
                                   <ShieldCheck className="w-4 h-4 text-white" />
@@ -1767,7 +1827,7 @@ export default function AdminStudents() {
                                 </div>
                               </div>
 
-                              {/* ════ 9. HISTORIAL DE PAGOS ════ */}
+                              {/* ════ 10. HISTORIAL DE PAGOS ════ */}
                               {(() => {
                                 const hist = studentPayHistory[student.id] || [];
                                 const sub = student.subscription;

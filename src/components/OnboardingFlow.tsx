@@ -226,7 +226,7 @@ export function OnboardingFlow({
 
       try {
         const { error: edError2 } = await supabase.functions.invoke('send-trial-request-2026', {
-          body: { userName: payName, userEmail: payEmail, message: msg, requestType },
+          body: { userName: payName, userEmail: payEmail, message: msg, requestType, paymentMethod: payMethod },
         });
         if (edError2) console.warn('[Payment email non-fatal]', edError2);
       } catch (_payEmErr) {
