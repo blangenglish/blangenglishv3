@@ -496,6 +496,7 @@ export default function AdminStudents() {
   };
   const [coursesForAccess, setCoursesForAccess] = useState<Array<{id: string; title: string; emoji: string; level?: string; units?: Array<{id: string; title: string}>}>>([]);
   const [studentModuleAccess, setStudentModuleAccess] = useState<Record<string, string[]>>({});
+  const [expandedAccessLevel, setExpandedAccessLevel] = useState<Record<string, string | null>>({});
   const [resetSent, setResetSent] = useState<string | null>(null);
   const [resetting, setResetting] = useState<string | null>(null);
   const [sessionRequests, setSessionRequests] = useState<SessionRequestRow[]>([]);
@@ -1053,6 +1054,45 @@ export default function AdminStudents() {
     await loadStudentModuleAccess(studentId);
   };
 
+  // Habilitar todas las unidades de un nivel
+  const grantLevelUnits = async (studentId: string, course: { id: string; units?: { id: string }[] }) => {
+    const units = course.units || [];
+    const allIds = [course.id, ...units.map(u => u.id)];
+    setStudentModuleAccess(prev => ({
+      ...prev,
+      [studentId]: [...new Set([...(prev[studentId] || []), ...allIds])],
+    }));
+    try {
+      const now = new Date().toISOString();
+      await adminDeleteByFilter('student_module_access', { student_id: studentId, course_id: course.id });
+      const records = [
+        { student_id: studentId, course_id: course.id, is_active: true, granted_at: now },
+        ...units.map(u => ({ student_id: studentId, course_id: course.id, unit_id: u.id, is_active: true, granted_at: now })),
+      ];
+      await adminInsert('student_module_access', records);
+    } catch (e) {
+      console.error('[grantLevelUnits] error:', e);
+      showMsg('error', '❌ Error al habilitar el nivel.');
+    }
+    await loadStudentModuleAccess(studentId);
+  };
+
+  // Deshabilitar todas las unidades de un nivel
+  const revokeLevelUnits = async (studentId: string, course: { id: string; units?: { id: string }[] }) => {
+    const allIds = [course.id, ...(course.units || []).map(u => u.id)];
+    setStudentModuleAccess(prev => ({
+      ...prev,
+      [studentId]: (prev[studentId] || []).filter(id => !allIds.includes(id)),
+    }));
+    try {
+      await adminDeleteByFilter('student_module_access', { student_id: studentId, course_id: course.id });
+    } catch (e) {
+      console.error('[revokeLevelUnits] error:', e);
+      showMsg('error', '❌ Error al deshabilitar el nivel.');
+    }
+    await loadStudentModuleAccess(studentId);
+  };
+
   const totalProgress = (s: StudentRow) => {
     const progs = s.progress || [];
     if (!progs.length) return 0;
@@ -1457,73 +1497,128 @@ export default function AdminStudents() {
                             return (
                             <div className="space-y-5">
 
-                              {/* ════ 2. HABILITAR ACCESO AL CURSO (individual por módulo) ════ */}
-                              <div className="bg-green-50 border border-green-200 rounded-xl overflow-hidden">
-                                <div className="flex items-center justify-between px-4 py-3 border-b border-green-200">
+                              {/* ════ 2. HABILITAR ACCESO AL CURSO ════ */}
+                              <div className="border border-green-200 rounded-2xl overflow-hidden bg-green-50/40">
+
+                                {/* ── Header ── */}
+                                <div className="flex items-center justify-between px-4 py-3 border-b border-green-200 bg-green-50">
                                   <div className="flex items-center gap-2">
-                                    <Unlock className="w-4 h-4 text-green-600" />
+                                    <Unlock className="w-4 h-4 text-green-700" />
                                     <p className="font-bold text-sm text-green-900">Habilitar acceso al curso</p>
                                   </div>
                                   <div className="flex gap-2">
-                                    <Button size="sm" className="rounded-xl text-xs bg-emerald-600 hover:bg-emerald-700 text-white gap-1 h-7"
-                                      onClick={() => grantAllCourses(student.id)}>
+                                    <Button
+                                      size="sm"
+                                      className="rounded-xl text-xs bg-emerald-600 hover:bg-emerald-700 text-white h-7 px-3"
+                                      onClick={() => grantAllCourses(student.id)}
+                                    >
                                       ✅ Habilitar todos
                                     </Button>
-                                    <Button size="sm" className="rounded-xl text-xs bg-rose-600 hover:bg-rose-700 text-white gap-1 h-7"
+                                    <Button
+                                      size="sm"
+                                      className="rounded-xl text-xs bg-rose-600 hover:bg-rose-700 text-white h-7 px-3"
                                       onClick={() => setConfirmAction({
                                         open: true,
                                         title: '🔒 ¿Deshabilitar todos los módulos?',
                                         msg: `Se quitará el acceso a todos los cursos y unidades de ${student.full_name}.`,
                                         fn: () => revokeAllCourses(student.id),
-                                      })}>
+                                      })}
+                                    >
                                       🔒 Deshabilitar todos
                                     </Button>
                                   </div>
                                 </div>
-                                <div className="p-4">
-                                  <p className="text-xs text-green-700 mb-3">Activa o desactiva el acceso por módulo individualmente. Los cambios se guardan de inmediato.</p>
+
+                                {/* ── Cards de nivel ── */}
+                                <div className="p-4 space-y-2">
                                   {coursesForAccess.length === 0 ? (
-                                    <p className="text-sm text-muted-foreground text-center py-4">No hay cursos disponibles</p>
-                                  ) : (
-                                    <div className="space-y-2">
-                                      {coursesForAccess.map(course => {
-                                        const LEVEL_ORDER_ADMIN = ['A1','A2','B1','B2','C1'];
-                                        const studentLvl = student.english_level || '';
-                                        const studentLvlIdx = LEVEL_ORDER_ADMIN.indexOf(studentLvl);
-                                        const courseLvlIdx = LEVEL_ORDER_ADMIN.indexOf(course.level || '');
-                                        const explicitGrant = (studentModuleAccess[student.id] || []).includes(course.id);
-                                        const anyUnitGranted = (course.units || []).some(u => (studentModuleAccess[student.id] || []).includes(u.id));
-                                        const levelGrant = student.account_enabled !== false && studentLvlIdx >= 0 && courseLvlIdx >= 0 && courseLvlIdx <= studentLvlIdx;
-                                        const courseGranted = explicitGrant || anyUnitGranted || levelGrant;
-                                        return (
-                                          <div key={course.id} className="border border-border/50 rounded-xl overflow-hidden bg-background">
-                                            <div className="flex items-center gap-3 p-3 bg-muted/20">
-                                              <span className="text-lg">{course.emoji || '📖'}</span>
-                                              <div className="flex-1">
-                                                <p className="font-bold text-xs">{course.title}</p>
-                                                <p className="text-[11px] text-muted-foreground">{course.units?.length || 0} unidades</p>
-                                              </div>
-                                              <button
-                                                onClick={() => toggleLevelWithUnits(student.id, course, courseGranted)}
-                                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-colors ${
-                                                  courseGranted ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : 'bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary'
-                                                }`}>
-                                                {courseGranted ? <><ToggleRight className="w-3.5 h-3.5" /> Activo</> : <><ToggleLeft className="w-3.5 h-3.5" /> Inactivo</>}
-                                              </button>
+                                    <p className="text-sm text-muted-foreground text-center py-6">No hay cursos disponibles</p>
+                                  ) : coursesForAccess.map(course => {
+                                    const granted     = studentModuleAccess[student.id] || [];
+                                    const courseActive = granted.includes(course.id) || (course.units || []).some(u => granted.includes(u.id));
+                                    const units        = course.units || [];
+                                    const allActive    = units.length > 0 && units.every(u => granted.includes(u.id));
+                                    const isOpen       = expandedAccessLevel[student.id] === course.id;
+
+                                    return (
+                                      <div key={course.id} className="rounded-xl border border-border/60 overflow-hidden bg-white shadow-sm">
+
+                                        {/* Card header — click para expandir */}
+                                        <button
+                                          type="button"
+                                          onClick={() => setExpandedAccessLevel(prev => ({
+                                            ...prev,
+                                            [student.id]: isOpen ? null : course.id,
+                                          }))}
+                                          className="w-full flex items-center gap-3 px-4 py-3 hover:bg-green-50/60 transition-colors text-left"
+                                        >
+                                          {/* Emoji + info */}
+                                          <span className="text-2xl shrink-0">{course.emoji || '📖'}</span>
+                                          <div className="flex-1 min-w-0">
+                                            <p className="font-extrabold text-sm leading-tight">{course.level || course.title}</p>
+                                            <p className="text-[11px] text-muted-foreground truncate">{course.title} · {units.length} unidades</p>
+                                          </div>
+
+                                          {/* Badge de estado */}
+                                          <span className={`shrink-0 text-[11px] font-bold px-2.5 py-1 rounded-full border ${
+                                            courseActive
+                                              ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
+                                              : 'bg-gray-100 text-gray-500 border-gray-200'
+                                          }`}>
+                                            {courseActive ? '✅ Activo' : '🔒 Inactivo'}
+                                          </span>
+
+                                          {/* Chevron */}
+                                          <ChevronDown className={`w-4 h-4 text-muted-foreground shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+                                        </button>
+
+                                        {/* Contenido expandido */}
+                                        {isOpen && (
+                                          <div className="border-t border-border/40 bg-gray-50/60 p-3 space-y-3">
+
+                                            {/* Botones de nivel */}
+                                            <div className="flex gap-2">
+                                              <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="rounded-xl text-xs h-7 border-emerald-300 text-emerald-700 hover:bg-emerald-50 font-bold"
+                                                onClick={() => grantLevelUnits(student.id, course)}
+                                              >
+                                                ✅ Habilitar todas
+                                              </Button>
+                                              <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="rounded-xl text-xs h-7 border-rose-300 text-rose-600 hover:bg-rose-50 font-bold"
+                                                onClick={() => revokeLevelUnits(student.id, course)}
+                                              >
+                                                🔒 Deshabilitar todas
+                                              </Button>
                                             </div>
-                                            {course.units && course.units.length > 0 && (
-                                              <div className="divide-y divide-border/20">
-                                                {course.units.map(unit => {
-                                                  const unitGranted = (studentModuleAccess[student.id] || []).includes(unit.id);
+
+                                            {/* Unidades */}
+                                            {units.length === 0 ? (
+                                              <p className="text-xs text-muted-foreground py-2 text-center">Sin unidades</p>
+                                            ) : (
+                                              <div className="space-y-1">
+                                                {units.map(unit => {
+                                                  const unitActive = granted.includes(unit.id);
                                                   return (
-                                                    <div key={unit.id} className="flex items-center justify-between px-4 py-2 bg-background/50 pl-9">
-                                                      <p className="text-[11px] text-muted-foreground">{unit.title}</p>
+                                                    <div key={unit.id} className="flex items-center justify-between px-3 py-2 rounded-lg bg-white border border-border/30 hover:border-border/60 transition-colors">
+                                                      <p className="text-xs text-foreground/80 flex-1 min-w-0 truncate pr-3">{unit.title}</p>
                                                       <button
-                                                        onClick={() => toggleModuleAccess(student.id, course.id, unit.id, unitGranted)}
-                                                        className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold transition-colors ${
-                                                          unitGranted ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100' : 'bg-muted/60 text-muted-foreground hover:text-primary'
-                                                        }`}>
-                                                        {unitGranted ? 'Activa' : 'Inactiva'}
+                                                        type="button"
+                                                        onClick={() => toggleModuleAccess(student.id, course.id, unit.id, unitActive)}
+                                                        className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                                                          unitActive
+                                                            ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border border-emerald-200'
+                                                            : 'bg-gray-100 text-gray-500 hover:bg-primary/10 hover:text-primary border border-gray-200'
+                                                        }`}
+                                                      >
+                                                        {unitActive
+                                                          ? <><ToggleRight className="w-3.5 h-3.5" /> Activa</>
+                                                          : <><ToggleLeft className="w-3.5 h-3.5" /> Inactiva</>
+                                                        }
                                                       </button>
                                                     </div>
                                                   );
@@ -1531,10 +1626,10 @@ export default function AdminStudents() {
                                               </div>
                                             )}
                                           </div>
-                                        );
-                                      })}
-                                    </div>
-                                  )}
+                                        )}
+                                      </div>
+                                    );
+                                  })}
                                 </div>
                               </div>
 
