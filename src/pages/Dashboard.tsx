@@ -599,7 +599,7 @@ function PlanPickerInline({
       // 2. Actualizar BD
       if (userId) {
         await supabase.from('student_profiles').update({
-          account_status: isTrial ? 'pending' : 'pending_payment',
+          account_status: 'pending_payment',
           updated_at: new Date().toISOString(),
         }).eq('id', userId);
 
@@ -3076,16 +3076,31 @@ useEffect(() => {
                       | 'activo';           // pago aprobado, acceso completo
 
                     const getEstado = (): EstadoUsuario => {
-                      // ═══════════════════════════════════════════════════
+                      // ═══════════════════════════════════════════════════════
                       // FUENTE DE VERDAD: student_profiles.account_status
-                      // Se escribe directamente al activar/cambiar estado
-                      // ═══════════════════════════════════════════════════
+                      // ─────────────────────────────────────────────────────
+                      // Valores posibles:
+                      //   'pending'         → nunca envió solicitud (recién registrado)
+                      //   'pending_payment' → envió solicitud, admin revisando
+                      //   'active_trial'    → admin activó prueba de 7 días
+                      //   'expired_trial'   → prueba terminada
+                      //   'active'          → pago confirmado, acceso completo
+                      //   'disabled'        → admin deshabilitó manualmente
+                      //   'cancelled'       → cancelado
+                      // ═══════════════════════════════════════════════════════
 
-                      // P1: Deshabilitado — bloquea todo (va primero)
+                      // P1: Explícitamente deshabilitado (solo si admin lo marcó)
                       if (prof?.account_status === 'disabled') return 'deshabilitado';
-                      if (prof?.account_enabled === false && prof?.account_status !== 'active_trial') return 'deshabilitado';
+                      if (prof?.account_status === 'cancelled') return 'prueba_finalizada';
 
-                      // P2: Trial ACTIVO — account_status='active_trial' (fuente primaria)
+                      // P2: Acceso gratuito de admin
+                      if (sub?.plan_slug === 'free_admin' && sub?.status === 'active') return 'free_admin';
+
+                      // P3: Cuenta activa confirmada
+                      if (prof?.account_status === 'active' && prof?.account_enabled === true) return 'activo';
+                      if (sub?.status === 'active' && sub?.account_enabled === true) return 'activo';
+
+                      // P4: Trial activo (activado por admin)
                       if (prof?.account_status === 'active_trial' || prof?.trial_active === true) {
                         const endDate = prof?.trial_end_date
                           ? new Date(prof.trial_end_date)
@@ -3093,48 +3108,24 @@ useEffect(() => {
                         if (endDate && endDate < now) return 'prueba_finalizada';
                         return 'prueba_activa';
                       }
-
-                      // P3: Trial vencido explícito
-                      if (prof?.account_status === 'expired_trial') return 'prueba_finalizada';
-
-                      // P4: Pago pendiente explícito
-                      if (prof?.account_status === 'pending_payment') return 'pendiente_pago';
-
-                      // P5: Cuenta activa explícita
-                      if (prof?.account_status === 'active' && prof?.account_enabled === true) return 'activo';
-
-                      // ── Fallback: derivar del estado de subscripción ──
-
-                      // Admin acceso gratuito
-                      if (sub?.plan_slug === 'free_admin' && sub?.status === 'active') return 'free_admin';
-
-                      // Sub activa aprobada
-                      if (sub?.status === 'active' && sub?.account_enabled === true) return 'activo';
-
-                      // Trial por subscripción (legacy)
-                      if (sub?.plan_slug === 'free_trial' || sub?.status === 'trial' || sub?.trial_active === true) {
-                        if (sub?.status !== 'cancelled') {
-                          const endDate = sub?.trial_ends_at ? new Date(sub.trial_ends_at) : null;
-                          if (endDate && endDate < now) return 'prueba_finalizada';
-                          return 'prueba_activa';
-                        }
+                      if (sub?.plan_slug === 'free_trial' && sub?.status === 'active') {
+                        const endDate = sub?.trial_ends_at ? new Date(sub.trial_ends_at) : null;
+                        if (endDate && endDate < now) return 'prueba_finalizada';
+                        return 'prueba_activa';
                       }
 
-                      // Sub cancelada
-                      if (sub?.status === 'cancelled' || prof?.account_status === 'cancelled') return 'prueba_finalizada';
+                      // P5: Trial vencido
+                      if (prof?.account_status === 'expired_trial') return 'prueba_finalizada';
+                      if (sub?.status === 'cancelled') return 'prueba_finalizada';
 
-                      // Pago pendiente por sub
+                      // P6: Solicitud enviada — esperando confirmación del admin
+                      if (prof?.account_status === 'pending_payment') return 'pendiente_pago';
                       if (sub?.status === 'pending_approval' || sub?.status === 'pending') return 'pendiente_pago';
-                      if (sub?.approved_by_admin === false) return 'pendiente_pago';
+                      // Legacy: 'pending' con suscripción = también esperando
                       if (prof?.account_status === 'pending' && sub !== null) return 'pendiente_pago';
 
-                      // Sub deshabilitada
-                      if (sub?.account_enabled === false) return 'deshabilitado';
-
-                      // Sin datos suficientes → primer registro
-                      if (!sub) return 'primer_registro';
-
-                      return 'activo';
+                      // P7: Sin solicitud enviada → primer registro (fallback)
+                      return 'primer_registro';
                     };
 
                     const estado = getEstado();
