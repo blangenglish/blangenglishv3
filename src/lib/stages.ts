@@ -7,6 +7,8 @@ export interface UnitStageMaterial {
   unit_id: string;
   stage: Stage;
   material_type: StageMaterialType;
+  /** 'mensual' = ChatGPT prompts (Plan Mensual + prueba) | 'trimestral' = Speakology (Plan Trimestral) */
+  plan_type: 'mensual' | 'trimestral';
   title: string;
   description: string;
   file_url: string | null;

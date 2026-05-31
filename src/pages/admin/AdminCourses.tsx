@@ -49,6 +49,7 @@ export default function AdminCourses() {
   const [editingUnitContent, setEditingUnitContent] = useState<{
     id: string;
     title: string;
+    courseLevel?: string;
   } | null>(null);
 
   const { data: courses, isLoading: coursesLoading, error: coursesError, refetch: refetchCourses } = useQuery({
@@ -135,7 +136,8 @@ export default function AdminCourses() {
   };
 
   const handleEditContent = (unit: DBUnit) => {
-    setEditingUnitContent({ id: unit.id, title: unit.title });
+    const courseLevel = courses?.find(c => c.id === unit.course_id)?.level ?? '';
+    setEditingUnitContent({ id: unit.id, title: unit.title, courseLevel });
     setContentEditorOpen(true);
   };
 
@@ -416,6 +418,7 @@ export default function AdminCourses() {
         <UnitStagesEditor
           unitId={editingUnitContent.id}
           unitTitle={editingUnitContent.title}
+          unitLevel={editingUnitContent.courseLevel}
           onClose={() => {
             setContentEditorOpen(false);
             setEditingUnitContent(null);

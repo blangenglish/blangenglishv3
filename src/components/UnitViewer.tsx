@@ -1137,7 +1137,35 @@ function MaterialItem({ mat, stage }: { mat: any; stage?: string }) {
   const [playing, setPlaying] = useState(false);
   const [lightboxUrl, setLightboxUrl] = useState(null);
   const subtype = detectSubtype(mat);
-  const isPracticePrompt = stage === 'ai_practice' && mat.material_type === 'text' && !!mat.description;
+  const isPracticePrompt = stage === 'ai_practice' && mat.material_type === 'text' && !!mat.description && mat.plan_type !== 'trimestral';
+  const isSpeakologyMsg  = stage === 'ai_practice' && mat.plan_type === 'trimestral';
+
+  // ── Speakology message: special full-width card ──
+  if (isSpeakologyMsg) {
+    const plainText = mat.description
+      ? mat.description.replace(/<[^>]*>/g, '').trim()
+      : '';
+    return (
+      <div className="rounded-2xl border-2 border-violet-300 bg-gradient-to-br from-violet-50 to-indigo-50 dark:from-violet-950/30 dark:to-indigo-950/20 overflow-hidden">
+        <div className="flex items-center gap-2 px-4 py-3 bg-violet-100/60 dark:bg-violet-900/30 border-b border-violet-200 dark:border-violet-700">
+          <span className="text-xl">🤖</span>
+          <div className="flex-1">
+            <p className="text-sm font-bold text-violet-800 dark:text-violet-200">Práctica con Speakology</p>
+            <p className="text-xs text-violet-600 dark:text-violet-400">Plan Trimestral</p>
+          </div>
+          <span className="text-[10px] font-bold bg-violet-200 dark:bg-violet-800 text-violet-800 dark:text-violet-200 px-2 py-0.5 rounded-full">💎 Trimestral</span>
+        </div>
+        <div className="p-4 space-y-3">
+          <p className="text-sm font-semibold text-violet-900 dark:text-violet-100 leading-relaxed">
+            {plainText || mat.description}
+          </p>
+          <p className="text-xs text-violet-600 dark:text-violet-400">
+            Ingresa a <strong>Speakology</strong> y sigue las instrucciones para practicar con IA.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-xl border border-border bg-card overflow-hidden">
@@ -1314,7 +1342,7 @@ function StepDot({ idx, currentIdx, completed, label }) {
 const _unitContentCache: Record<string, { byStage: Record<string, any[]>; quizByStage: Record<string, any[]> }> = {};
 
 // ─── Main UnitViewer ──────────────────────────────────────────────────────────
-export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onClose, isLocked, isReview = false }) {
+export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onClose, isLocked, isReview = false, studentPlanSlug = '' }) {
   const [loading, setLoading] = useState(true);
   const [byStage, setByStage] = useState(() =>
     Object.fromEntries(STAGES.map(s => [s.id, []])));
@@ -1398,9 +1426,22 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  const stagesWithContent = STAGES.filter(s => byStage[s.id]?.length > 0 || quizByStage[s.id]?.length > 0);
+  // ── Filtrar materiales de ai_practice según plan del estudiante ──
+  const filterForPlan = (mats: any[], stageId: string) => {
+    if (stageId !== 'ai_practice' || !mats?.length) return mats || [];
+    const isTrimestral = studentPlanSlug === 'trimestral';
+    return mats.filter(m => {
+      const pt = m.plan_type ?? 'mensual';
+      return isTrimestral ? pt === 'trimestral' : pt === 'mensual';
+    });
+  };
+
+  const stagesWithContent = STAGES.filter(s => {
+    const filtered = filterForPlan(byStage[s.id] || [], s.id);
+    return filtered.length > 0 || quizByStage[s.id]?.length > 0;
+  });
   const currentStage = STAGES[currentStageIdx];
-  const currentMaterials = currentStage ? (byStage[currentStage.id] || []) : [];
+  const currentMaterials = currentStage ? filterForPlan(byStage[currentStage.id] || [], currentStage.id) : [];
   const currentQuiz = currentStage ? (quizByStage[currentStage.id] || []) : [];
   const hasQuiz = currentQuiz.length > 0;
   const currentCompleted = currentStage ? !!progress[currentStage.id]?.completed : false;

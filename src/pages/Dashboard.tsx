@@ -3996,6 +3996,7 @@ useEffect(() => {
           unitDescription={viewerUnit.description}
           studentId={currentUserId}
           isReview={!!viewerUnit.isReview}
+          studentPlanSlug={subscription?.plan_slug ?? ''}
           onClose={() => {
             // 1. Cerrar el viewer inmediatamente (sin esperar a Supabase)
             const closingUnit = viewerUnit;
