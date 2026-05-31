@@ -1,7 +1,7 @@
 // @ts-nocheck
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ArrowLeft, CheckCircle2, Send, ExternalLink, Copy } from 'lucide-react';
+import { X, ArrowLeft, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -90,7 +90,6 @@ export function OnboardingFlow({
   const [payEmail, setPayEmail] = useState(userEmail || '');
   const [loading, setLoading] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
   const [history, setHistory] = useState<FlowState[]>([getInit()]);
   const [selectedLevel, setSelectedLevel] = useState('');
   const [savingLevel, setSavingLevel] = useState(false);
@@ -451,16 +450,12 @@ export function OnboardingFlow({
               <PaymentFormView
                 emailError={emailError}
                 title="Plan Mensual"
-                subtitle={`$${AMOUNT_FULL_USD} USD / $55,000 COP al mes — Acceso total a todos los cursos`}
+                subtitle="$15 USD / $55,000 COP al mes"
                 badge="📅 PLAN MENSUAL"
-                amount={AMOUNT_FULL_USD}
-                copLabel="$55,000 COP/mes"
                 name={payName}
                 email={payEmail}
                 payMethod={payMethod}
                 loading={loading}
-                copied={copied}
-                setCopied={setCopied}
                 onNameChange={setPayName}
                 onEmailChange={setPayEmail}
                 onMethodChange={setPayMethod}
@@ -472,16 +467,12 @@ export function OnboardingFlow({
               <PaymentFormView
                 emailError={emailError}
                 title="Plan Trimestral"
-                subtitle={`$${AMOUNT_TRIMESTRAL_USD} USD / $240,000 COP — 3 meses de acceso completo`}
+                subtitle="$60 USD / $240,000 COP por 3 meses"
                 badge="💎 PLAN TRIMESTRAL"
-                amount={AMOUNT_TRIMESTRAL_USD}
-                copLabel="$240,000 COP / 3 meses"
                 name={payName}
                 email={payEmail}
                 payMethod={payMethod}
                 loading={loading}
-                copied={copied}
-                setCopied={setCopied}
                 onNameChange={setPayName}
                 onEmailChange={setPayEmail}
                 onMethodChange={setPayMethod}
@@ -550,7 +541,7 @@ function InitialView({
           <div className="flex-1">
             <p className="font-bold text-base mb-0.5">Plan Mensual</p>
             <p className="text-xs text-muted-foreground">$15 USD / $55,000 COP al mes. Acceso completo a todos los cursos.</p>
-            <span className="inline-block mt-1.5 text-xs font-bold text-green-700 bg-green-100 rounded-full px-2.5 py-0.5">✅ Acceso inmediato</span>
+            <span className="inline-block mt-1.5 text-xs font-bold text-green-700 bg-green-100 rounded-full px-2.5 py-0.5">⏱ Activación en máx. 24 h hábiles</span>
           </div>
           <div className="text-muted-foreground group-hover:text-green-600 transition-colors mt-1">→</div>
         </div>
@@ -570,7 +561,7 @@ function InitialView({
           <div className="flex-1">
             <p className="font-bold text-base mb-0.5">Plan Trimestral</p>
             <p className="text-xs text-muted-foreground">$60 USD / $240,000 COP por 3 meses. ¡Ahorra frente al mensual!</p>
-            <span className="inline-block mt-1.5 text-xs font-bold text-violet-700 bg-violet-100 rounded-full px-2.5 py-0.5">✅ Acceso inmediato</span>
+            <span className="inline-block mt-1.5 text-xs font-bold text-violet-700 bg-violet-100 rounded-full px-2.5 py-0.5">⏱ Activación en máx. 24 h hábiles</span>
           </div>
         </div>
         <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground group-hover:text-violet-600 transition-colors">→</div>
@@ -693,44 +684,33 @@ function TrialSentView({ onClose }: { onClose: () => void }) {
 }
 
 function PaymentFormView({
-  title, subtitle, badge, amount, copLabel,
-  name, email, payMethod, loading, copied, setCopied, emailError,
+  title, subtitle, badge,
+  name, email, payMethod, loading, emailError,
   onNameChange, onEmailChange, onMethodChange, onSubmit,
 }: {
   title: string;
   subtitle: string;
   badge: string;
-  amount: number;
-  /** Texto de precio en COP para mostrar en instrucciones, ej: "$55,000 COP/mes" */
-  copLabel?: string;
   name: string;
   email: string;
   payMethod: PayMethod;
   loading: boolean;
-  copied: boolean;
-  setCopied: (v: boolean) => void;
   emailError?: string | null;
   onNameChange: (v: string) => void;
   onEmailChange: (v: string) => void;
   onMethodChange: (v: PayMethod) => void;
   onSubmit: () => void;
 }) {
-  const adminEmail = 'blangenglishlearning@blangenglish.com';
-
-  const copyEmail = () => {
-    navigator.clipboard.writeText(adminEmail);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
   return (
     <div className="space-y-4 pt-1">
+      {/* Header */}
       <div className="text-center mb-3">
         <span className="inline-block text-xs font-bold px-3 py-1 rounded-full bg-primary/10 text-primary mb-2">{badge}</span>
         <h2 className="font-extrabold text-xl mb-1">{title}</h2>
-        <p className="text-xs text-muted-foreground">{subtitle}</p>
+        <p className="text-sm font-semibold text-foreground/70">{subtitle}</p>
       </div>
 
+      {/* Nombre y correo */}
       <div className="space-y-3">
         <div>
           <Label className="text-xs font-semibold mb-1 block">Nombre completo</Label>
@@ -742,65 +722,45 @@ function PaymentFormView({
         </div>
       </div>
 
+      {/* Selector método de pago */}
       <div>
-        <p className="text-xs font-semibold mb-2">Método de pago</p>
+        <p className="text-xs font-semibold mb-2">¿Cómo prefieres pagar?</p>
         <div className="grid grid-cols-2 gap-2">
           <button
+            type="button"
             onClick={() => onMethodChange('paypal')}
-            className={`rounded-xl py-2.5 text-sm font-bold border-2 transition-all flex items-center justify-center gap-1 ${
+            className={`rounded-xl py-3 px-2 text-sm font-bold border-2 transition-all flex flex-col items-center justify-center gap-1 ${
               payMethod === 'paypal'
                 ? 'border-[#003087] bg-[#003087]/5 text-[#003087]'
-                : 'border-border/40 text-muted-foreground'
+                : 'border-border/40 text-muted-foreground hover:border-border'
             }`}
           >
-            <PayPalIcon /> PayPal
+            <PayPalIcon />
+            <span>PayPal</span>
+            <span className="text-[10px] font-normal opacity-70">Dólares (USD)</span>
           </button>
           <button
+            type="button"
             onClick={() => onMethodChange('pse')}
-            className={`rounded-xl py-2.5 text-sm font-bold border-2 transition-all ${
+            className={`rounded-xl py-3 px-2 text-sm font-bold border-2 transition-all flex flex-col items-center justify-center gap-1 ${
               payMethod === 'pse'
                 ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
-                : 'border-border/40 text-muted-foreground'
+                : 'border-border/40 text-muted-foreground hover:border-border'
             }`}
           >
-            🏦 PSE / Transferencia
+            <span className="text-lg">🏦</span>
+            <span>PSE / Bold</span>
+            <span className="text-[10px] font-normal opacity-70">Pesos colombianos</span>
           </button>
         </div>
       </div>
 
-      {payMethod === 'paypal' && (
-        <div className="rounded-xl border-2 border-[#FFC439]/60 bg-[#FFC439]/5 p-4 space-y-2">
-          <p className="text-xs font-bold text-[#003087]">Instrucciones — PayPal</p>
-          <ol className="text-xs text-blue-700 space-y-1 list-decimal list-inside">
-            <li>Accede a tu cuenta de PayPal</li>
-            <li>Envía <strong>${amount.toFixed(2)} USD</strong>{copLabel ? ` (${copLabel})` : ''} a la cuenta BLANG</li>
-            <li>En el concepto escribe tu nombre y correo</li>
-            <li>Envía el comprobante al administrador</li>
-          </ol>
-          <a
-            href="https://paypal.me/blangenglish"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1 text-xs text-blue-600 hover:underline font-semibold"
-          >
-            <ExternalLink className="w-3 h-3" /> Ir a PayPal para pagar →
-          </a>
-        </div>
-      )}
-
-      {payMethod === 'pse' && (
-        <div className="rounded-xl border-2 border-emerald-200 bg-emerald-50/50 p-4 space-y-2">
-          <p className="text-xs font-bold text-emerald-800">PSE / Transferencia bancaria (Colombia)</p>
-          <p className="text-xs text-muted-foreground">Envía el comprobante de pago a:</p>
-          <div className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 border border-emerald-100">
-            <span className="text-xs font-mono flex-1 truncate">{adminEmail}</span>
-            <button onClick={copyEmail} className="text-primary shrink-0">
-              {copied ? <CheckCircle2 className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
-            </button>
-          </div>
-          <p className="text-xs text-amber-700">⚠️ Los datos bancarios se enviarán a tu correo tras confirmar la solicitud.</p>
-        </div>
-      )}
+      {/* Nota informativa */}
+      <div className="rounded-xl bg-blue-50 border border-blue-200 p-3">
+        <p className="text-xs text-blue-700">
+          📧 Al confirmar, te enviaremos el link de pago a tu correo. Tu acceso se activa en máximo <strong>24 horas hábiles</strong> tras confirmar tu pago.
+        </p>
+      </div>
 
       {emailError && (
         <div className="rounded-xl bg-red-50 border border-red-200 p-3">
@@ -815,15 +775,14 @@ function PaymentFormView({
         disabled={loading || !name.trim() || !email.trim()}
       >
         {loading ? (
-          <span className="flex items-center gap-2"><span className="animate-spin w-4 h-4 border-2 border-white/30 border-t-white rounded-full" /> Enviando...</span>
+          <span className="flex items-center gap-2">
+            <span className="animate-spin w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
+            Enviando...
+          </span>
         ) : (
-          <><Send className="w-4 h-4" /> Confirmar solicitud de pago</>
+          <><Send className="w-4 h-4" /> Confirmar solicitud</>
         )}
       </Button>
-
-      <p className="text-xs text-center text-muted-foreground">
-        El administrador revisará tu solicitud y activará tu cuenta en máximo 48 horas hábiles.
-      </p>
     </div>
   );
 }
@@ -840,18 +799,18 @@ function PaymentSentView({ onClose }: { onClose: () => void }) {
         ✅
       </motion.div>
       <div>
-        <h2 className="font-extrabold text-xl mb-2">¡Solicitud de pago enviada!</h2>
+        <h2 className="font-extrabold text-xl mb-2">¡Listo!</h2>
         <p className="text-sm text-muted-foreground max-w-xs mx-auto">
-          Recibimos tu solicitud. El equipo BLANG revisará tu comprobante de pago y activará tu cuenta en máximo <strong>48 horas hábiles</strong>.
+          Revisa tu correo — te enviaremos el link de pago para completar tu inscripción.
         </p>
       </div>
       <div className="rounded-xl bg-blue-50 border border-blue-200 p-3 text-left">
         <p className="text-xs text-blue-700">
-          ℹ️ <strong>Próximos pasos:</strong> Recibirás un correo de confirmación cuando tu cuenta esté activa. Si tienes dudas, escríbenos a <strong>blangenglishlearning@blangenglish.com</strong>
+          ⏱ Tu acceso se activa en máximo <strong>24 horas hábiles</strong> tras confirmar tu pago. Si tienes dudas, escríbenos a <strong>blangenglishlearning@blangenglish.com</strong>
         </p>
       </div>
       <Button className="w-full rounded-2xl py-4 font-bold" onClick={onClose}>
-        Entendido, esperaré la confirmación
+        Entendido
       </Button>
     </div>
   );
