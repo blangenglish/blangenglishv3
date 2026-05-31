@@ -523,6 +523,7 @@ export default function AdminStudents() {
     method: string;
     level: string;
     notes: string;
+    plan: 'trial' | 'mensual' | 'trimestral';
   }>>({});
   const [activating, setActivating] = useState<string | null>(null);
   const [activatingTrial, setActivatingTrial] = useState<string | null>(null);
@@ -532,6 +533,7 @@ export default function AdminStudents() {
     method: 'paypal',
     level: 'Todas',
     notes: '',
+    plan: 'mensual' as const,
   };
   const setActivationField = (studentId: string, field: string, value: string) => {
     setActivationForm(prev => ({
@@ -757,11 +759,20 @@ export default function AdminStudents() {
     setActivating(studentId);
     try {
       const activationDate = form.activationDate ? new Date(form.activationDate + 'T12:00:00') : new Date();
-      const nextPeriodEnd = new Date(activationDate);
-      nextPeriodEnd.setMonth(nextPeriodEnd.getMonth() + 1);
-      const amount = parseFloat(form.amount) || 15;
+      const fmtShort = (d: Date) => d.toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
+      const fmtLong  = (d: Date) => d.toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' });
 
-      // Usar acción activate_plan de la edge function (service_role — bypasa RLS)
+      // Determinar datos del plan
+      const planMap = {
+        trial:      { slug: 'free_trial',  name: '7 días gratis',   days: 7,  accountStatus: 'active_trial', subStatus: 'trial'  },
+        mensual:    { slug: 'monthly',     name: 'Plan Mensual',     days: 30, accountStatus: 'active',       subStatus: 'active' },
+        trimestral: { slug: 'trimestral',  name: 'Plan Trimestral',  days: 90, accountStatus: 'active',       subStatus: 'active' },
+      };
+      const planInfo = planMap[form.plan] || planMap.mensual;
+      const periodEnd = new Date(activationDate.getTime() + planInfo.days * 24 * 60 * 60 * 1000);
+      const amount = parseFloat(form.amount) || 0;
+
+      // 1. Edge function — maneja acceso a módulos + correo al estudiante
       const { data: result, error } = await supabase.functions.invoke('admin-update-student', {
         body: {
           action: 'activate_plan',
@@ -771,54 +782,78 @@ export default function AdminStudents() {
           payment_method: form.method,
           level: form.level,
           notes: form.notes || '',
+          plan_slug: planInfo.slug,
+          plan_name: planInfo.name,
+          period_end: periodEnd.toISOString(),
         },
       });
-
       if (error) {
         showMsg('error', `Error al activar: ${error.message || JSON.stringify(error)}`);
         return;
       }
-      if (!result?.success) {
-        showMsg('error', `Error: ${result?.error || 'Respuesta inesperada de la edge function'}`);
-        return;
+
+      // 2. Asegurar que subscriptions tiene el plan_slug correcto (fallback si edge no lo guarda)
+      const subPayload = {
+        plan_slug:        planInfo.slug,
+        plan_name:        planInfo.name,
+        status:           planInfo.subStatus,
+        amount_usd:       amount,
+        payment_method:   form.method,
+        account_enabled:  true,
+        approved_by_admin: true,
+        current_period_end: periodEnd.toISOString(),
+        updated_at:       new Date().toISOString(),
+      };
+      try {
+        await adminUpdate('subscriptions', subPayload, studentId);
+      } catch {
+        try { await adminInsert('subscriptions', { student_id: studentId, ...subPayload }); } catch(e) { console.error('[activatePlan] sub insert:', e); }
       }
 
-      // Actualizar el estado local del estudiante INMEDIATAMENTE con la sub devuelta
-      const updatedSub = result?.subscription;
-      if (updatedSub) {
-        setStudents(prev => prev.map(s => {
-          if (s.id !== studentId) return s;
-          return {
-            ...s,
-            account_enabled: true,
-            subscription: updatedSub,
-          };
-        }));
-      }
+      // 3. Asegurar account_status correcto en student_profiles
+      try {
+        await adminUpdate('student_profiles', {
+          account_enabled: true,
+          account_status:  planInfo.accountStatus,
+          updated_at:      new Date().toISOString(),
+        }, studentId);
+      } catch(e) { console.error('[activatePlan] profile update:', e); }
 
-      // Mostrar mensaje de éxito
-      showMsg('success', `✅ Plan activado correctamente para ${form.level === 'Ninguna' ? 'examen pendiente' : 'nivel ' + form.level}`);
+      // 4. Registrar en payment_history con plan + vencimiento en notes
+      try {
+        await adminInsert('payment_history', {
+          student_id:     studentId,
+          event_type:     'payment_approved',
+          amount_usd:     amount,
+          payment_method: form.method,
+          notes:          `${planInfo.name} — Vence: ${fmtShort(periodEnd)}${form.notes ? ' · ' + form.notes : ''}`,
+          created_by:     'admin',
+        });
+      } catch(e) { console.error('[activatePlan] history insert:', e); }
 
-      // Recargar lista completa en segundo plano
+      // 5. Actualizar estado local
+      const updatedSub = result?.subscription || { ...subPayload, student_id: studentId };
+      setStudents(prev => prev.map(s =>
+        s.id !== studentId ? s : { ...s, account_enabled: true, subscription: updatedSub as any }
+      ));
+
+      showMsg('success', `✅ ${planInfo.name} activado · Vence ${fmtLong(periodEnd)}`);
       loadStudents();
-
-      // Forzar recarga del historial de pagos
       setStudentPayHistory(prev => { const n = { ...prev }; delete n[studentId]; return n; });
       loadPaymentHistory(studentId, true);
 
-      // Actualizar formulario para el SIGUIENTE cobro
-      const nextActivationDate = nextPeriodEnd.toISOString().split('T')[0];
+      // Preparar formulario para el próximo cobro
       setActivationForm(prev => ({
         ...prev,
         [studentId]: {
-          activationDate: nextActivationDate,
+          activationDate: periodEnd.toISOString().split('T')[0],
           amount: String(amount),
           method: form.method,
-          level: form.level === 'Ninguna' ? 'Todas' : form.level,
-          notes: '',
+          level:  form.level === 'Ninguna' ? 'Todas' : form.level,
+          notes:  '',
+          plan:   form.plan,
         },
       }));
-
     } finally {
       setActivating(null);
     }
@@ -843,6 +878,13 @@ export default function AdminStudents() {
   const cancelSubscription = async (studentId: string) => {
     try { await adminUpdate('subscriptions', { status: 'cancelled', account_enabled: false, updated_at: new Date().toISOString() }, studentId); } catch(e) { console.error(e); }
     try { await adminUpdate('student_profiles', { account_enabled: false, account_status: 'cancelled', updated_at: new Date().toISOString() }, studentId); } catch(e) { console.error(e); }
+    await loadStudents();
+  };
+
+  const disableAccount = async (studentId: string) => {
+    try { await adminUpdate('subscriptions', { account_enabled: false, updated_at: new Date().toISOString() }, studentId); } catch(e) { console.error(e); }
+    try { await adminUpdate('student_profiles', { account_enabled: false, account_status: 'disabled', updated_at: new Date().toISOString() }, studentId); } catch(e) { console.error(e); }
+    showMsg('success', '🔒 Cuenta deshabilitada');
     await loadStudents();
   };
 
@@ -1489,14 +1531,360 @@ export default function AdminStudents() {
                           {tab === 'cuenta' && (() => {
                             const af = getActivationForm(student.id);
                             const activationDateObj = af.activationDate ? new Date(af.activationDate + 'T12:00:00') : new Date();
-                            const nextMonth = new Date(activationDateObj);
-                            nextMonth.setMonth(nextMonth.getMonth() + 1);
+                            const periodDays = af.plan === 'trial' ? 7 : af.plan === 'trimestral' ? 90 : 30;
+                            const periodEnd = new Date(activationDateObj.getTime() + periodDays * 24 * 60 * 60 * 1000);
                             const fmtD = (d: Date) => d.toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' });
-                            const draft = getAccountDraft(student);
-                            const hasChanges = hasDraftChanges(student);
+                            const sub = student.subscription;
+                            const hist = studentPayHistory[student.id] || [];
+                            const examActive = student.onboarding_step === 'english_test';
                             return (
                             <div className="space-y-5">
 
+                              {/* ════ BLOQUE 1: INFORMACIÓN BÁSICA ════ */}
+                              <div className="rounded-2xl border border-border/50 overflow-hidden">
+                                <div className="bg-muted/30 px-4 py-2.5 border-b border-border/30 flex items-center gap-2">
+                                  <span className="text-sm">👤</span>
+                                  <p className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground">Información básica</p>
+                                </div>
+                                <div className="p-4 space-y-4">
+
+                                  {/* Nivel de inglés — se guarda inmediatamente */}
+                                  <div className="flex items-center justify-between gap-3">
+                                    <div>
+                                      <p className="font-semibold text-sm">Nivel de inglés asignado</p>
+                                      <p className="text-xs text-muted-foreground">Se refleja de inmediato en el perfil del estudiante.</p>
+                                    </div>
+                                    <select
+                                      value={student.english_level || 'A1'}
+                                      onChange={async (e) => {
+                                        const lvl = e.target.value;
+                                        try {
+                                          await adminUpdate('student_profiles', { english_level: lvl, updated_at: new Date().toISOString() }, student.id);
+                                          setStudents(prev => prev.map(s => s.id === student.id ? { ...s, english_level: lvl } : s));
+                                          showMsg('success', `✅ Nivel actualizado a ${lvl}`);
+                                        } catch { showMsg('error', '❌ Error al actualizar nivel'); }
+                                      }}
+                                      className="h-9 rounded-xl border border-input bg-background px-3 text-sm font-bold min-w-[80px]"
+                                    >
+                                      {['A1','A2','B1','B2','C1'].map(lvl => (
+                                        <option key={lvl} value={lvl}>{lvl}</option>
+                                      ))}
+                                    </select>
+                                  </div>
+
+                                  {/* Examen de inglés — se guarda inmediatamente */}
+                                  <div className="flex items-center justify-between gap-3">
+                                    <div>
+                                      <p className="font-semibold text-sm">Examen de inglés</p>
+                                      <p className="text-xs text-muted-foreground">Al activarlo, el estudiante ve la pantalla del examen al entrar y se le asigna nivel automáticamente.</p>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleEnglishExam(student.id, !examActive)}
+                                      className={`relative w-12 h-6 rounded-full transition-colors shrink-0 ${examActive ? 'bg-sky-500' : 'bg-muted-foreground/30'}`}
+                                    >
+                                      <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${examActive ? 'left-6' : 'left-0.5'}`} />
+                                    </button>
+                                  </div>
+
+                                </div>
+                              </div>
+
+                              {/* ════ BLOQUE 2: ACTIVAR PLAN ════ */}
+                              <div className="rounded-2xl border-2 border-primary/30 overflow-hidden">
+                                <div className="px-4 py-3 bg-primary flex items-center gap-2">
+                                  <ShieldCheck className="w-4 h-4 text-white" />
+                                  <p className="font-bold text-white text-sm">Activar plan</p>
+                                  {sub && sub.status === 'active' && sub.approved_by_admin && (
+                                    <span className="ml-auto text-xs font-bold bg-white/20 text-white px-2 py-0.5 rounded-full">🔄 Renovación</span>
+                                  )}
+                                </div>
+                                <div className="p-5 space-y-4">
+
+                                  {/* Selector de plan */}
+                                  <div>
+                                    <Label className="text-xs font-semibold text-muted-foreground mb-2 block">📋 Plan</Label>
+                                    <div className="grid grid-cols-3 gap-2">
+                                      {([
+                                        { id: 'trial',      label: '🎁 7 días gratis',   amt: 0  },
+                                        { id: 'mensual',    label: '📅 Plan Mensual',     amt: 15 },
+                                        { id: 'trimestral', label: '🗓️ Plan Trimestral',  amt: 60 },
+                                      ] as const).map(p => (
+                                        <button
+                                          key={p.id}
+                                          type="button"
+                                          onClick={() => {
+                                            setActivationField(student.id, 'plan', p.id);
+                                            setActivationField(student.id, 'amount', String(p.amt));
+                                          }}
+                                          className={`py-2.5 px-2 rounded-xl text-xs font-bold border-2 transition-all text-center leading-tight ${
+                                            af.plan === p.id
+                                              ? 'bg-primary text-white border-primary shadow-sm'
+                                              : 'bg-background border-border/50 text-muted-foreground hover:border-primary/50'
+                                          }`}
+                                        >
+                                          {p.label}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+
+                                  {/* Fechas */}
+                                  <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                      <Label className="text-xs font-semibold text-muted-foreground mb-1.5 block">📅 Fecha de activación</Label>
+                                      <Input
+                                        type="date"
+                                        value={af.activationDate}
+                                        onChange={e => setActivationField(student.id, 'activationDate', e.target.value)}
+                                        className="rounded-xl text-sm h-9"
+                                      />
+                                    </div>
+                                    <div>
+                                      <Label className="text-xs font-semibold text-muted-foreground mb-1.5 block">
+                                        📆 Vence el (+{periodDays} días)
+                                      </Label>
+                                      <div className="h-9 rounded-xl border border-border/50 bg-muted/40 flex items-center px-3 text-sm font-semibold text-primary">
+                                        {fmtD(periodEnd)}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Monto + método (oculto para prueba gratuita) */}
+                                  {af.plan !== 'trial' && (
+                                    <div className="grid grid-cols-2 gap-3">
+                                      <div>
+                                        <Label className="text-xs font-semibold text-muted-foreground mb-1.5 block">💰 Monto cobrado (USD)</Label>
+                                        <Input
+                                          type="number"
+                                          value={af.amount}
+                                          onChange={e => setActivationField(student.id, 'amount', e.target.value)}
+                                          className="rounded-xl text-sm h-9"
+                                          min="0" step="0.01"
+                                        />
+                                      </div>
+                                      <div>
+                                        <Label className="text-xs font-semibold text-muted-foreground mb-1.5 block">💳 Método de pago</Label>
+                                        <select
+                                          value={af.method}
+                                          onChange={e => setActivationField(student.id, 'method', e.target.value)}
+                                          className="w-full h-9 rounded-xl border border-input bg-background px-3 text-sm"
+                                        >
+                                          <option value="paypal">PayPal (USD)</option>
+                                          <option value="bold_pse">Bold / PSE (COP)</option>
+                                          <option value="transferencia">Transferencia</option>
+                                          <option value="efectivo">Efectivo</option>
+                                        </select>
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Unidades a habilitar */}
+                                  <div>
+                                    <Label className="text-xs font-semibold text-muted-foreground mb-2 block">📚 Unidades a habilitar</Label>
+                                    <div className="flex flex-wrap gap-1.5">
+                                      {LEVEL_OPTIONS.map(lvl => (
+                                        <button
+                                          key={lvl}
+                                          type="button"
+                                          onClick={() => setActivationField(student.id, 'level', lvl)}
+                                          className={`px-3 py-1.5 rounded-full text-xs font-bold border-2 transition-all ${
+                                            af.level === lvl
+                                              ? lvl === 'Ninguna' ? 'bg-orange-500 text-white border-orange-500' : 'bg-primary text-white border-primary'
+                                              : lvl === 'Ninguna' ? 'bg-background border-orange-300 text-orange-600 hover:border-orange-500' : 'bg-background border-border/50 text-muted-foreground hover:border-primary/50'
+                                          }`}
+                                        >
+                                          {lvl === 'Todas' ? '🌟 Todas' : lvl === 'Ninguna' ? '🧪 Ninguna (Examen)' : `📖 ${lvl}`}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+
+                                  {/* Notas opcionales */}
+                                  <div>
+                                    <Label className="text-xs font-semibold text-muted-foreground mb-1.5 block">📝 Notas (opcional)</Label>
+                                    <Input
+                                      placeholder="Ej: Comprobante verificado vía email..."
+                                      value={af.notes}
+                                      onChange={e => setActivationField(student.id, 'notes', e.target.value)}
+                                      className="rounded-xl text-sm h-9"
+                                    />
+                                  </div>
+
+                                  {/* Botón Activar plan */}
+                                  <Button
+                                    className="w-full rounded-xl font-bold text-white gap-2 h-11 text-sm bg-green-600 hover:bg-green-700"
+                                    disabled={activating === student.id}
+                                    onClick={() => setConfirmAction({
+                                      open: true,
+                                      title: `✅ ¿Activar plan para ${student.full_name}?`,
+                                      msg: `${af.plan === 'trial' ? '7 días gratis' : af.plan === 'mensual' ? 'Plan Mensual' : 'Plan Trimestral'} · ${fmtD(activationDateObj)} → ${fmtD(periodEnd)} · Acceso: ${af.level === 'Todas' ? 'todos los niveles' : af.level === 'Ninguna' ? 'ninguno (examen)' : 'nivel ' + af.level}${af.plan !== 'trial' ? ' · $' + af.amount + ' USD' : ''}`,
+                                      fn: async () => activatePlanManual(student.id),
+                                    })}
+                                  >
+                                    {activating === student.id
+                                      ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Activando...</>
+                                      : <><ShieldCheck className="w-4 h-4" /> Activar plan</>
+                                    }
+                                  </Button>
+
+                                </div>
+                              </div>
+
+                              {/* ════ BLOQUE 3: HISTORIAL DE PAGOS ════ */}
+                              {(() => {
+                                const invoiceItems = hist.filter(i => i.amount_usd > 0).length > 0
+                                  ? hist
+                                  : sub && sub.amount_usd > 0
+                                    ? [{ id: sub.created_at || 'sub-1', event_type: 'payment_approved', amount_usd: sub.amount_usd, payment_method: sub.payment_method || 'paypal', notes: sub.plan_name || 'Plan Mensual', created_at: sub.created_at || new Date().toISOString() }]
+                                    : [];
+                                const canInvoice = invoiceItems.length > 0;
+
+                                // Helper: extraer info del campo notes
+                                const parsePlan = (notes?: string) => {
+                                  if (!notes) return { plan: '—', vence: '—' };
+                                  const planMatch = notes.match(/Plan\s+\w+|7 días gratis/i);
+                                  const venceMatch = notes.match(/Vence:\s*(.+?)(?:\s*·|$)/i);
+                                  return {
+                                    plan:  planMatch ? planMatch[0] : (notes.length < 40 ? notes : 'Pago'),
+                                    vence: venceMatch ? venceMatch[1].trim() : '—',
+                                  };
+                                };
+
+                                return (
+                                  <div className="rounded-2xl border border-border/50 overflow-hidden">
+                                    <div className="bg-muted/30 px-4 py-2.5 border-b border-border/30 flex items-center gap-2">
+                                      <History className="w-4 h-4 text-primary" />
+                                      <p className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground flex-1">Historial de pagos</p>
+                                      {canInvoice && (
+                                        <button
+                                          onClick={() => setInvoiceModal({ student, items: invoiceItems })}
+                                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-600 text-white text-[11px] font-bold hover:bg-violet-700 transition"
+                                        >
+                                          <FileText className="w-3 h-3" /> Generar Factura
+                                        </button>
+                                      )}
+                                    </div>
+                                    {hist.length === 0 ? (
+                                      <p className="text-sm text-muted-foreground text-center py-6">Sin historial disponible</p>
+                                    ) : (
+                                      <div className="overflow-x-auto">
+                                        <table className="w-full text-xs">
+                                          <thead>
+                                            <tr className="bg-muted/20 text-muted-foreground">
+                                              <th className="text-left px-3 py-2 font-semibold">Fecha</th>
+                                              <th className="text-left px-3 py-2 font-semibold">Plan</th>
+                                              <th className="text-right px-3 py-2 font-semibold">Monto</th>
+                                              <th className="text-left px-3 py-2 font-semibold">Método</th>
+                                              <th className="text-left px-3 py-2 font-semibold">Vencimiento</th>
+                                              <th className="text-left px-3 py-2 font-semibold">Estado</th>
+                                              <th className="px-2 py-2" />
+                                            </tr>
+                                          </thead>
+                                          <tbody className="divide-y divide-border/20">
+                                            {hist.map(item => {
+                                              const parsed = parsePlan(item.notes);
+                                              const isActive = sub && sub.approved_by_admin && new Date(sub.current_period_end || 0) > new Date() && item.created_at === hist[0]?.created_at;
+                                              return (
+                                                <tr key={item.id} className="hover:bg-muted/10 transition-colors">
+                                                  <td className="px-3 py-2.5 whitespace-nowrap text-muted-foreground">
+                                                    {new Date(item.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                                  </td>
+                                                  <td className="px-3 py-2.5 font-semibold">{parsed.plan}</td>
+                                                  <td className="px-3 py-2.5 text-right font-bold text-green-700">
+                                                    {item.amount_usd > 0 ? `$${item.amount_usd}` : <span className="text-muted-foreground font-normal">Gratis</span>}
+                                                  </td>
+                                                  <td className="px-3 py-2.5 text-muted-foreground uppercase">
+                                                    {item.payment_method && item.payment_method !== 'none' ? item.payment_method : '—'}
+                                                  </td>
+                                                  <td className="px-3 py-2.5 text-muted-foreground whitespace-nowrap">{parsed.vence}</td>
+                                                  <td className="px-3 py-2.5">
+                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                                      isActive ? 'bg-green-100 text-green-700' :
+                                                      item.event_type === 'cancelled' ? 'bg-red-100 text-red-600' :
+                                                      'bg-muted text-muted-foreground'
+                                                    }`}>
+                                                      {isActive ? 'Activo' : item.event_type === 'cancelled' ? 'Cancelado' : 'Registrado'}
+                                                    </span>
+                                                  </td>
+                                                  <td className="px-2 py-2.5">
+                                                    {item.amount_usd > 0 && (
+                                                      <button
+                                                        title="Ver factura"
+                                                        onClick={() => setInvoiceModal({ student, items: [item] })}
+                                                        className="p-1 rounded-md hover:bg-violet-100 text-violet-500 hover:text-violet-700 transition"
+                                                      >
+                                                        <FileText className="w-3.5 h-3.5" />
+                                                      </button>
+                                                    )}
+                                                  </td>
+                                                </tr>
+                                              );
+                                            })}
+                                          </tbody>
+                                        </table>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })()}
+
+                              {/* ════ BLOQUE 4: ACCIONES ════ */}
+                              <div className="rounded-2xl border border-border/50 overflow-hidden">
+                                <div className="bg-muted/30 px-4 py-2.5 border-b border-border/30 flex items-center gap-2">
+                                  <Target className="w-4 h-4 text-muted-foreground" />
+                                  <p className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground">Acciones</p>
+                                </div>
+                                <div className="p-4 space-y-3">
+
+                                  {/* Deshabilitar cuenta */}
+                                  <div className="flex items-start gap-3 p-3 rounded-xl bg-amber-50 border border-amber-200">
+                                    <Lock className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                                    <div className="flex-1 min-w-0">
+                                      <p className="font-semibold text-sm text-amber-900">Deshabilitar cuenta</p>
+                                      <p className="text-xs text-amber-700 mt-0.5">Desactiva el acceso sin borrar datos ni progreso. Se puede reactivar después con "Activar plan".</p>
+                                    </div>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="rounded-xl text-xs shrink-0 border-amber-400 text-amber-700 hover:bg-amber-100 gap-1"
+                                      onClick={() => setConfirmAction({
+                                        open: true,
+                                        title: '🔒 ¿Deshabilitar cuenta?',
+                                        msg: `Se desactivará el acceso de ${student.full_name}. Sus datos y progreso se conservan.`,
+                                        fn: () => disableAccount(student.id),
+                                      })}
+                                    >
+                                      <Lock className="w-3 h-3" /> Deshabilitar
+                                    </Button>
+                                  </div>
+
+                                  {/* Eliminar cuenta */}
+                                  <div className="flex items-start gap-3 p-3 rounded-xl bg-red-50 border border-red-200">
+                                    <Trash2 className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                                    <div className="flex-1 min-w-0">
+                                      <p className="font-semibold text-sm text-red-900">Eliminar cuenta permanentemente</p>
+                                      <p className="text-xs text-red-700 mt-0.5">Borra perfil, suscripción, progreso e historial. <strong>Esta acción no se puede deshacer.</strong></p>
+                                    </div>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="rounded-xl text-xs shrink-0 border-red-500 text-red-700 hover:bg-red-100 gap-1"
+                                      onClick={() => setConfirmAction({
+                                        open: true,
+                                        title: '🗑️ ¿Eliminar cuenta?',
+                                        msg: `IRREVERSIBLE. Se eliminarán todos los datos de ${student.full_name} incluyendo historial y suscripción.`,
+                                        fn: async () => deleteAccount(student.id),
+                                      })}
+                                    >
+                                      <Trash2 className="w-3 h-3" /> Eliminar
+                                    </Button>
+                                  </div>
+
+                                </div>
+                              </div>
+
+                              {/* ════ ACCESO A CURSOS (expandible) ════ */}
                               {/* ════ 2. HABILITAR ACCESO AL CURSO ════ */}
                               <div className="border border-green-200 rounded-2xl overflow-hidden bg-green-50/40">
 
@@ -1633,397 +2021,6 @@ export default function AdminStudents() {
                                 </div>
                               </div>
 
-                              {/* ════ 3. ESTADO DE CUENTA (draft) ════ */}
-                              <div className="rounded-xl border border-border/40 overflow-hidden">
-                                <div className="bg-muted/30 px-4 py-2.5 border-b border-border/30 flex items-center gap-2">
-                                  <Lock className="w-4 h-4 text-muted-foreground" />
-                                  <p className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground">Estado de cuenta</p>
-                                  {hasChanges && <span className="ml-auto text-xs font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">⚠ Cambios sin guardar</span>}
-                                </div>
-                                <div className="p-4 space-y-4">
-
-                                  {/* Toggle cuenta habilitada */}
-                                  <div className="flex items-center justify-between gap-3">
-                                    <div>
-                                      <p className="font-semibold text-sm">Cuenta habilitada</p>
-                                      <p className="text-xs text-muted-foreground">Bloquea o restaura el acceso al curso sin eliminar datos.</p>
-                                    </div>
-                                    <button
-                                      onClick={() => setDraftField(student.id, 'account_enabled', !draft.account_enabled, student)}
-                                      className={`relative w-12 h-6 rounded-full transition-colors shrink-0 ${
-                                        draft.account_enabled ? 'bg-green-500' : 'bg-muted-foreground/30'
-                                      }`}>
-                                      <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${
-                                        draft.account_enabled ? 'left-6' : 'left-0.5'
-                                      }`} />
-                                    </button>
-                                  </div>
-
-                                  {/* Estado de suscripción */}
-                                  <div className="flex items-center justify-between gap-3">
-                                    <div>
-                                      <p className="font-semibold text-sm">Estado de suscripción</p>
-                                      <p className="text-xs text-muted-foreground">Cambia el estado sin generar nuevo pago.</p>
-                                    </div>
-                                    <select
-                                      value={draft.sub_status}
-                                      onChange={e => setDraftField(student.id, 'sub_status', e.target.value, student)}
-                                      className="h-8 rounded-lg border border-input bg-background px-2 text-xs font-semibold">
-                                      <option value="active">✅ Activo</option>
-                                      <option value="trial">🔵 En prueba</option>
-                                      <option value="cancelled">❌ Cancelado</option>
-                                      <option value="expired">⏰ Expirado</option>
-                                    </select>
-                                  </div>
-
-                                  {/* Examen de inglés */}
-                                  <div className="flex items-center justify-between gap-3">
-                                    <div>
-                                      <p className="font-semibold text-sm">Examen de inglés</p>
-                                      <p className="text-xs text-muted-foreground">Al habilitarlo, el estudiante verá la pantalla de examen. Al completarlo se asignará nivel automáticamente.</p>
-                                    </div>
-                                    <button
-                                      onClick={() => setDraftField(student.id, 'onboarding_step', draft.onboarding_step === 'english_test' ? 'completed' : 'english_test', student)}
-                                      className={`relative w-12 h-6 rounded-full transition-colors shrink-0 ${
-                                        draft.onboarding_step === 'english_test' ? 'bg-sky-500' : 'bg-muted-foreground/30'
-                                      }`}>
-                                      <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${
-                                        draft.onboarding_step === 'english_test' ? 'left-6' : 'left-0.5'
-                                      }`} />
-                                    </button>
-                                  </div>
-
-                                  {/* Nivel de inglés */}
-                                  <div className="flex items-center justify-between gap-3">
-                                    <div>
-                                      <p className="font-semibold text-sm">Nivel de inglés asignado</p>
-                                      <p className="text-xs text-muted-foreground">Nivel actual que determina el acceso a cursos por nivel.</p>
-                                    </div>
-                                    <select
-                                      value={draft.english_level}
-                                      onChange={e => setDraftField(student.id, 'english_level', e.target.value, student)}
-                                      className="h-8 rounded-lg border border-input bg-background px-2 text-xs font-semibold">
-                                      {['A1','A2','B1','B2','C1'].map(lvl => (
-                                        <option key={lvl} value={lvl}>{lvl}</option>
-                                      ))}
-                                    </select>
-                                  </div>
-
-                                </div>
-                              </div>
-
-                              {/* ════ 4. CANCELAR PLAN ════ */}
-                              <div className="flex items-start gap-3 bg-orange-50 border border-orange-200 rounded-xl p-4">
-                                <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center shrink-0 mt-0.5">
-                                  <ShieldX className="w-4 h-4 text-orange-600" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-bold text-sm text-orange-900">Cancelar plan / suscripción</p>
-                                  <p className="text-xs text-orange-700 mt-0.5">Marca la suscripción como cancelada y bloquea el acceso. El historial de pagos se conserva.</p>
-                                </div>
-                                <Button size="sm" variant="outline"
-                                  className="rounded-xl text-xs shrink-0 border-orange-400 text-orange-700 hover:bg-orange-50 gap-1"
-                                  onClick={() => setConfirmAction({
-                                    open: true,
-                                    title: '⚠️ ¿Cancelar suscripción?',
-                                    msg: `La suscripción de ${student.full_name} se marcará como cancelada y perderá acceso.`,
-                                    fn: () => cancelSubscription(student.id),
-                                  })}>
-                                  <ShieldX className="w-3 h-3" /> Cancelar plan
-                                </Button>
-                              </div>
-
-                              {/* ════ 5. EXAMEN (info visual, control movido arriba) ════ */}
-                              {(() => {
-                                const hasExamPending = draft.onboarding_step === 'english_test';
-                                return (
-                                  <div className={`flex items-start gap-3 rounded-xl p-4 border ${hasExamPending ? 'bg-orange-50 border-orange-300' : 'bg-sky-50 border-sky-200'}`}>
-                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${hasExamPending ? 'bg-orange-100' : 'bg-sky-100'}`}>
-                                      <span className="text-base">🎓</span>
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                      <p className={`font-bold text-sm ${hasExamPending ? 'text-orange-900' : 'text-sky-900'}`}>
-                                        Habilitar examen de inglés
-                                        {hasExamPending && <span className="ml-2 text-xs font-bold bg-orange-200 text-orange-800 px-2 py-0.5 rounded-full">⏳ Pendiente</span>}
-                                      </p>
-                                      <p className={`text-xs mt-0.5 ${hasExamPending ? 'text-orange-700' : 'text-sky-700'}`}>
-                                        {hasExamPending
-                                          ? `${student.full_name} verá el examen en su panel. Al completarlo el sistema asignará nivel y acceso automáticamente.`
-                                          : `El estudiante verá la pantalla de examen. Al completarlo el sistema configurará su nivel y acceso automáticamente.`}
-                                      </p>
-                                    </div>
-                                    <div className="shrink-0 text-xs font-bold">
-                                      {hasExamPending
-                                        ? <span className="text-orange-700 bg-orange-100 px-2 py-1 rounded-full">⏳ Pendiente — usa los toggles</span>
-                                        : <span className="text-muted-foreground">Activa con el toggle arriba ↑</span>
-                                      }
-                                    </div>
-                                  </div>
-                                );
-                              })()}
-
-                              {/* ════ 6. HABILITAR 7 DÍAS DE PRUEBA ════ */}
-                              <div className="flex items-start gap-3 bg-indigo-50 border border-indigo-200 rounded-xl p-4">
-                                <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center shrink-0 mt-0.5">
-                                  <span className="text-base">🎁</span>
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-bold text-sm text-indigo-900">Habilitar 7 días de prueba gratuita</p>
-                                  <p className="text-xs text-indigo-700 mt-0.5 leading-relaxed">
-                                    Activa acceso completo por exactamente 7 días. Al vencer, la cuenta se desactiva automáticamente y el estudiante recibe un correo. Se envía notificación de bienvenida al activar.
-                                    {sub?.status === 'trial' && sub?.trial_ends_at && (
-                                      <span className="block mt-1 font-semibold text-indigo-800">
-                                        ⚠️ Ya tiene prueba activa — vence el{' '}
-                                        {new Date(sub.trial_ends_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' })}
-                                      </span>
-                                    )}
-                                  </p>
-                                </div>
-                                <Button
-                                  size="sm"
-                                  className="rounded-xl text-xs shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white gap-1 whitespace-nowrap"
-                                  disabled={activatingTrial === student.id}
-                                  onClick={() => setConfirmAction({
-                                    open: true,
-                                    title: '🎁 ¿Activar prueba de 7 días?',
-                                    msg: `Se habilitará acceso completo para ${student.full_name} durante 7 días. Al vencer se desactivará automáticamente.`,
-                                    fn: async () => activateTrial(student.id),
-                                  })}
-                                >
-                                  {activatingTrial === student.id ? (
-                                    <span className="flex items-center gap-1.5">
-                                      <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                      Activando...
-                                    </span>
-                                  ) : (
-                                    '🎁 Activar prueba'
-                                  )}
-                                </Button>
-                              </div>
-
-                              {/* ════ 7. ELIMINAR CUENTA PERMANENTEMENTE ════ */}
-                              <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-xl p-4">
-                                <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center shrink-0 mt-0.5">
-                                  <Trash2 className="w-4 h-4 text-red-600" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-bold text-sm text-red-900">Eliminar cuenta permanentemente</p>
-                                  <p className="text-xs text-red-700 mt-0.5">Borra perfil, suscripción y solicitudes de sesión. <strong>Esta acción no se puede deshacer.</strong></p>
-                                </div>
-                                <Button size="sm" variant="outline"
-                                  className="rounded-xl text-xs shrink-0 border-red-500 text-red-700 hover:bg-red-100 gap-1"
-                                  onClick={() => setConfirmAction({
-                                    open: true,
-                                    title: '🗑️ ¿Eliminar cuenta?',
-                                    msg: `IRREVERSIBLE. Se eliminarán todos los datos de ${student.full_name} incluyendo historial y suscripción.`,
-                                    fn: async () => deleteAccount(student.id)
-                                  })}>
-                                  <Trash2 className="w-3 h-3" /> Eliminar
-                                </Button>
-                              </div>
-
-                              {/* ════ 8. DETALLES DE LA SUSCRIPCIÓN ════ */}
-                              <div className="rounded-xl border border-border/50 bg-muted/20 overflow-hidden">
-                                <div className="bg-muted/40 px-4 py-2.5 border-b border-border/40 flex items-center gap-2">
-                                  <CreditCard className="w-4 h-4 text-primary" />
-                                  <p className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground">Detalles de la suscripción</p>
-                                </div>
-                                <div className="p-4 grid grid-cols-2 gap-3">
-                                  {[
-                                    { label: 'Estado', value: !sub ? <span className="text-muted-foreground text-xs">Sin suscripción</span> : <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${statusStyle.color}`}>{statusStyle.label}</span> },
-                                    { label: 'Pago', value: (!sub || sub.approved_by_admin === false) ? <span className="text-amber-600 font-bold text-xs">⏳ Pendiente</span> : <span className="text-green-600 font-bold text-xs">✅ Verificado</span> },
-                                    { label: 'Monto', value: sub ? `$${sub.amount_usd} USD/mes` : '—' },
-                                    { label: 'Método', value: sub?.payment_method?.toUpperCase() || '—' },
-                                    { label: 'Fecha activación', value: sub?.created_at ? fmtD(new Date(sub.created_at)) : '—' },
-                                    { label: 'Vence / próximo cobro', value: sub?.current_period_end ? fmtD(new Date(sub.current_period_end)) : '—' },
-                                  ].map((item, i) => (
-                                    <div key={i} className="bg-background rounded-xl p-3 border border-border/30">
-                                      <p className="text-[11px] text-muted-foreground mb-0.5">{item.label}</p>
-                                      <div className="font-semibold text-sm">{item.value}</div>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-
-                              {/* ════ 9. HABILITAR PAGOS (FORMULARIO) ════ */}
-                              <div className="rounded-xl border-2 border-primary/30 overflow-hidden">
-                                <div className={`px-4 py-3 flex items-center gap-2 ${sub && sub.status === 'active' && sub.approved_by_admin === true ? 'bg-blue-600' : 'bg-primary'}`}>
-                                  <ShieldCheck className="w-4 h-4 text-white" />
-                                  <p className="font-bold text-white text-sm">
-                                    {sub && sub.status === 'active' && sub.approved_by_admin === true ? '🔄 Registrar siguiente pago mensual' : '✅ Habilitar pagos (confirmar pago recibido)'}
-                                  </p>
-                                </div>
-                                <div className="p-5 space-y-4">
-                                  <div className="grid grid-cols-2 gap-3">
-                                    <div>
-                                      <Label className="text-xs font-semibold text-muted-foreground mb-1.5 block">📅 Fecha de activación</Label>
-                                      <Input type="date" value={af.activationDate} onChange={e => setActivationField(student.id, 'activationDate', e.target.value)} className="rounded-xl text-sm h-9" />
-                                    </div>
-                                    <div>
-                                      <Label className="text-xs font-semibold text-muted-foreground mb-1.5 block">📆 Próximo cobro (+1 mes)</Label>
-                                      <div className="h-9 rounded-xl border border-border/50 bg-muted/40 flex items-center px-3 text-sm font-semibold text-muted-foreground">
-                                        {fmtD(nextMonth)}
-                                      </div>
-                                    </div>
-                                  </div>
-                                  <div className="grid grid-cols-2 gap-3">
-                                    <div>
-                                      <Label className="text-xs font-semibold text-muted-foreground mb-1.5 block">💰 Monto cobrado (USD)</Label>
-                                      <Input type="number" value={af.amount} onChange={e => setActivationField(student.id, 'amount', e.target.value)} className="rounded-xl text-sm h-9" min="0" step="0.01" />
-                                    </div>
-                                    <div>
-                                      <Label className="text-xs font-semibold text-muted-foreground mb-1.5 block">💳 Método de pago</Label>
-                                      <select value={af.method} onChange={e => setActivationField(student.id, 'method', e.target.value)} className="w-full h-9 rounded-xl border border-input bg-background px-3 text-sm">
-                                        <option value="paypal">PayPal</option>
-                                        <option value="pse">PSE</option>
-                                        <option value="transferencia">Transferencia</option>
-                                        <option value="efectivo">Efectivo</option>
-                                      </select>
-                                    </div>
-                                  </div>
-                                  <div>
-                                    <Label className="text-xs font-semibold text-muted-foreground mb-2 block">📚 Unidades a habilitar</Label>
-                                    <div className="flex flex-wrap gap-2">
-                                      {LEVEL_OPTIONS.map(lvl => (
-                                        <button key={lvl} type="button" onClick={() => setActivationField(student.id, 'level', lvl)}
-                                          className={`px-4 py-1.5 rounded-full text-xs font-bold border-2 transition-all ${
-                                            af.level === lvl
-                                              ? lvl === 'Ninguna' ? 'bg-orange-500 text-white border-orange-500' : 'bg-primary text-white border-primary'
-                                              : lvl === 'Ninguna' ? 'bg-background border-orange-300 text-orange-600 hover:border-orange-500' : 'bg-background border-border/50 text-muted-foreground hover:border-primary/50'
-                                          }`}>
-                                          {lvl === 'Todas' ? '🌟 Todas' : lvl === 'Ninguna' ? '🧪 Ninguna (Examen)' : `📖 ${lvl}`}
-                                        </button>
-                                      ))}
-                                    </div>
-                                  </div>
-                                  <div>
-                                    <Label className="text-xs font-semibold text-muted-foreground mb-1.5 block">📝 Notas (opcional)</Label>
-                                    <Input placeholder="Ej: Comprobante verificado vía email..." value={af.notes} onChange={e => setActivationField(student.id, 'notes', e.target.value)} className="rounded-xl text-sm h-9" />
-                                  </div>
-                                  {(() => {
-                                    const isRenewal = sub && sub.status === 'active' && sub.approved_by_admin === true;
-                                    return (
-                                      <Button
-                                        className={`w-full rounded-xl font-bold text-white gap-2 h-11 text-sm ${isRenewal ? 'bg-blue-600 hover:bg-blue-700' : 'bg-green-600 hover:bg-green-700'}`}
-                                        disabled={activating === student.id}
-                                        onClick={() => setConfirmAction({
-                                          open: true,
-                                          title: isRenewal ? `¿Registrar pago de ${student.full_name}?` : `¿Activar plan de ${student.full_name}?`,
-                                          msg: `${isRenewal ? 'Pago' : 'Activación'} ${fmtD(activationDateObj)} · $${af.amount} USD · ${af.method.toUpperCase()} · Acceso: ${af.level === 'Todas' ? 'todos' : af.level === 'Ninguna' ? 'ninguno (examen)' : 'nivel ' + af.level} · Próximo: ${fmtD(nextMonth)}`,
-                                          fn: async () => activatePlanManual(student.id),
-                                        })}>
-                                        {activating === student.id
-                                          ? <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Guardando...</span>
-                                          : isRenewal ? <><History className="w-4 h-4" /> Guardar pago del mes ✅</> : <><ShieldCheck className="w-4 h-4" /> Guardar y habilitar pagos ✅</>
-                                        }
-                                      </Button>
-                                    );
-                                  })()}
-                                </div>
-                              </div>
-
-                              {/* ════ 10. HISTORIAL DE PAGOS ════ */}
-                              {(() => {
-                                const hist = studentPayHistory[student.id] || [];
-                                const sub = student.subscription;
-                                // Items de factura: primero el historial, si está vacío usar la suscripción como fallback
-                                const invoiceItems = hist.filter(i => i.amount_usd > 0).length > 0
-                                  ? hist
-                                  : sub && sub.amount_usd > 0
-                                    ? [{
-                                        id: sub.created_at || 'sub-1',
-                                        event_type: 'payment_approved',
-                                        amount_usd: sub.amount_usd,
-                                        payment_method: sub.payment_method || 'paypal',
-                                        notes: sub.plan_name || 'Plan Mensual',
-                                        created_at: sub.created_at || new Date().toISOString(),
-                                      }]
-                                    : [];
-                                const canInvoice = invoiceItems.length > 0;
-                                return (
-                                  <div className="bg-muted/20 border border-border/40 rounded-xl p-4">
-                                    <div className="flex items-center gap-2 mb-3">
-                                      <History className="w-3.5 h-3.5 text-primary" />
-                                      <p className="text-xs font-extrabold text-muted-foreground uppercase tracking-wider flex-1">Historial de pagos</p>
-                                      {canInvoice && (
-                                        <button
-                                          onClick={() => setInvoiceModal({ student, items: invoiceItems })}
-                                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-600 text-white text-[11px] font-bold hover:bg-violet-700 transition"
-                                        >
-                                          <FileText className="w-3 h-3" /> Generar Factura
-                                        </button>
-                                      )}
-                                    </div>
-                                    {hist.length === 0 ? (
-                                      <p className="text-xs text-muted-foreground text-center py-3">Sin historial disponible</p>
-                                    ) : (
-                                      <div className="space-y-1.5">
-                                        {hist.map(item => (
-                                          <div key={item.id} className="flex items-center justify-between p-2.5 rounded-lg bg-background border border-border/30">
-                                            <div className="flex items-center gap-2">
-                                              <span className="text-base">
-                                                {item.event_type === 'payment_approved' ? '✅' : item.event_type === 'payment_pending' ? '⏳' : item.event_type === 'cancelled' ? '❌' : item.event_type === 'subscription_created' ? '📋' : '📝'}
-                                              </span>
-                                              <div>
-                                                <p className="text-xs font-semibold">
-                                                  {item.event_type === 'payment_approved' ? 'Pago aprobado' : item.event_type === 'payment_pending' ? 'Pago en revisión' : item.event_type === 'cancelled' ? 'Cancelado' : item.event_type === 'subscription_created' ? 'Suscripción creada' : item.event_type.replace(/_/g, ' ')}
-                                                </p>
-                                                <p className="text-[11px] text-muted-foreground">
-                                                  {new Date(item.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}
-                                                  {item.payment_method && item.payment_method !== 'none' && ` · ${item.payment_method.toUpperCase()}`}
-                                                  {item.notes && ` · ${item.notes}`}
-                                                </p>
-                                              </div>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                              {item.amount_usd > 0 && (
-                                                <span className="text-xs font-bold text-green-600">${item.amount_usd} USD</span>
-                                              )}
-                                              {item.amount_usd > 0 && (
-                                                <button
-                                                  title="Ver factura de este pago"
-                                                  onClick={() => setInvoiceModal({ student, items: [item] })}
-                                                  className="p-1 rounded-md hover:bg-violet-100 text-violet-500 hover:text-violet-700 transition"
-                                                >
-                                                  <FileText className="w-3.5 h-3.5" />
-                                                </button>
-                                              )}
-                                            </div>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })()}
-
-                              {/* ════ BOTÓN GUARDAR CAMBIOS DE LA CUENTA ════ */}
-                              {hasChanges && (
-                                <div className="sticky bottom-0 bg-background/95 backdrop-blur border-t border-border/40 -mx-4 px-4 py-3 rounded-b-xl">
-                                  <div className="flex items-center gap-3">
-                                    <div className="flex-1">
-                                      <p className="text-xs font-bold text-amber-700">⚠ Tienes cambios sin guardar en la cuenta de {student.full_name}</p>
-                                      <p className="text-[11px] text-muted-foreground mt-0.5">Estado: {draft.account_enabled ? 'Habilitada' : 'Deshabilitada'} · Suscripción: {draft.sub_status} · Nivel: {draft.english_level} · Examen: {draft.onboarding_step === 'english_test' ? 'Habilitado' : 'Desactivado'}</p>
-                                    </div>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="rounded-xl text-xs border-border/50 text-muted-foreground"
-                                      onClick={() => setAccountDrafts(prev => { const n = { ...prev }; delete n[student.id]; return n; })}>
-                                      Descartar
-                                    </Button>
-                                    <Button
-                                      className="rounded-xl font-bold text-sm bg-primary text-primary-foreground gap-2 px-5"
-                                      disabled={savingAccount === student.id}
-                                      onClick={() => saveAccountChanges(student)}>
-                                      {savingAccount === student.id
-                                        ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Guardando...</>
-                                        : <>💾 Guardar cambios de la cuenta</>
-                                      }
-                                    </Button>
-                                  </div>
-                                </div>
-                              )}
 
                             </div>
                             );

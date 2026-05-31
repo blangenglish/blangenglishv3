@@ -3381,47 +3381,85 @@ useEffect(() => {
                     );
                   })()}
 
-              {/* ── Payment History ── */}
+              {/* ── Historial de pagos ── */}
               {activeTab === 'pagos' && paymentHistory.length > 0 && (
                 <div className="bg-background rounded-2xl border border-border/50 p-5 shadow-sm mt-4">
                   <div className="flex items-center gap-2 mb-4">
                     <History className="w-4 h-4 text-primary" />
                     <h2 className="font-bold text-base">Historial de pagos</h2>
                   </div>
-                  <div className="space-y-2">
-                    {paymentHistory.map(item => (
-                      <div key={item.id} className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/30">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                            item.event_type === 'payment_approved' ? 'bg-green-100 text-green-600' :
-                            item.event_type === 'payment_pending' ? 'bg-amber-100 text-amber-600' :
-                            item.event_type === 'cancelled' ? 'bg-red-100 text-red-600' :
-                            'bg-muted text-muted-foreground'
-                          }`}>
-                            {item.event_type === 'payment_approved' ? '✅' :
-                             item.event_type === 'payment_pending' ? '⏳' :
-                             item.event_type === 'cancelled' ? '❌' : '📋'}
+
+                  {/* Tabla: visible en pantallas medianas+ */}
+                  <div className="hidden sm:block overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-border/40">
+                          <th className="text-left text-xs font-semibold text-muted-foreground pb-2 pr-4">Fecha</th>
+                          <th className="text-left text-xs font-semibold text-muted-foreground pb-2 pr-4">Plan</th>
+                          <th className="text-left text-xs font-semibold text-muted-foreground pb-2 pr-4">Monto</th>
+                          <th className="text-left text-xs font-semibold text-muted-foreground pb-2 pr-4">Método</th>
+                          <th className="text-left text-xs font-semibold text-muted-foreground pb-2">Estado</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border/20">
+                        {paymentHistory.map(item => {
+                          const planName = item.notes?.match(/^(.+?)\s*[—–-]/)?.[1]?.trim()
+                            || item.notes?.match(/Plan\s+\w+|7 días gratis/i)?.[0]
+                            || '—';
+                          const statusInfo =
+                            item.event_type === 'payment_approved' ? { label: 'Aprobado', cls: 'bg-green-100 text-green-700' } :
+                            item.event_type === 'payment_pending'  ? { label: 'Pendiente', cls: 'bg-amber-100 text-amber-700' } :
+                            item.event_type === 'cancelled'        ? { label: 'Cancelado', cls: 'bg-red-100 text-red-700' } :
+                                                                     { label: 'Registrado', cls: 'bg-muted text-muted-foreground' };
+                          return (
+                            <tr key={item.id}>
+                              <td className="py-2.5 pr-4 text-sm">
+                                {new Date(item.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}
+                              </td>
+                              <td className="py-2.5 pr-4 font-medium">{planName}</td>
+                              <td className="py-2.5 pr-4 font-bold text-green-600">
+                                {item.amount_usd > 0 ? `$${item.amount_usd} USD` : '—'}
+                              </td>
+                              <td className="py-2.5 pr-4 capitalize text-muted-foreground">
+                                {item.payment_method && item.payment_method !== 'none' ? item.payment_method : '—'}
+                              </td>
+                              <td className="py-2.5">
+                                <span className={`inline-block text-xs font-bold px-2.5 py-0.5 rounded-full ${statusInfo.cls}`}>
+                                  {statusInfo.label}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Cards: visible en móviles */}
+                  <div className="sm:hidden space-y-2">
+                    {paymentHistory.map(item => {
+                      const planName = item.notes?.match(/^(.+?)\s*[—–-]/)?.[1]?.trim()
+                        || item.notes?.match(/Plan\s+\w+|7 días gratis/i)?.[0]
+                        || '—';
+                      const statusInfo =
+                        item.event_type === 'payment_approved' ? { label: 'Aprobado', cls: 'bg-green-100 text-green-700' } :
+                        item.event_type === 'payment_pending'  ? { label: 'Pendiente', cls: 'bg-amber-100 text-amber-700' } :
+                        item.event_type === 'cancelled'        ? { label: 'Cancelado', cls: 'bg-red-100 text-red-700' } :
+                                                                 { label: 'Registrado', cls: 'bg-muted text-muted-foreground' };
+                      return (
+                        <div key={item.id} className="rounded-xl bg-muted/30 border border-border/30 p-3 space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold text-sm">{planName}</span>
+                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${statusInfo.cls}`}>{statusInfo.label}</span>
                           </div>
-                          <div>
-                            <p className="text-sm font-semibold">
-                              {item.event_type === 'payment_approved' ? 'Pago aprobado' :
-                               item.event_type === 'payment_pending' ? 'Pago en revisión' :
-                               item.event_type === 'cancelled' ? 'Suscripción cancelada' :
-                               item.event_type === 'subscription_created' ? 'Suscripción creada' :
-                               item.event_type.replace(/_/g, ' ')}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {new Date(item.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })}
-                              {item.payment_method && item.payment_method !== 'none' && ` · ${item.payment_method.toUpperCase()}`}
-                              {item.notes && ` · ${item.notes}`}
-                            </p>
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                            <span>📅 {new Date(item.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                            {item.amount_usd > 0 && <span className="font-bold text-green-600">${item.amount_usd} USD</span>}
+                            {item.payment_method && item.payment_method !== 'none' && <span className="capitalize">{item.payment_method}</span>}
                           </div>
                         </div>
-                        {item.amount_usd > 0 && (
-                          <span className="text-sm font-bold text-green-600">${item.amount_usd} USD</span>
-                        )}
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
