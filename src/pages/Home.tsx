@@ -676,7 +676,7 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
                       className="w-full bg-white/20 hover:bg-white/30 border border-white/40 text-white font-bold text-sm sm:text-base py-4 sm:py-5 rounded-2xl transition-all active:scale-[0.98]"
                       onClick={() => setShowClasesModal(true)}
                     >
-                      📅 Clases Virtuales Personalizadas Mensuales
+                      📅 Arma tu plan mensual
                     </Button>
                   </div>
                 </div>

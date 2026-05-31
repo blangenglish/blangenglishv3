@@ -2374,7 +2374,7 @@ useEffect(() => {
                       </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="font-extrabold text-base text-foreground mb-1">
-                          Clases Virtuales Personalizadas Mensuales
+                          Arma tu plan mensual
                         </h3>
                         <p className="text-sm text-muted-foreground leading-relaxed mb-3">
                           ¿Quieres un plan mensual fijo? Elige tus días, horario y frecuencia semanal. Nosotros te asignamos el mismo horario todos los meses.

@@ -113,7 +113,7 @@ export function ClasesVirtualesModal({
           type: 'clases_mensuales',
           name: nombre.trim(),
           email: correo.trim(),
-          subject: 'Solicitud: Clases Virtuales Personalizadas Mensuales',
+          subject: 'Solicitud: Arma tu plan mensual',
           message:
             `📋 SOLICITUD DE CLASES VIRTUALES PERSONALIZADAS MENSUALES\n\n` +
             `Nombre: ${nombre.trim()}\n` +
@@ -159,7 +159,7 @@ export function ClasesVirtualesModal({
             <span className="text-3xl">📅</span>
             <div>
               <h3 className="font-extrabold text-lg leading-tight">
-                Clases Virtuales Personalizadas Mensuales
+                Arma tu plan mensual
               </h3>
               <p className="text-white/80 text-xs mt-0.5">
                 Google Meet · $35,000 COP/hora · Horario fijo
