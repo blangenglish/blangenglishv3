@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 const AMOUNT_FULL_USD = 15;
+const AMOUNT_TRIMESTRAL_USD = 60;
 
 const ENGLISH_LEVELS = [
   { value: 'A1', label: 'A1 — Principiante', desc: 'No sé nada o muy poco de inglés' },
@@ -21,14 +22,15 @@ const ENGLISH_LEVELS = [
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type FlowState =
-  | 'INITIAL'          // 2 opciones: trial / pago
-  | 'TRIAL_FORM'       // Formulario solicitud 7 dias gratis
-  | 'TRIAL_SENT'       // Confirmacion enviada
-  | 'FULL_PAY_FORM'    // Formulario pago valor completo
-  | 'PAYMENT_SENT'     // Confirmacion datos de pago enviados
-  | 'LEVEL_CHOICE'     // Ya pagó: elegir entre "ya sé mi nivel" / "tomar examen"
-  | 'LEVEL_SELECT'     // Seleccionar nivel manualmente
-  | 'LEVEL_SAVED';     // Nivel guardado con éxito
+  | 'INITIAL'              // 3 opciones: trial / mensual / trimestral
+  | 'TRIAL_FORM'           // Formulario solicitud 7 dias gratis
+  | 'TRIAL_SENT'           // Confirmacion enviada
+  | 'FULL_PAY_FORM'        // Formulario pago Plan Mensual
+  | 'TRIMESTRAL_PAY_FORM'  // Formulario pago Plan Trimestral
+  | 'PAYMENT_SENT'         // Confirmacion datos de pago enviados
+  | 'LEVEL_CHOICE'         // Ya pagó: elegir entre "ya sé mi nivel" / "tomar examen"
+  | 'LEVEL_SELECT'         // Seleccionar nivel manualmente
+  | 'LEVEL_SAVED';         // Nivel guardado con éxito
 
 type PayMethod = 'paypal' | 'pse';
 
@@ -50,7 +52,7 @@ interface OnboardingFlowProps {
 function progressFor(s: FlowState): number {
   const m: Record<FlowState, number> = {
     INITIAL: 10, TRIAL_FORM: 40, TRIAL_SENT: 90,
-    FULL_PAY_FORM: 50, PAYMENT_SENT: 90,
+    FULL_PAY_FORM: 50, TRIMESTRAL_PAY_FORM: 50, PAYMENT_SENT: 90,
     LEVEL_CHOICE: 30, LEVEL_SELECT: 60, LEVEL_SAVED: 100,
   };
   return m[s] ?? 10;
@@ -216,17 +218,27 @@ export function OnboardingFlow({
   };
 
   // ── Enviar datos de pago ──────────────────────────────────────────────────
-  const handleSendPaymentRequest = async (requestType: string, amount: number) => {
+  const handleSendPaymentRequest = async (planLabel: string, amount: number) => {
     setLoading(true);
     setEmailError(null);
     try {
-      const msg = 'Solicitud de ' + requestType + '. Nombre: ' + payName +
-        '. Correo: ' + payEmail + '. Metodo de pago: ' + payMethod +
-        '. Monto: $' + amount + ' USD.';
+      const msg =
+        '💳 SOLICITUD DE PAGO — BLANG ENGLISH\n\n' +
+        'Plan seleccionado: ' + planLabel + '\n' +
+        'Nombre: ' + payName + '\n' +
+        'Correo: ' + payEmail + '\n' +
+        'Método de pago: ' + (payMethod === 'paypal' ? 'PayPal' : 'PSE / Transferencia bancaria') + '\n' +
+        'Monto: $' + amount + ' USD';
 
       try {
         const { error: edError2 } = await supabase.functions.invoke('send-trial-request-2026', {
-          body: { userName: payName, userEmail: payEmail, message: msg, requestType, paymentMethod: payMethod },
+          body: {
+            userName: payName,
+            userEmail: payEmail,
+            message: msg,
+            requestType: 'payment_request',
+            paymentMethod: payMethod,
+          },
         });
         if (edError2) console.warn('[Payment email non-fatal]', edError2);
       } catch (_payEmErr) {
@@ -413,6 +425,7 @@ export function OnboardingFlow({
                 userName={trialName}
                 onSelectTrial={() => goTo('TRIAL_FORM')}
                 onSelectFull={() => goTo('FULL_PAY_FORM')}
+                onSelectTrimestral={() => goTo('TRIMESTRAL_PAY_FORM')}
               />
             )}
 
@@ -437,10 +450,11 @@ export function OnboardingFlow({
             {state === 'FULL_PAY_FORM' && (
               <PaymentFormView
                 emailError={emailError}
-                title="Acceso con valor completo"
-                subtitle={`$${AMOUNT_FULL_USD} USD/mes — Acceso total a todos los cursos`}
-                badge="📚 PLAN COMPLETO"
+                title="Plan Mensual"
+                subtitle={`$${AMOUNT_FULL_USD} USD / $55,000 COP al mes — Acceso total a todos los cursos`}
+                badge="📅 PLAN MENSUAL"
                 amount={AMOUNT_FULL_USD}
+                copLabel="$55,000 COP/mes"
                 name={payName}
                 email={payEmail}
                 payMethod={payMethod}
@@ -450,7 +464,28 @@ export function OnboardingFlow({
                 onNameChange={setPayName}
                 onEmailChange={setPayEmail}
                 onMethodChange={setPayMethod}
-                onSubmit={() => handleSendPaymentRequest('payment_request', AMOUNT_FULL_USD)}
+                onSubmit={() => handleSendPaymentRequest('Plan Mensual — $15 USD / $55,000 COP al mes', AMOUNT_FULL_USD)}
+              />
+            )}
+
+            {state === 'TRIMESTRAL_PAY_FORM' && (
+              <PaymentFormView
+                emailError={emailError}
+                title="Plan Trimestral"
+                subtitle={`$${AMOUNT_TRIMESTRAL_USD} USD / $240,000 COP — 3 meses de acceso completo`}
+                badge="💎 PLAN TRIMESTRAL"
+                amount={AMOUNT_TRIMESTRAL_USD}
+                copLabel="$240,000 COP / 3 meses"
+                name={payName}
+                email={payEmail}
+                payMethod={payMethod}
+                loading={loading}
+                copied={copied}
+                setCopied={setCopied}
+                onNameChange={setPayName}
+                onEmailChange={setPayEmail}
+                onMethodChange={setPayMethod}
+                onSubmit={() => handleSendPaymentRequest('Plan Trimestral — $60 USD / $240,000 COP por 3 meses', AMOUNT_TRIMESTRAL_USD)}
               />
             )}
 
@@ -470,14 +505,16 @@ function InitialView({
   userName,
   onSelectTrial,
   onSelectFull,
+  onSelectTrimestral,
 }: {
   userName: string;
   onSelectTrial: () => void;
   onSelectFull: () => void;
+  onSelectTrimestral: () => void;
 }) {
   return (
-    <div className="space-y-4 pt-1">
-      <div className="text-center mb-6">
+    <div className="space-y-3 pt-1">
+      <div className="text-center mb-5">
         <div className="text-4xl mb-3">👋</div>
         <h2 className="font-extrabold text-2xl mb-1">
           ¡Bienvenido{userName ? `, ${userName.split(' ')[0]}` : ''}!
@@ -497,26 +534,46 @@ function InitialView({
           <div className="flex-1">
             <p className="font-bold text-base mb-0.5">Solicitar 7 días gratis</p>
             <p className="text-xs text-muted-foreground">Sin pago. El equipo BLANG revisará tu solicitud y te contactará.</p>
-            <span className="inline-block mt-1.5 text-xs font-bold text-primary bg-primary/10 rounded-full px-2.5 py-0.5">✉️ Solicitud manual</span>
+            <span className="inline-block mt-1.5 text-xs font-bold text-primary bg-primary/10 rounded-full px-2.5 py-0.5">✉️ Activación manual</span>
           </div>
           <div className="text-muted-foreground group-hover:text-primary transition-colors mt-1">→</div>
         </div>
       </button>
 
-      {/* Opcion 2: Pagar plan mensual */}
+      {/* Opcion 2: Plan Mensual */}
       <button
         className="w-full rounded-2xl border-2 border-green-200 bg-green-50/60 hover:bg-green-50 hover:border-green-300 p-4 text-left transition-all group"
         onClick={onSelectFull}
       >
         <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center text-xl shrink-0">💳</div>
+          <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center text-xl shrink-0">📅</div>
           <div className="flex-1">
-            <p className="font-bold text-base mb-0.5">Pagar Plan Mensual</p>
-            <p className="text-xs text-muted-foreground">$15 USD o $55,000 COP/mes. Acceso completo a todos los cursos.</p>
+            <p className="font-bold text-base mb-0.5">Plan Mensual</p>
+            <p className="text-xs text-muted-foreground">$15 USD / $55,000 COP al mes. Acceso completo a todos los cursos.</p>
             <span className="inline-block mt-1.5 text-xs font-bold text-green-700 bg-green-100 rounded-full px-2.5 py-0.5">✅ Acceso inmediato</span>
           </div>
           <div className="text-muted-foreground group-hover:text-green-600 transition-colors mt-1">→</div>
         </div>
+      </button>
+
+      {/* Opcion 3: Plan Trimestral */}
+      <button
+        className="w-full rounded-2xl border-2 border-violet-200 bg-violet-50/60 hover:bg-violet-50 hover:border-violet-300 p-4 text-left transition-all group relative overflow-hidden"
+        onClick={onSelectTrimestral}
+      >
+        {/* Badge "Mejor valor" */}
+        <div className="absolute top-3 right-3">
+          <span className="bg-amber-400 text-black text-[10px] font-extrabold px-2 py-0.5 rounded-full whitespace-nowrap">⭐ Mejor valor</span>
+        </div>
+        <div className="flex items-start gap-3 pr-20">
+          <div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center text-xl shrink-0">💎</div>
+          <div className="flex-1">
+            <p className="font-bold text-base mb-0.5">Plan Trimestral</p>
+            <p className="text-xs text-muted-foreground">$60 USD / $240,000 COP por 3 meses. ¡Ahorra frente al mensual!</p>
+            <span className="inline-block mt-1.5 text-xs font-bold text-violet-700 bg-violet-100 rounded-full px-2.5 py-0.5">✅ Acceso inmediato</span>
+          </div>
+        </div>
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground group-hover:text-violet-600 transition-colors">→</div>
       </button>
     </div>
   );
@@ -636,7 +693,7 @@ function TrialSentView({ onClose }: { onClose: () => void }) {
 }
 
 function PaymentFormView({
-  title, subtitle, badge, amount,
+  title, subtitle, badge, amount, copLabel,
   name, email, payMethod, loading, copied, setCopied, emailError,
   onNameChange, onEmailChange, onMethodChange, onSubmit,
 }: {
@@ -644,6 +701,8 @@ function PaymentFormView({
   subtitle: string;
   badge: string;
   amount: number;
+  /** Texto de precio en COP para mostrar en instrucciones, ej: "$55,000 COP/mes" */
+  copLabel?: string;
   name: string;
   email: string;
   payMethod: PayMethod;
@@ -714,7 +773,7 @@ function PaymentFormView({
           <p className="text-xs font-bold text-[#003087]">Instrucciones — PayPal</p>
           <ol className="text-xs text-blue-700 space-y-1 list-decimal list-inside">
             <li>Accede a tu cuenta de PayPal</li>
-            <li>Envía <strong>${amount.toFixed(2)} USD</strong> a la cuenta BLANG</li>
+            <li>Envía <strong>${amount.toFixed(2)} USD</strong>{copLabel ? ` (${copLabel})` : ''} a la cuenta BLANG</li>
             <li>En el concepto escribe tu nombre y correo</li>
             <li>Envía el comprobante al administrador</li>
           </ol>
