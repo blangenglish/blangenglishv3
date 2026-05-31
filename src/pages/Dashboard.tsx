@@ -541,6 +541,309 @@ function PagoSolicitudForm({
   );
 }
 
+// ── PlanPickerInline: 3 opciones de plan para primer_registro (sin modal) ──
+function PlanPickerInline({
+  defaultName,
+  defaultEmail,
+  userId,
+  onSuccess,
+}: {
+  defaultName: string;
+  defaultEmail: string;
+  userId: string;
+  onSuccess: () => void;
+}) {
+  type PlanChoice = 'trial' | 'mensual' | 'trimestral';
+  const [selected, setSelected] = useState<PlanChoice | null>(null);
+  const [nombre, setNombre] = useState(defaultName);
+  const [correo, setCorreo] = useState(defaultEmail);
+  const [metodo, setMetodo] = useState<'paypal' | 'bold_pse'>('paypal');
+  const [trialMsg, setTrialMsg] = useState('');
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [formError, setFormError] = useState('');
+
+  const canSubmit = nombre.trim() && correo.trim();
+
+  const PLAN_INFO = {
+    trial:      { slug: 'free_trial',  name: '7 días gratis',  amount: 0,  period: 0 },
+    mensual:    { slug: 'monthly',     name: 'Plan Mensual',    amount: 15, period: 1 },
+    trimestral: { slug: 'trimestral',  name: 'Plan Trimestral', amount: 60, period: 3 },
+  };
+
+  const handleSubmit = async () => {
+    if (!selected || !canSubmit) return;
+    setSending(true);
+    setFormError('');
+    const info = PLAN_INFO[selected];
+    const isTrial = selected === 'trial';
+    const methodLabel = metodo === 'paypal' ? 'PayPal' : 'Bold / PSE';
+
+    try {
+      // 1. Email al admin (non-fatal)
+      try {
+        const msg = isTrial
+          ? `📋 SOLICITUD DE PRUEBA GRATUITA — BLANG ENGLISH\n\nNombre: ${nombre.trim()}\nCorreo: ${correo.trim()}${trialMsg ? '\nMensaje: ' + trialMsg : ''}`
+          : `💳 SOLICITUD DE PAGO — BLANG ENGLISH\n\nPlan: ${info.name}\nNombre: ${nombre.trim()}\nCorreo: ${correo.trim()}\nMétodo de pago: ${methodLabel}\nMonto: $${info.amount} USD`;
+        await supabase.functions.invoke('send-trial-request-2026', {
+          body: {
+            userName: nombre.trim(),
+            userEmail: correo.trim(),
+            message: msg,
+            requestType: isTrial ? 'trial_request' : 'payment_request',
+            paymentMethod: isTrial ? '' : methodLabel,
+          },
+        });
+      } catch (_) { /* non-fatal */ }
+
+      // 2. Actualizar BD
+      if (userId) {
+        await supabase.from('student_profiles').update({
+          account_status: isTrial ? 'pending' : 'pending_payment',
+          updated_at: new Date().toISOString(),
+        }).eq('id', userId);
+
+        if (isTrial) {
+          // Guardar en trial_requests
+          try {
+            await supabase.from('trial_requests').insert({
+              student_id: userId,
+              student_name: nombre.trim(),
+              student_email: correo.trim(),
+              message: trialMsg || '',
+              request_type: 'trial_7days',
+              status: 'pending',
+            });
+          } catch (_) { /* non-fatal */ }
+        } else {
+          // Upsert subscriptions
+          const periodEnd = new Date();
+          periodEnd.setMonth(periodEnd.getMonth() + info.period);
+          const subData = {
+            student_id: userId,
+            plan_slug: info.slug,
+            plan_name: info.name,
+            status: 'pending_approval',
+            amount_usd: info.amount,
+            payment_method: metodo,
+            approved_by_admin: false,
+            account_enabled: false,
+            current_period_end: periodEnd.toISOString(),
+            updated_at: new Date().toISOString(),
+          };
+          const { error: upErr } = await supabase.from('subscriptions')
+            .update(subData).eq('student_id', userId);
+          if (upErr) {
+            await supabase.from('subscriptions').insert(subData);
+          }
+        }
+      }
+
+      setSent(true);
+      onSuccess();
+    } catch (_err) {
+      setFormError('Hubo un error al enviar. Por favor intenta de nuevo.');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  // ── Éxito ──
+  if (sent) {
+    const isTrial = selected === 'trial';
+    return (
+      <div className="rounded-2xl bg-green-50 border-2 border-green-300 p-6 text-center space-y-3">
+        <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mx-auto">
+          <Check className="w-6 h-6 text-green-600" />
+        </div>
+        <h3 className="font-extrabold text-lg">¡Listo! 🎉</h3>
+        <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+          {isTrial
+            ? 'Tu solicitud fue recibida. El equipo BLANG te contactará en máximo 48 horas hábiles para activar tu prueba.'
+            : 'Revisa tu correo — te enviaremos el link de pago para completar tu inscripción. Tu acceso se activa en máximo 24 horas hábiles tras confirmar el pago.'}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          ¿Dudas?{' '}
+          <a href="mailto:blangenglishlearning@blangenglish.com" className="text-primary font-semibold hover:underline">
+            blangenglishlearning@blangenglish.com
+          </a>
+        </p>
+      </div>
+    );
+  }
+
+  // ── Formulario del plan seleccionado ──
+  if (selected) {
+    const isTrial = selected === 'trial';
+    const info = PLAN_INFO[selected];
+    return (
+      <div className="rounded-2xl border-2 border-primary/20 bg-background p-5 space-y-4">
+        {/* Volver */}
+        <button
+          type="button"
+          onClick={() => { setSelected(null); setFormError(''); }}
+          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          ← Volver a opciones
+        </button>
+
+        {/* Header */}
+        <div>
+          <h3 className="font-extrabold text-base mb-0.5">
+            {isTrial ? '🎁 Solicitar 7 días gratis' : selected === 'mensual' ? '📅 Plan Mensual' : '💎 Plan Trimestral'}
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            {isTrial
+              ? 'Sin pago — el equipo BLANG activará tu prueba manualmente'
+              : selected === 'mensual'
+                ? '$15 USD / $55,000 COP al mes · Acceso completo'
+                : '$60 USD / $240,000 COP por 3 meses · Acceso completo'}
+          </p>
+        </div>
+
+        {/* Nombre */}
+        <div className="space-y-1.5">
+          <Label className="text-sm font-semibold">Nombre completo *</Label>
+          <Input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Tu nombre completo" className="rounded-xl" />
+        </div>
+
+        {/* Correo */}
+        <div className="space-y-1.5">
+          <Label className="text-sm font-semibold">Correo electrónico *</Label>
+          <Input type="email" value={correo} onChange={e => setCorreo(e.target.value)} placeholder="tucorreo@ejemplo.com" className="rounded-xl" />
+        </div>
+
+        {/* Método de pago (solo planes de pago) */}
+        {!isTrial && (
+          <div className="space-y-1.5">
+            <Label className="text-sm font-semibold">¿Cómo prefieres pagar?</Label>
+            <div className="grid grid-cols-2 gap-2">
+              {(['paypal', 'bold_pse'] as const).map(m => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setMetodo(m)}
+                  className={`py-3 rounded-xl font-bold text-sm border-2 transition-all flex flex-col items-center gap-0.5 ${
+                    metodo === m
+                      ? 'border-primary bg-primary/10 text-primary shadow-sm'
+                      : 'border-border/50 text-muted-foreground hover:border-primary/40'
+                  }`}
+                >
+                  <span>{m === 'paypal' ? '💳 PayPal' : '🏦 PSE / Bold'}</span>
+                  <span className="text-[10px] font-normal opacity-70">{m === 'paypal' ? 'Dólares (USD)' : 'Pesos colombianos'}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Mensaje opcional (solo trial) */}
+        {isTrial && (
+          <div className="space-y-1.5">
+            <Label className="text-sm font-semibold">Mensaje (opcional)</Label>
+            <textarea
+              value={trialMsg}
+              onChange={e => setTrialMsg(e.target.value)}
+              placeholder="¿Por qué quieres aprender inglés con BLANG?"
+              rows={3}
+              className="w-full border border-border/60 rounded-xl px-4 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors resize-none"
+            />
+          </div>
+        )}
+
+        {/* Nota */}
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-700">
+          {isTrial
+            ? 'ℹ️ El equipo BLANG revisará tu solicitud y te contactará en máximo 48 horas hábiles.'
+            : '📧 Al confirmar, te enviaremos el link de pago a tu correo. Tu acceso se activa en máximo 24 horas hábiles tras confirmar el pago.'}
+        </div>
+
+        {formError && (
+          <p className="text-sm text-destructive bg-destructive/10 rounded-xl px-4 py-2">{formError}</p>
+        )}
+
+        {/* Botón */}
+        <Button
+          className="w-full rounded-xl py-5 font-bold"
+          onClick={handleSubmit}
+          disabled={sending || !canSubmit}
+        >
+          {sending ? (
+            <span className="flex items-center gap-2">
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              Enviando...
+            </span>
+          ) : (
+            <span className="flex items-center gap-2">
+              <Mail className="w-4 h-4" />
+              {isTrial ? 'Enviar solicitud' : 'Confirmar solicitud'}
+            </span>
+          )}
+        </Button>
+      </div>
+    );
+  }
+
+  // ── Vista inicial: 3 tarjetas de plan ──
+  return (
+    <div className="space-y-3">
+      {/* 7 días gratis */}
+      <button
+        type="button"
+        onClick={() => setSelected('trial')}
+        className="w-full rounded-2xl border-2 border-primary/30 bg-primary/5 hover:bg-primary/10 hover:border-primary/50 p-4 text-left transition-all group"
+      >
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center text-xl shrink-0">🎁</div>
+          <div className="flex-1">
+            <p className="font-bold text-base mb-0.5">Solicitar 7 días gratis</p>
+            <p className="text-xs text-muted-foreground">Sin pago. El equipo BLANG revisará tu solicitud y te contactará.</p>
+            <span className="inline-block mt-1.5 text-xs font-bold text-primary bg-primary/10 rounded-full px-2.5 py-0.5">✉️ Activación manual</span>
+          </div>
+          <div className="text-muted-foreground group-hover:text-primary transition-colors mt-1">→</div>
+        </div>
+      </button>
+
+      {/* Plan Mensual */}
+      <button
+        type="button"
+        onClick={() => setSelected('mensual')}
+        className="w-full rounded-2xl border-2 border-green-200 bg-green-50/60 hover:bg-green-50 hover:border-green-300 p-4 text-left transition-all group"
+      >
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center text-xl shrink-0">📅</div>
+          <div className="flex-1">
+            <p className="font-bold text-base mb-0.5">Plan Mensual</p>
+            <p className="text-xs text-muted-foreground">$15 USD / $55,000 COP al mes. Acceso completo a todos los cursos.</p>
+            <span className="inline-block mt-1.5 text-xs font-bold text-green-700 bg-green-100 rounded-full px-2.5 py-0.5">⏱ Activación en máx. 24 h hábiles</span>
+          </div>
+          <div className="text-muted-foreground group-hover:text-green-600 transition-colors mt-1">→</div>
+        </div>
+      </button>
+
+      {/* Plan Trimestral */}
+      <button
+        type="button"
+        onClick={() => setSelected('trimestral')}
+        className="w-full rounded-2xl border-2 border-violet-200 bg-violet-50/60 hover:bg-violet-50 hover:border-violet-300 p-4 text-left transition-all group relative overflow-hidden"
+      >
+        <div className="absolute top-3 right-3">
+          <span className="bg-amber-400 text-black text-[10px] font-extrabold px-2 py-0.5 rounded-full whitespace-nowrap">⭐ Mejor valor</span>
+        </div>
+        <div className="flex items-start gap-3 pr-20">
+          <div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center text-xl shrink-0">💎</div>
+          <div className="flex-1">
+            <p className="font-bold text-base mb-0.5">Plan Trimestral</p>
+            <p className="text-xs text-muted-foreground">$60 USD / $240,000 COP por 3 meses. ¡Ahorra frente al mensual!</p>
+            <span className="inline-block mt-1.5 text-xs font-bold text-violet-700 bg-violet-100 rounded-full px-2.5 py-0.5">⏱ Activación en máx. 24 h hábiles</span>
+          </div>
+        </div>
+        <div className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground group-hover:text-violet-600 transition-colors">→</div>
+      </button>
+    </div>
+  );
+}
+
 // ── TrialPaymentActiveBlock: pantalla de pagos DURANTE el período de prueba ──
 // SOLO muestra: mensaje bienvenida + fecha vencimiento + 2 botones exactos
 // ⚠️ NUNCA muestra planes adicionales, precios ni más opciones aquí
@@ -2855,31 +3158,25 @@ useEffect(() => {
                     const nextBilling = sub?.current_period_end ? new Date(sub.current_period_end) : null;
                     const onPay = (amount: number, _label: string) => { setPaypalModalAmount(amount); setShowPaypalModal(true); };
 
-// ─── PRIMER_REGISTRO: nuevo estudiante — muestra opciones SIN auto-activar ───
+// ─── PRIMER_REGISTRO: nuevo estudiante — muestra 3 opciones inline ───
                     if (estado === 'primer_registro') {
                       return (
                         <div className="space-y-4">
-                          <div className="rounded-2xl border-2 border-primary/20 bg-primary/5 p-6 shadow-sm relative overflow-hidden">
+                          <div className="rounded-2xl border-2 border-primary/20 bg-primary/5 p-5 shadow-sm relative overflow-hidden">
                             <div className="absolute top-0 left-0 right-0 h-1 bg-primary" />
-                            <div className="flex items-start gap-4 mb-4">
-                              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-2xl shrink-0">👋</div>
-                              <div className="flex-1">
-                                <span className="inline-block text-xs font-bold px-3 py-1 rounded-full mb-2 bg-primary/10 text-primary">Bienvenido/a</span>
-                                <h2 className="font-extrabold text-xl mb-1">¡Hola en BLANG English!</h2>
-                                <p className="text-sm text-muted-foreground">
-                                  Elige cómo quieres comenzar: solicita 7 días de prueba gratuita o paga el plan mensual ($15 USD / $55,000 COP).
-                                </p>
+                            <div className="flex items-start gap-3 mb-4">
+                              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-xl shrink-0">👋</div>
+                              <div>
+                                <h2 className="font-extrabold text-lg mb-0.5">Elige tu plan</h2>
+                                <p className="text-sm text-muted-foreground">Selecciona cómo quieres comenzar en BLANG English.</p>
                               </div>
                             </div>
-                            <div className="space-y-2">
-                              <Button
-                                className="w-full rounded-2xl py-5 font-extrabold text-base"
-                                onClick={() => { setOnboardingInitialStep('welcome'); setShowLevelOnboarding(true); }}
-                              >
-                                🚀 Ver mis opciones de acceso
-                              </Button>
-                              <p className="text-xs text-center text-muted-foreground">Sin compromisos — elige la opción que mejor te convenga</p>
-                            </div>
+                            <PlanPickerInline
+                              defaultName={profileForm.name || userName || ''}
+                              defaultEmail={currentEmail || ''}
+                              userId={currentUserId}
+                              onSuccess={async () => { if (currentUserId) await refreshProfile(currentUserId); }}
+                            />
                           </div>
                         </div>
                       );
@@ -2988,27 +3285,23 @@ useEffect(() => {
                       );
                     }
 
-                    // ─── PENDIENTE_PAGO: pagó, esperando confirmación admin ───
+                    // ─── PENDIENTE_PAGO: envió solicitud, esperando link de pago del admin ───
                     if (estado === 'pendiente_pago') {
                       return (
                         <div className="rounded-2xl border-2 border-amber-300 bg-amber-50/40 p-6 shadow-sm relative overflow-hidden">
                           <div className="absolute top-0 left-0 right-0 h-1 bg-amber-400" />
-                          <div className="flex items-start gap-4 mb-4">
+                          <div className="flex items-start gap-4">
                             <div className="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center text-2xl shrink-0">⏳</div>
                             <div className="flex-1">
-                              <span className="inline-block text-xs font-bold px-3 py-1 rounded-full mb-2 bg-amber-100 text-amber-700">⏳ Pago en revisión</span>
-                              <h2 className="font-extrabold text-xl mb-1">Comprobante recibido</h2>
-                              <p className="text-sm text-muted-foreground">Tu pago de <strong>${sub?.amount_usd ?? '—'} USD</strong> está siendo verificado por el administrador. Recibirás acceso en máximo 48 horas hábiles.</p>
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="bg-background/70 rounded-xl p-3 border border-border/40">
-                              <p className="text-xs text-muted-foreground mb-0.5">📅 Fecha de solicitud</p>
-                              <p className="font-bold text-sm">{fmt(regDate)}</p>
-                            </div>
-                            <div className="bg-background/70 rounded-xl p-3 border border-border/40">
-                              <p className="text-xs text-muted-foreground mb-0.5">💰 Monto</p>
-                              <p className="font-bold text-sm">${sub?.amount_usd ?? '—'} USD</p>
+                              <span className="inline-block text-xs font-bold px-3 py-1 rounded-full mb-2 bg-amber-100 text-amber-700">⏳ Solicitud en revisión</span>
+                              <h2 className="font-extrabold text-xl mb-1">Tu solicitud está siendo revisada</h2>
+                              <p className="text-sm text-muted-foreground mb-3">
+                                En breve te enviaremos el link de pago a tu correo para completar tu inscripción.{sub?.plan_name ? <> Plan: <strong>{sub.plan_name}</strong>.</> : null}
+                              </p>
+                              <div className="bg-white/70 rounded-xl p-3 border border-amber-200/60">
+                                <p className="text-xs text-muted-foreground mb-0.5">📅 Fecha de solicitud</p>
+                                <p className="font-bold text-sm">{fmt(regDate)}</p>
+                              </div>
                             </div>
                           </div>
                           <p className="mt-4 text-xs text-amber-700">¿Dudas? Escríbenos a <strong>blangenglishlearning@blangenglish.com</strong></p>
@@ -3060,7 +3353,9 @@ useEffect(() => {
                             </div>
                             <div className="text-right shrink-0">
                               <p className="font-extrabold text-2xl text-green-800">${sub?.amount_usd}</p>
-                              <p className="text-xs text-muted-foreground">USD / mes</p>
+                              <p className="text-xs text-muted-foreground">
+                                {sub?.plan_slug === 'trimestral' ? 'USD / 3 meses' : 'USD / mes'}
+                              </p>
                             </div>
                           </div>
                           {/* Fechas y método */}
