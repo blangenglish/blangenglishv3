@@ -151,8 +151,8 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
               </p>
             </motion.div>
 
-            {/* ── DOS TARJETAS DE PRECIOS ── */}
-            <motion.div variants={staggerItem} className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mt-6 sm:mt-10">
+            {/* ── TRES TARJETAS DE PRECIOS ── */}
+            <motion.div variants={staggerItem} className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mt-6 sm:mt-10">
 
               {/* ── PRUEBA GRATIS ── */}
               <div className="bg-white/10 backdrop-blur-md border border-white/25 rounded-3xl p-5 sm:p-8 flex flex-col gap-4 sm:gap-5 hover:bg-white/15 transition-all duration-300 shadow-xl">
@@ -241,6 +241,58 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
                   </button>
                 </div>
               </div>
+
+              {/* ── PLAN TRIMESTRAL ── */}
+              <div className="relative bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-700 rounded-3xl p-5 sm:p-8 flex flex-col gap-4 sm:gap-5 shadow-2xl shadow-violet-500/40 overflow-hidden">
+                <div className="absolute -top-8 -right-8 w-40 h-40 bg-white/15 rounded-full blur-2xl pointer-events-none" />
+                <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-white/10 rounded-full blur-xl pointer-events-none" />
+                {/* Badge "Mejor valor" */}
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-20">
+                  <span className="bg-amber-400 text-black text-xs font-extrabold px-4 py-1 rounded-full shadow-lg whitespace-nowrap">⭐ Mejor valor</span>
+                </div>
+                <div className="relative z-10 flex flex-col gap-4 sm:gap-5 h-full pt-2">
+                  {/* Header */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-3xl sm:text-5xl flex-shrink-0">💎</span>
+                      <div className="min-w-0">
+                        <h2 className="text-lg sm:text-2xl md:text-3xl font-black text-white whitespace-nowrap">Plan Trimestral</h2>
+                        <span className="inline-block bg-white/20 text-white text-xs font-extrabold px-3 py-1 rounded-full mt-1">3 meses</span>
+                      </div>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-3xl sm:text-4xl md:text-5xl font-black text-white leading-none">$60</p>
+                      <p className="text-white/60 text-xs sm:text-sm mt-0.5">USD / 3 meses</p>
+                    </div>
+                  </div>
+                  <p className="text-white/70 font-semibold text-sm sm:text-base -mt-1">o $240,000 COP por 3 meses</p>
+                  {/* Divider */}
+                  <div className="h-px bg-white/15" />
+                  {/* Features */}
+                  <ul className="space-y-2 sm:space-y-3 flex-1">
+                    {[
+                      'Acceso completo a TODOS los cursos',
+                      'Módulos A1, A2, B1, B2, C1',
+                      'Práctica con IA para cada módulo de cada unidad (Speakology)',
+                      'Acceso completo a English for you: Fonética, Inglés para el Mundo Real, Escritura, Lectura, Gramática, Listening y Vocabulario',
+                      'Sin contratos anuales',
+                    ].map((f, i) => (
+                      <li key={i} className="flex items-start gap-3 text-white text-sm sm:text-base font-semibold">
+                        <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-white/20 flex items-center justify-center text-white text-xs font-black flex-shrink-0 mt-0.5">✓</span>
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                  {/* CTA */}
+                  <button
+                    onClick={() => onOpenAuth?.('register')}
+                    className="w-full bg-white hover:bg-white/90 active:scale-[0.98] text-violet-700 font-extrabold text-base sm:text-xl py-4 sm:py-5 rounded-2xl transition-all shadow-xl"
+                  >
+                    Inscribirme ahora →
+                  </button>
+                </div>
+              </div>
+
             </motion.div>
 
             {/* ── FOOTER INFO ── */}

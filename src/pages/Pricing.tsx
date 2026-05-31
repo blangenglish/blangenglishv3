@@ -126,6 +126,62 @@ function PlanCard({ plan, onSelect, onMensualPlan }: { plan: DBPricingPlan; onSe
   );
 }
 
+function TrimestralPlanCard({ onSelect }: { onSelect: () => void }) {
+  const features = [
+    'Acceso completo a TODOS los cursos',
+    'Módulos A1, A2, B1, B2, C1',
+    'Práctica con IA para cada módulo de cada unidad (Speakology)',
+    'Acceso completo a English for you: Fonética, Inglés para el Mundo Real, Escritura, Lectura, Gramática, Listening y Vocabulario',
+    'Sin contratos anuales',
+  ];
+  return (
+    <motion.div variants={fadeUp} className="h-full">
+      <div className="relative h-full flex flex-col rounded-3xl border-2 bg-gradient-to-br from-violet-50 to-indigo-50 border-violet-300 p-7 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+        {/* Badge */}
+        <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+          <span className="bg-amber-400 text-black text-xs font-bold px-5 py-1.5 rounded-full shadow-lg whitespace-nowrap">
+            ⭐ Mejor valor
+          </span>
+        </div>
+
+        <div className="mb-6 pt-2">
+          <div className="text-4xl mb-3">💎</div>
+          <h3 className="text-xl font-bold mb-1">Plan Trimestral</h3>
+          <p className="text-sm text-muted-foreground">3 meses de acceso completo</p>
+          <div className="mt-4 space-y-1">
+            <div className="flex items-end gap-1.5">
+              <span className="text-5xl font-extrabold">$60</span>
+              <span className="text-muted-foreground mb-1.5 text-sm">USD / 3 meses</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-2xl font-bold text-foreground/70">$240,000</span>
+              <span className="text-muted-foreground text-sm">COP / 3 meses</span>
+            </div>
+          </div>
+        </div>
+
+        <ul className="flex-1 space-y-3 mb-7">
+          {features.map((f, i) => (
+            <li key={i} className="flex items-start gap-3">
+              <div className="w-5 h-5 rounded-full bg-violet-200 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <Check className="w-3 h-3 text-violet-700" />
+              </div>
+              <span className="text-sm text-foreground/80 leading-snug">{f}</span>
+            </li>
+          ))}
+        </ul>
+
+        <Button
+          className="w-full rounded-xl py-6 font-bold text-sm bg-violet-600 hover:bg-violet-700 text-white"
+          onClick={onSelect}
+        >
+          Inscribirme ahora →
+        </Button>
+      </div>
+    </motion.div>
+  );
+}
+
 const FAQ = [
   { q: '¿Cuánto cuesta después de los días gratis?', a: 'Solo $15 USD ó $55,000 COP al mes. Sin contratos ni compromisos.' },
   { q: '¿Cómo puedo pagar?', a: 'Aceptamos transferencia bancaria o pago por PayPal. Escríbenos y te indicamos el método más conveniente para ti.' },
@@ -278,8 +334,8 @@ export default function PricingPage({ isLoggedIn = false, onOpenAuth, onLogout, 
                   🎁 {trialDays} días GRATIS
                 </motion.div>
               </div>
-              <div className="grid grid-cols-3 gap-2 w-full max-w-xs">
-                {[{e:'🎁',t:'Prueba Gratis'},{e:'🚀',t:'Plan Mensual'},{e:'🎥',t:'Clases Vivo'}].map(({e,t}) => (
+              <div className="grid grid-cols-2 gap-2 w-full max-w-xs">
+                {[{e:'🎁',t:'Prueba Gratis'},{e:'🚀',t:'Plan Mensual'},{e:'💎',t:'Plan Trimestral'},{e:'🎥',t:'Clases Vivo'}].map(({e,t}) => (
                   <div key={t} className="bg-white/10 backdrop-blur border border-white/20 rounded-xl px-2 py-2.5 text-center">
                     <span className="text-xl block mb-0.5">{e}</span>
                     <p className="text-white/90 text-xs font-semibold leading-tight">{t}</p>
@@ -295,24 +351,31 @@ export default function PricingPage({ isLoggedIn = false, onOpenAuth, onLogout, 
       <section className="pb-20 -mt-4">
         <div className="container mx-auto px-4">
           {loading ? (
-            <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-              {[1, 2, 3].map((i) => (
+            <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-6 max-w-7xl mx-auto">
+              {[1, 2, 3, 4].map((i) => (
                 <div key={i} className="h-96 rounded-3xl bg-muted/40 animate-pulse" />
               ))}
             </div>
           ) : (
             <motion.div
-              className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto items-start"
+              className="grid sm:grid-cols-2 xl:grid-cols-4 gap-6 max-w-7xl mx-auto items-start"
               initial="hidden" animate="visible" variants={stagger}
             >
-              {(plans ?? []).filter(p => p.is_published).map((plan) => (
-                <PlanCard
-                  key={plan.id}
-                  plan={plan}
-                  onSelect={plan.slug === 'clase-vivo' ? openSlotBooking : () => onOpenAuth?.('register')}
-                  onMensualPlan={plan.slug === 'clase-vivo' ? () => setShowClasesModal(true) : undefined}
-                />
-              ))}
+              {(plans ?? []).filter(p => p.is_published).flatMap((plan) => {
+                const card = (
+                  <PlanCard
+                    key={plan.id}
+                    plan={plan}
+                    onSelect={plan.slug === 'clase-vivo' ? openSlotBooking : () => onOpenAuth?.('register')}
+                    onMensualPlan={plan.slug === 'clase-vivo' ? () => setShowClasesModal(true) : undefined}
+                  />
+                );
+                // Insertar Plan Trimestral justo después del plan mensual
+                if (plan.slug === 'mensual') {
+                  return [card, <TrimestralPlanCard key="trimestral" onSelect={() => onOpenAuth?.('register')} />];
+                }
+                return [card];
+              })}
             </motion.div>
           )}
 
