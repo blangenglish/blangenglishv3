@@ -52,13 +52,13 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
   const [ctaEmail, setCtaEmail] = useState('');
   const navigate = useNavigate();
   const [showClasesModal, setShowClasesModal] = useState(false);
-  const [reviews, setReviews] = useState<{ rating: number; comment: string }[]>([]);
+  const [reviews, setReviews] = useState<{ full_name: string; rating: number; comment: string }[]>([]);
   const [moduleContent, setModuleContent] = useState<Record<string, { id: string; title: string; rich_text: string; sort_order: number }[]>>({});
 
   useEffect(() => {
     supabase
       .from('student_reviews')
-      .select('rating, comment')
+      .select('full_name, rating, comment')
       .eq('is_published', true)
       .order('created_at', { ascending: false })
       .limit(12)
@@ -155,33 +155,32 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
             <motion.div variants={staggerItem} className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mt-6 sm:mt-10">
 
               {/* ── PRUEBA GRATIS ── */}
-              <div className="bg-white/10 backdrop-blur-md border border-white/25 rounded-3xl p-5 sm:p-8 flex flex-col gap-4 sm:gap-5 hover:bg-white/15 transition-all duration-300 shadow-xl">
-                {/* Header */}
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-3xl sm:text-5xl flex-shrink-0">🎁</span>
-                    <div className="min-w-0">
-                      <h2 className="text-lg sm:text-2xl md:text-3xl font-black text-white whitespace-nowrap">Prueba Gratis</h2>
-                      <p className="text-white/65 text-xs font-medium truncate">7 días completamente gratis</p>
-                    </div>
+              <div className="bg-white/10 backdrop-blur-md border border-white/25 rounded-3xl p-6 flex flex-col gap-4 hover:bg-white/15 transition-all duration-300 shadow-xl">
+                {/* Header vertical */}
+                <div className="flex items-center gap-3">
+                  <span className="text-4xl flex-shrink-0">🎁</span>
+                  <div>
+                    <h2 className="text-xl font-black text-white leading-tight">Prueba Gratis</h2>
+                    <p className="text-white/65 text-xs font-medium mt-0.5">7 días sin costo</p>
                   </div>
-                  <div className="text-right flex-shrink-0 ml-2">
-                    <p className="text-2xl sm:text-4xl md:text-5xl font-black text-green-400 leading-none">GRATIS</p>
-                    <p className="text-white/50 text-xs mt-0.5">7 días</p>
-                  </div>
+                </div>
+                {/* Precio */}
+                <div>
+                  <p className="text-4xl font-black text-green-400 leading-none">GRATIS</p>
+                  <p className="text-white/50 text-xs mt-1">7 días completos</p>
                 </div>
                 {/* Divider */}
                 <div className="h-px bg-white/15" />
                 {/* Features */}
-                <ul className="space-y-2 sm:space-y-3 flex-1">
+                <ul className="space-y-2.5 flex-1">
                   {[
                     '7 días completamente gratis',
                     'Acceso a las primeras 5 lecciones del nivel A1',
                     'Cancela en cualquier momento',
                     'Pagos fáciles y seguros por PayPal y PSE',
                   ].map((f, i) => (
-                    <li key={i} className="flex items-center gap-3 text-white/90 text-sm sm:text-base md:text-lg font-medium">
-                      <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-green-500 flex items-center justify-center text-white text-xs font-black flex-shrink-0">✓</span>
+                    <li key={i} className="flex items-start gap-2.5 text-white/90 text-sm font-medium">
+                      <span className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center text-white text-[10px] font-black flex-shrink-0 mt-0.5">✓</span>
                       {f}
                     </li>
                   ))}
@@ -189,36 +188,37 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
                 {/* CTA */}
                 <button
                   onClick={() => onOpenAuth?.('register')}
-                  className="w-full bg-green-500 hover:bg-green-400 active:scale-[0.98] text-white font-extrabold text-base sm:text-xl py-4 sm:py-5 rounded-2xl transition-all shadow-lg shadow-green-500/40 mb-16 sm:mb-0"
+                  className="w-full bg-green-500 hover:bg-green-400 active:scale-[0.98] text-white font-extrabold text-base py-4 rounded-2xl transition-all shadow-lg shadow-green-500/40"
                 >
                   Empezar gratis ahora →
                 </button>
               </div>
 
               {/* ── PLAN MENSUAL ── */}
-              <div className="relative bg-gradient-to-br from-amber-400 via-orange-400 to-amber-500 rounded-3xl p-5 sm:p-8 flex flex-col gap-4 sm:gap-5 shadow-2xl shadow-amber-400/40 overflow-hidden">
+              <div className="relative bg-gradient-to-br from-amber-400 via-orange-400 to-amber-500 rounded-3xl p-6 flex flex-col gap-4 shadow-2xl shadow-amber-400/40 overflow-hidden">
                 <div className="absolute -top-8 -right-8 w-40 h-40 bg-white/20 rounded-full blur-2xl pointer-events-none" />
                 <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-white/10 rounded-full blur-xl pointer-events-none" />
-                <div className="relative z-10 flex flex-col gap-4 sm:gap-5 h-full">
-                  {/* Header */}
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-3xl sm:text-5xl flex-shrink-0">🚀</span>
-                      <div className="min-w-0">
-                        <h2 className="text-lg sm:text-2xl md:text-3xl font-black text-black whitespace-nowrap">Plan Mensual</h2>
-                        <span className="inline-block bg-black/15 text-black text-xs font-extrabold px-3 py-1 rounded-full mt-1">🚀 Acceso completo</span>
-                      </div>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <p className="text-3xl sm:text-4xl md:text-5xl font-black text-black leading-none">$15</p>
-                      <p className="text-black/60 text-xs sm:text-sm mt-0.5">USD / mes</p>
+                <div className="relative z-10 flex flex-col gap-4 h-full">
+                  {/* Header vertical */}
+                  <div className="flex items-center gap-3">
+                    <span className="text-4xl flex-shrink-0">🚀</span>
+                    <div>
+                      <h2 className="text-xl font-black text-black leading-tight">Plan Mensual</h2>
+                      <span className="inline-block bg-black/15 text-black text-xs font-extrabold px-2.5 py-0.5 rounded-full mt-1">Acceso completo</span>
                     </div>
                   </div>
-                  <p className="text-black/70 font-semibold text-sm sm:text-base -mt-1">o $55,000 COP al mes</p>
+                  {/* Precio */}
+                  <div>
+                    <div className="flex items-end gap-1.5">
+                      <p className="text-4xl font-black text-black leading-none">$15</p>
+                      <p className="text-black/60 text-sm mb-0.5">USD / mes</p>
+                    </div>
+                    <p className="text-black/70 text-xs font-semibold mt-1">o $55,000 COP al mes</p>
+                  </div>
                   {/* Divider */}
                   <div className="h-px bg-black/15" />
                   {/* Features */}
-                  <ul className="space-y-2 sm:space-y-3 flex-1">
+                  <ul className="space-y-2.5 flex-1">
                     {[
                       'Acceso completo a TODOS los cursos',
                       'Práctica con ChatGPT usando prompts ya creados',
@@ -226,8 +226,8 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
                       'Soporte prioritario',
                       'Sin contratos anuales',
                     ].map((f, i) => (
-                      <li key={i} className="flex items-center gap-3 text-black text-sm sm:text-base md:text-lg font-semibold">
-                        <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-black/20 flex items-center justify-center text-black text-xs font-black flex-shrink-0">✓</span>
+                      <li key={i} className="flex items-start gap-2.5 text-black text-sm font-semibold">
+                        <span className="w-5 h-5 rounded-full bg-black/20 flex items-center justify-center text-black text-[10px] font-black flex-shrink-0 mt-0.5">✓</span>
                         {f}
                       </li>
                     ))}
@@ -235,41 +235,42 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
                   {/* CTA */}
                   <button
                     onClick={() => onOpenAuth?.('register')}
-                    className="w-full bg-black hover:bg-gray-900 active:scale-[0.98] text-white font-extrabold text-base sm:text-xl py-4 sm:py-5 rounded-2xl transition-all shadow-xl"
+                    className="w-full bg-black hover:bg-gray-900 active:scale-[0.98] text-white font-extrabold text-base py-4 rounded-2xl transition-all shadow-xl"
                   >
-                    ¡Inscribirte ahora! 🚀
+                    ¡Inscribirme ahora! 🚀
                   </button>
                 </div>
               </div>
 
               {/* ── PLAN TRIMESTRAL ── */}
-              <div className="relative bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-700 rounded-3xl p-5 sm:p-8 flex flex-col gap-4 sm:gap-5 shadow-2xl shadow-violet-500/40 overflow-hidden">
+              <div className="relative bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-700 rounded-3xl p-6 flex flex-col gap-4 shadow-2xl shadow-violet-500/40 overflow-hidden">
                 <div className="absolute -top-8 -right-8 w-40 h-40 bg-white/15 rounded-full blur-2xl pointer-events-none" />
                 <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-white/10 rounded-full blur-xl pointer-events-none" />
-                {/* Badge "Mejor valor" */}
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-20">
-                  <span className="bg-amber-400 text-black text-xs font-extrabold px-4 py-1 rounded-full shadow-lg whitespace-nowrap">⭐ Mejor valor</span>
+                {/* Badge */}
+                <div className="absolute top-4 right-4 z-20">
+                  <span className="bg-amber-400 text-black text-[10px] font-extrabold px-2.5 py-1 rounded-full shadow whitespace-nowrap">⭐ Mejor valor</span>
                 </div>
-                <div className="relative z-10 flex flex-col gap-4 sm:gap-5 h-full pt-2">
-                  {/* Header */}
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-3xl sm:text-5xl flex-shrink-0">💎</span>
-                      <div className="min-w-0">
-                        <h2 className="text-lg sm:text-2xl md:text-3xl font-black text-white whitespace-nowrap">Plan Trimestral</h2>
-                        <span className="inline-block bg-white/20 text-white text-xs font-extrabold px-3 py-1 rounded-full mt-1">3 meses</span>
-                      </div>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <p className="text-3xl sm:text-4xl md:text-5xl font-black text-white leading-none">$60</p>
-                      <p className="text-white/60 text-xs sm:text-sm mt-0.5">USD / 3 meses</p>
+                <div className="relative z-10 flex flex-col gap-4 h-full">
+                  {/* Header vertical */}
+                  <div className="flex items-center gap-3">
+                    <span className="text-4xl flex-shrink-0">💎</span>
+                    <div>
+                      <h2 className="text-xl font-black text-white leading-tight">Plan Trimestral</h2>
+                      <span className="inline-block bg-white/20 text-white text-xs font-extrabold px-2.5 py-0.5 rounded-full mt-1">3 meses</span>
                     </div>
                   </div>
-                  <p className="text-white/70 font-semibold text-sm sm:text-base -mt-1">o $240,000 COP por 3 meses</p>
+                  {/* Precio */}
+                  <div>
+                    <div className="flex items-end gap-1.5">
+                      <p className="text-4xl font-black text-white leading-none">$60</p>
+                      <p className="text-white/60 text-sm mb-0.5">USD / 3 meses</p>
+                    </div>
+                    <p className="text-white/70 text-xs font-semibold mt-1">o $240,000 COP por 3 meses</p>
+                  </div>
                   {/* Divider */}
                   <div className="h-px bg-white/15" />
                   {/* Features */}
-                  <ul className="space-y-2 sm:space-y-3 flex-1">
+                  <ul className="space-y-2.5 flex-1">
                     {[
                       'Acceso completo a TODOS los cursos',
                       'Módulos A1, A2, B1, B2, C1',
@@ -277,8 +278,8 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
                       'Acceso completo a English for you: Fonética, Inglés para el Mundo Real, Escritura, Lectura, Gramática, Listening y Vocabulario',
                       'Sin contratos anuales',
                     ].map((f, i) => (
-                      <li key={i} className="flex items-start gap-3 text-white text-sm sm:text-base font-semibold">
-                        <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-white/20 flex items-center justify-center text-white text-xs font-black flex-shrink-0 mt-0.5">✓</span>
+                      <li key={i} className="flex items-start gap-2.5 text-white text-sm font-semibold">
+                        <span className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-white text-[10px] font-black flex-shrink-0 mt-0.5">✓</span>
                         {f}
                       </li>
                     ))}
@@ -286,7 +287,7 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
                   {/* CTA */}
                   <button
                     onClick={() => onOpenAuth?.('register')}
-                    className="w-full bg-white hover:bg-white/90 active:scale-[0.98] text-violet-700 font-extrabold text-base sm:text-xl py-4 sm:py-5 rounded-2xl transition-all shadow-xl"
+                    className="w-full bg-white hover:bg-white/90 active:scale-[0.98] text-violet-700 font-extrabold text-base py-4 rounded-2xl transition-all shadow-xl"
                   >
                     Inscribirme ahora →
                   </button>
@@ -808,6 +809,15 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
                       "{r.comment}"
                     </p>
 
+                    {/* Autor */}
+                    <div className="flex items-center gap-2.5 pt-1 border-t border-border/40">
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-extrabold text-sm shrink-0">
+                        {r.full_name ? r.full_name.charAt(0).toUpperCase() : '?'}
+                      </div>
+                      <span className="text-sm font-semibold text-foreground/80 leading-tight">
+                        {r.full_name || 'Estudiante'}
+                      </span>
+                    </div>
                   </motion.div>
                 ))}
               </div>
