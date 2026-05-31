@@ -1970,10 +1970,8 @@ useEffect(() => {
 
   const handleLogout = async () => {
     try { await supabase.auth.signOut(); } catch (_) {}
-    // Llamar prop del padre si existe (actualiza estado React en App.tsx)
-    if (onLogout) { onLogout(); return; }
-    // Fallback: recarga forzada en la ruta raíz
-    window.location.replace(window.location.origin + '/#/');
+    if (onLogout) onLogout();
+    navigate(ROUTE_PATHS.HOME);
   };
 
   // Not logged in guard — redirigir al home en vez de mostrar pantalla bloqueada
