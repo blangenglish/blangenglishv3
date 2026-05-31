@@ -115,8 +115,7 @@ function PlanCard({ plan, onSelect, onMensualPlan }: { plan: DBPricingPlan; onSe
 
         {onMensualPlan && (
           <Button
-            variant="outline"
-            className="w-full rounded-xl py-5 font-semibold text-sm mt-2 border-2 border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-400 transition-all"
+            className="w-full rounded-xl py-5 font-bold text-sm mt-2 bg-violet-600 hover:bg-violet-700 text-white transition-all"
             onClick={onMensualPlan}
           >
             📅 Clases Virtuales Personalizadas Mensuales

@@ -974,6 +974,10 @@ const [showPaypalModal, setShowPaypalModal] = useState(false);
   const [grantedModuleIds, setGrantedModuleIds] = useState<string[]>([]);
   // IDs de cursos/unidades con acceso explícitamente revocado por admin
   const [revokedModuleIds, setRevokedModuleIds] = useState<string[]>([]);
+  // IDs de unidades individuales con acceso habilitado (filas donde unit_id NO es null)
+  const [grantedUnitIds, setGrantedUnitIds] = useState<string[]>([]);
+  // IDs de cursos que tienen al menos una unidad con grant individual
+  const [courseIdsWithUnitGrants, setCourseIdsWithUnitGrants] = useState<string[]>([]);
   const [showRenewalAlert, setShowRenewalAlert] = useState(false);
   const [showLevelOnboarding, setShowLevelOnboarding] = useState(false);
   const [showLevelExam, setShowLevelExam] = useState(false);
@@ -1266,6 +1270,12 @@ useEffect(() => {
       .filter(Boolean);
     setGrantedModuleIds(grantedIds);
     setRevokedModuleIds(revokedIds);
+
+    // Separar grants de unidades individuales (unit_id no null)
+    const unitOnlyGranted = allMods.filter(m => m.is_active === true && !!m.unit_id);
+    setGrantedUnitIds(unitOnlyGranted.map(m => m.unit_id as string));
+    const cidsWithUnitGrants = [...new Set(unitOnlyGranted.map(m => m.course_id as string).filter(Boolean))];
+    setCourseIdsWithUnitGrants(cidsWithUnitGrants);
     } catch (err) {
       console.error('[refreshProfile] error inesperado:', err);
     } finally {
@@ -1493,8 +1503,10 @@ useEffect(() => {
 
     // Prioridad 1: revocación explícita
     if (revokedModuleIds.includes(course.id)) return false;
-    // Prioridad 2: concesión explícita
+    // Prioridad 2: concesión explícita del curso completo
     if (grantedModuleIds.includes(course.id)) return true;
+    // Prioridad 2b: al menos una unidad del curso tiene grant individual → curso visible
+    if (courseIdsWithUnitGrants.includes(course.id)) return true;
 
     // Sin suscripción => solo acceso si hay grant explícito (ya chequeado arriba)
     if (!subscription) return false;
@@ -2073,21 +2085,39 @@ useEffect(() => {
                                 const totalStages = unitStageTotalMap[unit.id] || 5;
                                 const progPct = Math.min(100, Math.round((unitProg / totalStages) * 100));
                                 const isCompleted = unitProg >= totalStages;
+
+                                // ── Lógica de bloqueo por unidad ──
+                                // Si el curso tiene grants individuales de unidades, solo las unidades
+                                // con grant explícito están desbloqueadas; las demás quedan bloqueadas.
+                                const isUnitLocked = (() => {
+                                  if (profileLoading) return false;
+                                  // Revocación explícita de esta unidad
+                                  if (revokedModuleIds.includes(unit.id)) return true;
+                                  // Grant explícito de esta unidad
+                                  if (grantedUnitIds.includes(unit.id)) return false;
+                                  // El curso usa modelo de grants por unidad → esta unidad no está concedida
+                                  if (courseIdsWithUnitGrants.includes(course.id)) return true;
+                                  // Sin modelo de unidades individuales → acceso completo al curso
+                                  return false;
+                                })();
+
                                 return (
                                 <div
                                   key={unit.id}
-                                  className="w-full flex items-center gap-3 p-3 rounded-xl border border-border bg-card transition-all text-left"
+                                  className={`w-full flex items-center gap-3 p-3 rounded-xl border border-border bg-card transition-all text-left ${isUnitLocked ? 'opacity-50' : ''}`}
                                 >
                                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                                    isCompleted ? 'bg-green-100' : 'bg-primary/10'
+                                    isUnitLocked ? 'bg-muted' : isCompleted ? 'bg-green-100' : 'bg-primary/10'
                                   }`}>
-                                    {isCompleted
-                                      ? <CheckCircle2 className="w-4 h-4 text-green-600" />
-                                      : <BookOpen className="w-4 h-4 text-primary" />}
+                                    {isUnitLocked
+                                      ? <Lock className="w-4 h-4 text-muted-foreground" />
+                                      : isCompleted
+                                        ? <CheckCircle2 className="w-4 h-4 text-green-600" />
+                                        : <BookOpen className="w-4 h-4 text-primary" />}
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     <p className="text-sm font-semibold truncate">{unit.title}</p>
-                                    {unitProg > 0 ? (
+                                    {!isUnitLocked && unitProg > 0 ? (
                                       <div className="flex items-center gap-2 mt-0.5">
                                         <div className="flex-1 h-1.5 bg-border rounded-full overflow-hidden">
                                           <div className={`h-full rounded-full transition-all ${isCompleted ? 'bg-green-500' : 'bg-primary'}`} style={{ width: `${progPct}%` }} />
@@ -2098,8 +2128,13 @@ useEffect(() => {
                                       unit.description && <p className="text-xs text-muted-foreground truncate">{unit.description}</p>
                                     )}
                                   </div>
-                                  {isCompleted ? (
-                                    /* Unidad completada: dos botones */
+                                  {isUnitLocked ? (
+                                    /* Unidad bloqueada */
+                                    <div className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-muted text-muted-foreground cursor-not-allowed">
+                                      <Lock className="w-3 h-3" /> Bloqueada
+                                    </div>
+                                  ) : isCompleted ? (
+                                    /* Unidad completada: botón repasar */
                                     <div className="flex items-center gap-1.5 shrink-0">
                                       <button
                                         type="button"

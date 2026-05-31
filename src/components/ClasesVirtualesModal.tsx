@@ -175,22 +175,11 @@ export function ClasesVirtualesModal({
               <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
                 <Check className="w-8 h-8 text-green-600" />
               </div>
-              <h4 className="text-xl font-bold mb-2">¡Solicitud enviada! 🎉</h4>
-              <p className="text-muted-foreground text-sm mb-2 leading-relaxed">
-                Recibimos tu solicitud. Nos comunicaremos pronto a{' '}
-                <strong>{correo}</strong> para confirmar los detalles y el método de pago.
+              <h4 className="text-xl font-bold mb-3">¡Listo! 🎉</h4>
+              <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
+                Hemos recibido tu solicitud. En breve te enviaremos la cotización a tu correo.
               </p>
-              <p className="text-xs text-muted-foreground mb-6">
-                Escríbenos también a{' '}
-                <a
-                  href="mailto:blangenglishlearning@blangenglish.com"
-                  className="text-primary font-semibold hover:underline"
-                >
-                  blangenglishlearning@blangenglish.com
-                </a>{' '}
-                si tienes alguna duda.
-              </p>
-              <Button className="rounded-full" onClick={onClose}>
+              <Button className="rounded-full bg-violet-600 hover:bg-violet-700 text-white px-8" onClick={onClose}>
                 Cerrar
               </Button>
             </div>
@@ -335,7 +324,7 @@ export function ClasesVirtualesModal({
 
               {/* Botón enviar */}
               <Button
-                className="w-full rounded-full font-bold py-6"
+                className="w-full rounded-xl font-bold py-6 bg-violet-600 hover:bg-violet-700 text-white disabled:opacity-50"
                 onClick={handleSubmit}
                 disabled={sending || !canSubmit}
               >
