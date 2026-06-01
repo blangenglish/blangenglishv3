@@ -1,6 +1,29 @@
 // @ts-nocheck
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, Component } from 'react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
+
+/* ─── Error Boundary (muestra el error en pantalla en lugar de pantalla en blanco) ── */
+class EmpresasErrorBoundary extends Component {
+  constructor(props) { super(props); this.state = { error: null }; }
+  static getDerivedStateFromError(error) { return { error }; }
+  componentDidCatch(error, info) { console.error('[AdminEmpresas] Error:', error, info); }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ padding: '40px', fontFamily: 'monospace', color: 'red', background: '#fff' }}>
+          <h2>❌ Error en Inglés para Empresas</h2>
+          <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+            {this.state.error?.message || String(this.state.error)}
+          </pre>
+          <button onClick={() => this.setState({ error: null })} style={{ marginTop: 16, padding: '8px 16px' }}>
+            Reintentar
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 import { supabase } from '@/integrations/supabase/client';
 import { adminInsert, adminUpdate, adminDelete } from '@/lib/adminWrite';
 import { Button } from '@/components/ui/button';
@@ -78,7 +101,7 @@ const LEVEL_COLORS = {
 /* ═══════════════════════════════════════════════════════════════════════════
    COMPONENTE PRINCIPAL
 ═══════════════════════════════════════════════════════════════════════════ */
-export default function AdminEmpresas() {
+function AdminEmpresasInner() {
   const [tab, setTab] = useState('estudiantes');
 
   return (
@@ -116,6 +139,14 @@ export default function AdminEmpresas() {
         {tab === 'modulos' && <EmpresaModulesTab />}
       </div>
     </AdminLayout>
+  );
+}
+
+export default function AdminEmpresas() {
+  return (
+    <EmpresasErrorBoundary>
+      <AdminEmpresasInner />
+    </EmpresasErrorBoundary>
   );
 }
 
