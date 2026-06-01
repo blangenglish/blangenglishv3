@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { useState, useEffect } from 'react';
 import { useNavigate, NavLink, Navigate } from 'react-router-dom';
-import { LayoutDashboard, BookOpen, Menu, X, LogOut, Users, DollarSign, Sparkles, MessageSquare, CalendarDays, Globe, GraduationCap } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Menu, X, LogOut, Users, DollarSign, Sparkles, MessageSquare, CalendarDays, Globe, GraduationCap, Building2 } from 'lucide-react';
 import { useAdmin, useAdminAuth } from '@/hooks/useAdmin';
 import { ADMIN_ROUTES } from '@/lib/admin';
 import { ROUTE_PATHS } from '@/lib/index';
@@ -56,6 +56,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     { to: ADMIN_ROUTES.REVIEWS, icon: MessageSquare, label: 'Comentarios' },
     { to: ADMIN_ROUTES.SCHEDULE, icon: CalendarDays, label: 'Agenda' },
     { to: ADMIN_ROUTES.MUNDO_REAL, icon: Globe, label: 'Mundo Real' },
+    { to: ADMIN_ROUTES.EMPRESAS, icon: Building2, label: 'Inglés para Empresas' },
   ];
 
   return (

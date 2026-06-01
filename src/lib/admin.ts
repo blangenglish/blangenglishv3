@@ -14,6 +14,7 @@ export const ADMIN_ROUTES = {
   REVIEWS: '/adminblang/comentarios',
   SCHEDULE: '/adminblang/agenda',
   MUNDO_REAL: '/adminblang/mundo-real',
+  EMPRESAS: '/adminblang/empresas',
 } as const;
 
 export interface DBCourse {

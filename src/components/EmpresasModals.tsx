@@ -52,6 +52,7 @@ export function EmpresasPersonaModal({
           full_name: form.name.trim(),
           account_status: 'pending_payment',
           account_enabled: false,
+          is_empresa: true,
           updated_at: new Date().toISOString(),
         });
       }
