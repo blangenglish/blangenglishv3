@@ -2550,7 +2550,7 @@ useEffect(() => {
                         </div>
                       </div>
                       <div className="relative flex flex-wrap gap-2 mt-4">
-                        {['🎯 Conversación', '📝 Gramática', '🗣️ Pronunciación', '💼 Business English'].map(tag => (
+                        {['🎯 Conversación', '📝 Gramática', '🗣️ Pronunciación'].map(tag => (
                           <span key={tag} className="text-xs bg-white/15 border border-white/20 text-white px-2.5 py-1 rounded-full">{tag}</span>
                         ))}
                       </div>

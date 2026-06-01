@@ -13,7 +13,6 @@ import type { DBPricingPlan } from '@/lib/admin';
 import type { AuthModal } from '@/lib/index';
 import { supabase } from '@/integrations/supabase/client';
 import { ClasesVirtualesModal } from '@/components/ClasesVirtualesModal';
-import { EmpresasPersonaModal, EmpresasCotizarModal } from '@/components/EmpresasModals';
 
 interface PricingPageProps {
   isLoggedIn?: boolean;
@@ -286,8 +285,6 @@ export default function PricingPage({ isLoggedIn = false, onOpenAuth, onLogout, 
   const trialDays = settings?.trial_days ?? '7';
 
   const [showClasesModal, setShowClasesModal] = useState(false);
-  const [showEmpresasPersona, setShowEmpresasPersona] = useState(false);
-  const [showEmpresasCotizar, setShowEmpresasCotizar] = useState(false);
 
   // Slots booking modal state
   const [showSlots, setShowSlots] = useState(false);

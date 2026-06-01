@@ -13,7 +13,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { MODULES } from '@/components/EnglishForYou';
 import { MUNDO_REAL_TOPICS } from '@/pages/MundoRealData';
 import { ClasesVirtualesModal } from '@/components/ClasesVirtualesModal';
-import { EmpresasPersonaModal, EmpresasCotizarModal } from '@/components/EmpresasModals';
 
 const staggerContainer = {
   hidden: { opacity: 0 },
@@ -53,8 +52,6 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
   const [ctaEmail, setCtaEmail] = useState('');
   const navigate = useNavigate();
   const [showClasesModal, setShowClasesModal] = useState(false);
-  const [showEmpresasPersona, setShowEmpresasPersona] = useState(false);
-  const [showEmpresasCotizar, setShowEmpresasCotizar] = useState(false);
   const [reviews, setReviews] = useState<{ full_name: string; rating: number; comment: string }[]>([]);
   const [moduleContent, setModuleContent] = useState<Record<string, { id: string; title: string; rich_text: string; sort_order: number }[]>>({});
 
@@ -297,66 +294,6 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
                 </div>
               </div>
 
-              {/* ── INGLÉS PARA EMPRESAS ── */}
-              <div className="relative bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 rounded-3xl p-6 flex flex-col gap-4 shadow-2xl shadow-teal-500/40 overflow-hidden">
-                <div className="absolute -top-8 -right-8 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none" />
-                <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-white/10 rounded-full blur-xl pointer-events-none" />
-                {/* Badge */}
-                <div className="absolute top-4 right-4 z-20">
-                  <span className="bg-amber-400 text-black text-[10px] font-extrabold px-2.5 py-1 rounded-full shadow whitespace-nowrap">🏢 Empresas</span>
-                </div>
-                <div className="relative z-10 flex flex-col gap-4 h-full">
-                  {/* Header */}
-                  <div className="flex items-center gap-3">
-                    <span className="text-4xl flex-shrink-0">🏢</span>
-                    <div>
-                      <h2 className="text-xl font-black text-white leading-tight">Inglés para Empresas</h2>
-                      <span className="inline-block bg-white/20 text-white text-xs font-extrabold px-2.5 py-0.5 rounded-full mt-1">3 meses</span>
-                    </div>
-                  </div>
-                  {/* Precio */}
-                  <div>
-                    <div className="flex items-end gap-1.5">
-                      <p className="text-4xl font-black text-white leading-none">$80</p>
-                      <p className="text-white/60 text-sm mb-0.5">USD / 3 meses</p>
-                    </div>
-                    <p className="text-white/70 text-xs font-semibold mt-1">o $300,000 COP por persona</p>
-                  </div>
-                  {/* Divider */}
-                  <div className="h-px bg-white/15" />
-                  {/* Features */}
-                  <ul className="space-y-2.5 flex-1">
-                    {[
-                      'Acceso completo a TODOS los cursos',
-                      'Módulos A1, A2, B1, B2, C1',
-                      'Práctica con IA (Speakology)',
-                      'Sin contratos anuales',
-                      'Módulos de inglés empresarial exclusivos (B1, B2, C1)',
-                    ].map((f, i) => (
-                      <li key={i} className="flex items-start gap-2.5 text-white text-sm font-semibold">
-                        <span className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-white text-[10px] font-black flex-shrink-0 mt-0.5">✓</span>
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-                  {/* Dos CTAs */}
-                  <div className="flex flex-col gap-2">
-                    <button
-                      onClick={() => setShowEmpresasPersona(true)}
-                      className="w-full bg-white hover:bg-white/90 active:scale-[0.98] text-teal-700 font-extrabold text-sm py-3.5 rounded-2xl transition-all shadow-xl"
-                    >
-                      Inscribirme como persona →
-                    </button>
-                    <button
-                      onClick={() => setShowEmpresasCotizar(true)}
-                      className="w-full bg-white/15 hover:bg-white/25 active:scale-[0.98] text-white font-bold text-sm py-3.5 rounded-2xl transition-all border border-white/30"
-                    >
-                      🏢 Cotizar para mi empresa →
-                    </button>
-                  </div>
-                </div>
-              </div>
-
             </motion.div>
 
             {/* ── FOOTER INFO ── */}
@@ -372,8 +309,6 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
                 <span className="flex items-center gap-1.5 text-xs sm:text-sm"><span className="text-base sm:text-lg">🏦</span> PSE</span>
                 <span className="text-white/25">·</span>
                 <span className="flex items-center gap-1.5 text-xs sm:text-sm"><span className="text-base sm:text-lg">💳</span> Tarjeta</span>
-                <span className="text-white/25">·</span>
-                <span className="flex items-center gap-1.5 text-xs sm:text-sm"><span className="text-base sm:text-lg">🏢</span> Empresas</span>
               </div>
             </motion.div>
 
@@ -896,14 +831,6 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
         onClose={() => setShowClasesModal(false)}
       />
 
-      <EmpresasPersonaModal
-        open={showEmpresasPersona}
-        onClose={() => setShowEmpresasPersona(false)}
-      />
-      <EmpresasCotizarModal
-        open={showEmpresasCotizar}
-        onClose={() => setShowEmpresasCotizar(false)}
-      />
     </Layout>
   );
 }
