@@ -1,8 +1,18 @@
 // @ts-nocheck
 import React, { useState, useEffect, useCallback, Component } from 'react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
+import { supabase } from '@/integrations/supabase/client';
+import { adminInsert, adminUpdate, adminDelete } from '@/lib/adminWrite';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Building2, Plus, Search, ChevronLeft, Trash2,
+  Edit2, Check, X, BookOpen, History, CreditCard,
+  Loader2, Eye, EyeOff, ToggleLeft, ToggleRight, Send,
+} from 'lucide-react';
 
-/* ─── Error Boundary (muestra el error en pantalla en lugar de pantalla en blanco) ── */
+/* ─── Error Boundary ─────────────────────────────────────────────────────── */
 class EmpresasErrorBoundary extends Component {
   constructor(props) { super(props); this.state = { error: null }; }
   static getDerivedStateFromError(error) { return { error }; }
@@ -24,16 +34,6 @@ class EmpresasErrorBoundary extends Component {
     return this.props.children;
   }
 }
-import { supabase } from '@/integrations/supabase/client';
-import { adminInsert, adminUpdate, adminDelete } from '@/lib/adminWrite';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Building2, Plus, Search, ChevronLeft, Trash2,
-  Edit2, Check, X, BookOpen, History, CreditCard,
-  Loader2, Eye, EyeOff, ToggleLeft, ToggleRight, Send,
-} from 'lucide-react';
 
 /* ─── Tipos ──────────────────────────────────────────────────────────────── */
 interface EmpresaStudent {
@@ -442,7 +442,10 @@ function EmpresaStudentsTab() {
             disabled={activating}
             className="w-full bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold"
           >
-            {activating ? <span className="flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Activando...</span> : `✅ Activar ${PLAN.name} (+${PLAN.days} días)`}
+            {activating
+              ? <span className="flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Activando...</span>
+              : `✅ Activar ${PLAN.name} (+${PLAN.days} días)`
+            }
           </Button>
         </div>
 
@@ -824,7 +827,8 @@ function EmpresaModulesTab() {
             >{l === 'all' ? 'Todos' : l}</button>
           ))}
         </div>
-        <Button onClick={() => { setForm({ title: '', level: 'B1', description: '', content: '', is_published: true, sort_order: 0 }); setEditingId(null); setShowForm(true); }}
+        <Button
+          onClick={() => { setForm({ title: '', level: 'B1', description: '', content: '', is_published: true, sort_order: 0 }); setEditingId(null); setShowForm(true); }}
           className="bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold gap-2 ml-auto"
         >
           <Plus className="w-4 h-4" /> Nuevo módulo
@@ -859,7 +863,11 @@ function EmpresaModulesTab() {
           </div>
           <div className="space-y-1.5 mb-3">
             <Label className="text-xs font-medium">Contenido</Label>
-            <textarea placeholder="Contenido del módulo..." value={form.content} onChange={e => setForm(p => ({ ...p, content: e.target.value }))} rows={4}
+            <textarea
+              placeholder="Contenido del módulo..."
+              value={form.content}
+              onChange={e => setForm(p => ({ ...p, content: e.target.value }))}
+              rows={4}
               className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
           </div>
