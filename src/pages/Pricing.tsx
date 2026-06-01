@@ -182,80 +182,6 @@ function TrimestralPlanCard({ onSelect }: { onSelect: () => void }) {
   );
 }
 
-function EmpresasPlanCard({
-  onPersona,
-  onCotizar,
-}: {
-  onPersona: () => void;
-  onCotizar: () => void;
-}) {
-  const features = [
-    'Acceso completo a TODOS los cursos',
-    'Módulos A1, A2, B1, B2, C1',
-    'Práctica con IA para cada módulo de cada unidad (Speakology)',
-    'Acceso completo a English for you: Fonética, Inglés para el Mundo Real, Escritura, Lectura, Gramática, Listening y Vocabulario',
-    'Sin contratos anuales',
-    'Acceso exclusivo a módulos de inglés empresarial (B1, B2, C1): vocabulario, expresiones y contextos laborales',
-  ];
-
-  return (
-    <motion.div variants={fadeUp} className="h-full">
-      <div className="relative h-full flex flex-col rounded-3xl border-2 bg-gradient-to-br from-teal-50 to-emerald-50/60 border-teal-300 p-7 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-        {/* Badge */}
-        <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-          <span className="bg-teal-600 text-white text-xs font-bold px-5 py-1.5 rounded-full shadow-lg whitespace-nowrap">
-            🏢 Para Empresas
-          </span>
-        </div>
-
-        <div className="mb-6 pt-2">
-          <div className="text-4xl mb-3">🏢</div>
-          <h3 className="text-xl font-bold mb-1">Inglés para Empresas</h3>
-          <p className="text-sm text-muted-foreground">3 meses de acceso completo</p>
-          <div className="mt-4 space-y-1">
-            <div className="flex items-end gap-1.5">
-              <span className="text-5xl font-extrabold">$80</span>
-              <span className="text-muted-foreground mb-1.5 text-sm">USD / 3 meses</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-2xl font-bold text-foreground/70">$300,000</span>
-              <span className="text-muted-foreground text-sm">COP / por persona</span>
-            </div>
-          </div>
-        </div>
-
-        <ul className="flex-1 space-y-3 mb-7">
-          {features.map((f, i) => (
-            <li key={i} className="flex items-start gap-3">
-              <div className="w-5 h-5 rounded-full bg-teal-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <Check className="w-3 h-3 text-teal-700" />
-              </div>
-              <span className="text-sm text-foreground/80 leading-snug">{f}</span>
-            </li>
-          ))}
-        </ul>
-
-        {/* Dos botones */}
-        <div className="flex flex-col gap-2">
-          <Button
-            className="w-full rounded-xl py-5 font-bold text-sm bg-teal-600 hover:bg-teal-700 text-white"
-            onClick={onPersona}
-          >
-            Inscribirme como persona →
-          </Button>
-          <Button
-            variant="outline"
-            className="w-full rounded-xl py-5 font-bold text-sm border-teal-400 text-teal-700 hover:bg-teal-50"
-            onClick={onCotizar}
-          >
-            🏢 Cotizar para mi empresa →
-          </Button>
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
 const FAQ = [
   { q: '¿Cuánto cuesta después de los días gratis?', a: 'Solo $15 USD ó $55,000 COP al mes. Sin contratos ni compromisos.' },
   { q: '¿Cómo puedo pagar?', a: 'Aceptamos transferencia bancaria o pago por PayPal. Escríbenos y te indicamos el método más conveniente para ti.' },
@@ -409,7 +335,7 @@ export default function PricingPage({ isLoggedIn = false, onOpenAuth, onLogout, 
                 </motion.div>
               </div>
               <div className="grid grid-cols-3 gap-2 w-full max-w-xs">
-                {[{e:'🎁',t:'Prueba Gratis'},{e:'🚀',t:'Plan Mensual'},{e:'💎',t:'Plan Trimestral'},{e:'🎥',t:'Clases Vivo'},{e:'🏢',t:'Para Empresas'}].map(({e,t}) => (
+                {[{e:'🎁',t:'Prueba Gratis'},{e:'🚀',t:'Plan Mensual'},{e:'💎',t:'Plan Trimestral'},{e:'🎥',t:'Clases Vivo'}].map(({e,t}) => (
                   <div key={t} className="bg-white/10 backdrop-blur border border-white/20 rounded-xl px-2 py-2.5 text-center">
                     <span className="text-xl block mb-0.5">{e}</span>
                     <p className="text-white/90 text-xs font-semibold leading-tight">{t}</p>
@@ -451,11 +377,6 @@ export default function PricingPage({ isLoggedIn = false, onOpenAuth, onLogout, 
                 return [card];
               })}
 
-              {/* Plan Empresas — siempre visible, al final */}
-              <EmpresasPlanCard
-                onPersona={() => setShowEmpresasPersona(true)}
-                onCotizar={() => setShowEmpresasCotizar(true)}
-              />
             </motion.div>
           )}
 
@@ -848,14 +769,6 @@ export default function PricingPage({ isLoggedIn = false, onOpenAuth, onLogout, 
         onClose={() => setShowClasesModal(false)}
       />
 
-      <EmpresasPersonaModal
-        open={showEmpresasPersona}
-        onClose={() => setShowEmpresasPersona(false)}
-      />
-      <EmpresasCotizarModal
-        open={showEmpresasCotizar}
-        onClose={() => setShowEmpresasCotizar(false)}
-      />
     </Layout>
   );
 }
