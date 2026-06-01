@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { supabase } from '@/integrations/supabase/client';
-import { adminInsert, adminUpdate, adminDelete, adminSelect } from '@/lib/adminWrite';
+import { adminInsert, adminUpdate, adminDelete } from '@/lib/adminWrite';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -74,11 +74,41 @@ const LEVEL_COLORS: Record<string, string> = {
   C1: 'bg-orange-100 text-orange-700 border-orange-200',
 };
 
+/* ─── Error Boundary ─────────────────────────────────────────────────────── */
+class TabErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { error: Error | null }
+> {
+  state = { error: null };
+  static getDerivedStateFromError(error: Error) { return { error }; }
+  componentDidCatch(error: Error, info: any) {
+    console.error('[AdminEmpresas] render error:', error, info);
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
+          <p className="text-red-700 font-bold mb-2">Error al cargar esta sección</p>
+          <p className="text-sm text-red-600 font-mono mb-4">{this.state.error?.message}</p>
+          <button
+            onClick={() => this.setState({ error: null })}
+            className="text-sm text-red-700 underline font-medium"
+          >
+            Intentar de nuevo
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    COMPONENTE PRINCIPAL
 ═══════════════════════════════════════════════════════════════════════════ */
 export default function AdminEmpresas() {
   const [tab, setTab] = useState<'estudiantes' | 'modulos'>('estudiantes');
+  console.log('[AdminEmpresas] rendering, tab:', tab);
 
   return (
     <AdminLayout>
@@ -111,8 +141,10 @@ export default function AdminEmpresas() {
           ))}
         </div>
 
-        {tab === 'estudiantes' && <EmpresaStudentsTab />}
-        {tab === 'modulos' && <EmpresaModulesTab />}
+        <TabErrorBoundary>
+          {tab === 'estudiantes' && <EmpresaStudentsTab />}
+          {tab === 'modulos' && <EmpresaModulesTab />}
+        </TabErrorBoundary>
       </div>
     </AdminLayout>
   );
