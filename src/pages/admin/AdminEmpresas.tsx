@@ -1,6 +1,5 @@
 // @ts-nocheck
 import React, { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { supabase } from '@/integrations/supabase/client';
 import { adminInsert, adminUpdate, adminDelete } from '@/lib/adminWrite';
