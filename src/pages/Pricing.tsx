@@ -416,7 +416,7 @@ export default function PricingPage({ isLoggedIn = false, onOpenAuth, onLogout, 
                       <div className="flex-1 flex flex-col items-center justify-center py-4 gap-3">
                         <span className="text-5xl">⏳</span>
                         <p className="text-white font-extrabold text-lg text-center leading-tight">Próximamente disponible</p>
-                        <p className="text-white/70 text-sm text-center leading-relaxed">Estamos preparando algo especial para hispanohablantes que quieren enseñar su idioma.</p>
+                        <p className="text-white/70 text-sm text-center leading-relaxed">We're preparing something special for English speakers who want to learn Spanish the right way.</p>
                       </div>
                       <div className="mt-4 bg-white/20 rounded-2xl px-5 py-3 text-center">
                         <p className="text-white/90 text-xs font-semibold">¡Muy pronto! 🚀</p>

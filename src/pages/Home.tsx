@@ -313,7 +313,7 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
                   <div className="flex flex-col items-center justify-center flex-1 py-4 gap-3">
                     <span className="text-5xl">⏳</span>
                     <p className="text-white font-extrabold text-lg text-center leading-tight">Próximamente disponible</p>
-                    <p className="text-white/70 text-sm text-center">Estamos preparando algo especial para hispanohablantes que quieren enseñar su idioma.</p>
+                    <p className="text-white/70 text-sm text-center">We're preparing something special for English speakers who want to learn Spanish the right way.</p>
                   </div>
                 </div>
               </div>
