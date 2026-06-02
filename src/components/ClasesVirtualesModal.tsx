@@ -16,6 +16,26 @@ interface ClasesVirtualesModalProps {
 
 const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
 
+// ── Tabla de precios por combinación horas×días ──────────────────────────────
+const PRECIOS = {
+  1: {
+    2: { regular: 460000,  final: 380000,  unidades: 8,  valorUnit: 47500, label: 'clase' },
+    3: { regular: 660000,  final: 510000,  unidades: 12, valorUnit: 42500, label: 'clase' },
+    4: { regular: 860000,  final: 640000,  unidades: 16, valorUnit: 40000, label: 'clase' },
+    5: { regular: 1060000, final: 760000,  unidades: 20, valorUnit: 38000, label: 'clase' },
+  },
+  2: {
+    2: { regular: 860000,  final: 700000,  unidades: 16, valorUnit: 43750, label: 'hora' },
+    3: { regular: 1260000, final: 950000,  unidades: 24, valorUnit: 39500, label: 'hora' },
+    4: { regular: 1200000, final: 1200000, unidades: 32, valorUnit: 37500, label: 'hora' },
+    5: { regular: 2060000, final: 1400000, unidades: 40, valorUnit: 35000, label: 'hora' },
+  },
+} as const;
+
+function formatCOP(n: number) {
+  return '$' + n.toLocaleString('es-CO');
+}
+
 const FRANJAS_1H = [
   '6:00 AM – 7:00 AM',
   '7:00 AM – 8:00 AM',
@@ -103,6 +123,8 @@ export function ClasesVirtualesModal({
     diasMatch &&
     franja;
 
+  const precio = PRECIOS[horasDia][diasSemana as 2 | 3 | 4 | 5];
+
   const handleSubmit = async () => {
     if (!canSubmit) return;
     setSending(true);
@@ -122,7 +144,12 @@ export function ClasesVirtualesModal({
             `Horas por día: ${horasDia} hora${horasDia === 2 ? 's' : ''}\n` +
             `Clases a la semana: ${diasSemana} día${diasSemana !== 1 ? 's' : ''}\n` +
             `Días seleccionados: ${diasSel.join(', ')}\n` +
-            `Franja horaria fija: ${franja}`,
+            `Franja horaria fija: ${franja}\n\n` +
+            `💰 PRECIO ESTIMADO\n` +
+            `${precio.unidades} ${precio.label}s al mes\n` +
+            `Precio regular: ${formatCOP(precio.regular)} COP\n` +
+            `Precio final: ${formatCOP(precio.final)} COP\n` +
+            `Valor por ${precio.label}: ~${formatCOP(precio.valorUnit)} COP`,
         },
       });
       setSent(true);
@@ -317,16 +344,58 @@ export function ClasesVirtualesModal({
                 </p>
               )}
 
-              {/* Nota */}
-              <p className="text-xs text-muted-foreground text-center">
-                📧 Recibirás confirmación y detalles de pago en tu correo
-              </p>
+              {/* ── Resumen de precio dinámico ── */}
+              <div className="rounded-2xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 to-indigo-50 overflow-hidden">
+                {/* Cabecera */}
+                <div className="bg-violet-600 px-4 py-2.5 flex items-center gap-2">
+                  <span className="text-base">💰</span>
+                  <p className="text-white text-sm font-bold">Resumen de precio estimado</p>
+                  <span className="ml-auto text-violet-200 text-xs font-medium">
+                    {precio.unidades} {precio.label}s / mes
+                  </span>
+                </div>
 
-              {/* Aviso precio variable */}
-              <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-                <p className="text-xs text-amber-800 font-medium text-center">
-                  ⚠️ El valor de la hora puede variar según la cantidad de horas y días a la semana que escojas.
-                </p>
+                {/* Precios */}
+                <div className="px-5 py-4 flex items-end justify-between gap-4">
+                  <div>
+                    {/* Precio regular tachado */}
+                    <p className="text-xs text-muted-foreground mb-0.5">Precio regular</p>
+                    <p className="text-base font-semibold text-muted-foreground line-through">
+                      {formatCOP(precio.regular)} COP
+                    </p>
+                    {/* Precio final */}
+                    <p className="text-xs text-violet-700 font-semibold mt-2 mb-0.5">Precio final</p>
+                    <p className="text-3xl font-extrabold text-violet-700 leading-none">
+                      {formatCOP(precio.final)}
+                      <span className="text-sm font-bold ml-1">COP / mes</span>
+                    </p>
+                  </div>
+
+                  {/* Valor por clase/hora */}
+                  <div className="text-right shrink-0">
+                    <div className="bg-white border border-violet-200 rounded-xl px-3 py-2 shadow-sm">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold">
+                        por {precio.label}
+                      </p>
+                      <p className="text-base font-extrabold text-violet-600">
+                        ~{formatCOP(precio.valorUnit)}
+                      </p>
+                    </div>
+                    {/* Ahorro */}
+                    {precio.final < precio.regular && (
+                      <p className="text-xs text-green-600 font-bold mt-1.5">
+                        Ahorras {formatCOP(precio.regular - precio.final)} COP 🎉
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Nota */}
+                <div className="px-5 pb-3">
+                  <p className="text-[11px] text-muted-foreground">
+                    📧 Recibirás la confirmación y detalles de pago en tu correo
+                  </p>
+                </div>
               </div>
 
               {/* Botón enviar */}
