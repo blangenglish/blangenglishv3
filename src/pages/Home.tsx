@@ -123,7 +123,7 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
 
         <div className="container mx-auto px-4 relative z-10 w-full">
           <motion.div
-            className="max-w-6xl mx-auto"
+            className="max-w-7xl mx-auto"
             initial="hidden" animate="visible" variants={staggerContainer}
           >
 
@@ -152,7 +152,7 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
             </motion.div>
 
             {/* ── CUATRO TARJETAS DE PRECIOS ── */}
-            <motion.div variants={staggerItem} className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6 mt-6 sm:mt-10">
+            <motion.div variants={staggerItem} className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mt-6 sm:mt-10">
 
               {/* ── PRUEBA GRATIS ── */}
               <div className="bg-white/10 backdrop-blur-md border border-white/25 rounded-3xl p-6 flex flex-col gap-4 hover:bg-white/15 transition-all duration-300 shadow-xl">
@@ -312,7 +312,7 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
                     </div>
                   </div>
                   {/* Coming soon */}
-                  <div className="flex flex-col items-center justify-center flex-1 py-8 gap-3">
+                  <div className="flex flex-col items-center justify-center flex-1 py-4 gap-3">
                     <span className="text-5xl">⏳</span>
                     <p className="text-white font-extrabold text-lg text-center leading-tight">Próximamente disponible</p>
                     <p className="text-white/70 text-sm text-center">Estamos preparando algo especial para hispanohablantes que quieren enseñar su idioma.</p>
