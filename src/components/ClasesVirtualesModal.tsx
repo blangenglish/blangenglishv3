@@ -162,7 +162,7 @@ export function ClasesVirtualesModal({
                 Arma tu plan mensual
               </h3>
               <p className="text-white/80 text-xs mt-0.5">
-                Google Meet · $35,000 COP/hora · Horario fijo
+                Google Meet · $50,000 COP/sesión · Horario fijo
               </p>
             </div>
           </div>
@@ -321,6 +321,13 @@ export function ClasesVirtualesModal({
               <p className="text-xs text-muted-foreground text-center">
                 📧 Recibirás confirmación y detalles de pago en tu correo
               </p>
+
+              {/* Aviso precio variable */}
+              <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+                <p className="text-xs text-amber-800 font-medium text-center">
+                  ⚠️ El valor de la hora puede variar según la cantidad de horas y días a la semana que escojas.
+                </p>
+              </div>
 
               {/* Botón enviar */}
               <Button

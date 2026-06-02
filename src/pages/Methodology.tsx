@@ -353,7 +353,7 @@ export default function Methodology({ isLoggedIn = false, onOpenAuth, onLogout, 
                 45-60 min, paga por sesión.
               </p>
               <p className="text-sm text-muted-foreground mb-6">
-                💵 $10 USD &nbsp;·&nbsp; 💰 $35,000 COP &nbsp;·&nbsp; Sin suscripción
+                💵 $14 USD &nbsp;·&nbsp; 💰 $50,000 COP &nbsp;·&nbsp; Sin suscripción
               </p>
               <Link to={ROUTE_PATHS.PRICING}>
                 <Button className="bg-blue-600 hover:bg-blue-700 text-white rounded-full px-8 py-5 font-bold">

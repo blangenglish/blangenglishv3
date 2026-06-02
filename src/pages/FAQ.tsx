@@ -76,12 +76,12 @@ const ALL_FAQS = [
   {
     id: 'q10', category: 'Precios',
     question: '¿Cuánto cuesta BLANG?',
-    answer: 'El plan mensual cuesta $15 USD o $55,000 COP al mes. Puedes empezar gratis con 7 días de prueba.',
+    answer: 'El plan mensual cuesta $16 USD o $60,000 COP al mes. Puedes empezar gratis con 7 días de prueba.',
   },
   {
     id: 'q11', category: 'Precios',
     question: '¿Hay prueba gratis?',
-    answer: 'Sí. Puedes probar BLANG gratis por 7 días sin necesidad de tarjeta de crédito. Al terminar los 7 días, si decides continuar, activa tu plan mensual por $15 USD o $55,000 COP al mes.',
+    answer: 'Sí. Puedes probar BLANG gratis por 7 días sin necesidad de tarjeta de crédito. Al terminar los 7 días, si decides continuar, activa tu plan mensual por $16 USD o $60,000 COP al mes.',
   },
   {
     id: 'q12', category: 'Precios',
@@ -107,7 +107,7 @@ const ALL_FAQS = [
   {
     id: 'q16', category: 'Sesiones',
     question: '¿Cuánto cuesta una sesión en vivo?',
-    answer: 'Cada sesión tiene un costo de $35,000 COP por hora. Para agendar escríbenos a blangenglishlearning@blangenglish.com — allí te informamos los horarios disponibles y coordinamos el pago.',
+    answer: 'Cada sesión tiene un costo de $14 USD / $50,000 COP. Para agendar escríbenos a blangenglishlearning@blangenglish.com — allí te informamos los horarios disponibles y coordinamos el pago.',
   },
   {
     id: 'q17', category: 'Sesiones',

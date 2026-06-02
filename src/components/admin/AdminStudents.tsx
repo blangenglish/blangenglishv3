@@ -184,7 +184,7 @@ export default function AdminStudents() {
         try {
           await adminInsert('subscriptions', {
             student_id: student.id, plan_slug: 'monthly', plan_name: 'Plan Mensual',
-            status: 'active', amount_usd: 15, payment_method: 'manual',
+            status: 'active', amount_usd: 16, payment_method: 'manual',
             approved_by_admin: true, account_enabled: true,
             current_period_end: farFuture.toISOString(),
           });
@@ -242,7 +242,7 @@ export default function AdminStudents() {
   const [activating, setActivating] = useState<string | null>(null);
   const getActivationForm = (studentId: string) => activationForm[studentId] || {
     activationDate: new Date().toISOString().split('T')[0],
-    amount: '15',
+    amount: '16',
     method: 'paypal',
     level: 'Todas',
     notes: '',
@@ -449,7 +449,7 @@ export default function AdminStudents() {
       } else {
         await adminInsert('subscriptions', {
           student_id: studentId, plan_slug: 'monthly', plan_name: 'Plan Mensual',
-          status: 'pending_approval', amount_usd: 15, payment_method: 'paypal',
+          status: 'pending_approval', amount_usd: 16, payment_method: 'paypal',
           approved_by_admin: false, account_enabled: false,
         });
         await adminUpdate('student_profiles', { account_enabled: false, account_status: 'disabled', updated_at: new Date().toISOString() }, studentId);
@@ -473,7 +473,7 @@ export default function AdminStudents() {
       const activationDate = form.activationDate ? new Date(form.activationDate + 'T12:00:00') : new Date();
       const nextPeriodEnd = new Date(activationDate);
       nextPeriodEnd.setMonth(nextPeriodEnd.getMonth() + 1);
-      const amount = parseFloat(form.amount) || 15;
+      const amount = parseFloat(form.amount) || 16;
 
       // Usar acción activate_plan de la edge function (service_role — bypasa RLS)
       const { data: result, error } = await supabase.functions.invoke('admin-update-student', {
@@ -545,7 +545,7 @@ export default function AdminStudents() {
     try {
       await adminInsert('payment_history', {
         student_id: studentId, event_type: 'payment_approved',
-        amount_usd: subData?.amount_usd || 15, payment_method: subData?.payment_method || 'paypal',
+        amount_usd: subData?.amount_usd || 16, payment_method: subData?.payment_method || 'paypal',
         notes: notes || 'Pago verificado y aprobado por administrador', created_by: 'admin',
       });
     } catch(e) { console.error(e); }

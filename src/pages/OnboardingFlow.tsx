@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
-const AMOUNT_FULL_USD = 15;
+const AMOUNT_FULL_USD = 16;
 
 const ENGLISH_LEVELS = [
   { value: 'A1', label: 'A1 — Principiante', desc: 'No sé nada o muy poco de inglés' },
@@ -512,7 +512,7 @@ function InitialView({
           <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center text-xl shrink-0">💳</div>
           <div className="flex-1">
             <p className="font-bold text-base mb-0.5">Pagar Plan Mensual</p>
-            <p className="text-xs text-muted-foreground">$15 USD o $55,000 COP/mes. Acceso completo a todos los cursos.</p>
+            <p className="text-xs text-muted-foreground">$16 USD o $60,000 COP/mes. Acceso completo a todos los cursos.</p>
             <span className="inline-block mt-1.5 text-xs font-bold text-green-700 bg-green-100 rounded-full px-2.5 py-0.5">✅ Acceso inmediato</span>
           </div>
           <div className="text-muted-foreground group-hover:text-green-600 transition-colors mt-1">→</div>

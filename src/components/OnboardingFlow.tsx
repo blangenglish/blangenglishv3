@@ -9,8 +9,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
-const AMOUNT_FULL_USD = 15;
-const AMOUNT_TRIMESTRAL_USD = 60;
+const AMOUNT_FULL_USD = 16;
+const AMOUNT_TRIMESTRAL_USD = 68;
 
 const ENGLISH_LEVELS = [
   { value: 'A1', label: 'A1 — Principiante', desc: 'No sé nada o muy poco de inglés' },
@@ -450,7 +450,7 @@ export function OnboardingFlow({
               <PaymentFormView
                 emailError={emailError}
                 title="Plan Mensual"
-                subtitle="$15 USD / $55,000 COP al mes"
+                subtitle="$16 USD / $60,000 COP al mes"
                 badge="📅 PLAN MENSUAL"
                 name={payName}
                 email={payEmail}
@@ -459,7 +459,7 @@ export function OnboardingFlow({
                 onNameChange={setPayName}
                 onEmailChange={setPayEmail}
                 onMethodChange={setPayMethod}
-                onSubmit={() => handleSendPaymentRequest('Plan Mensual — $15 USD / $55,000 COP al mes', AMOUNT_FULL_USD)}
+                onSubmit={() => handleSendPaymentRequest('Plan Mensual — $16 USD / $60,000 COP al mes', AMOUNT_FULL_USD)}
               />
             )}
 
@@ -467,7 +467,7 @@ export function OnboardingFlow({
               <PaymentFormView
                 emailError={emailError}
                 title="Plan Trimestral"
-                subtitle="$60 USD / $240,000 COP por 3 meses"
+                subtitle="$68 USD / $250,000 COP por 3 meses"
                 badge="💎 PLAN TRIMESTRAL"
                 name={payName}
                 email={payEmail}
@@ -476,7 +476,7 @@ export function OnboardingFlow({
                 onNameChange={setPayName}
                 onEmailChange={setPayEmail}
                 onMethodChange={setPayMethod}
-                onSubmit={() => handleSendPaymentRequest('Plan Trimestral — $60 USD / $240,000 COP por 3 meses', AMOUNT_TRIMESTRAL_USD)}
+                onSubmit={() => handleSendPaymentRequest('Plan Trimestral — $68 USD / $250,000 COP por 3 meses', AMOUNT_TRIMESTRAL_USD)}
               />
             )}
 
@@ -540,7 +540,7 @@ function InitialView({
           <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center text-xl shrink-0">📅</div>
           <div className="flex-1">
             <p className="font-bold text-base mb-0.5">Plan Mensual</p>
-            <p className="text-xs text-muted-foreground">$15 USD / $55,000 COP al mes. Acceso completo a todos los cursos.</p>
+            <p className="text-xs text-muted-foreground">$16 USD / $60,000 COP al mes. Acceso completo a todos los cursos.</p>
             <span className="inline-block mt-1.5 text-xs font-bold text-green-700 bg-green-100 rounded-full px-2.5 py-0.5">⏱ Activación en máx. 24 h hábiles</span>
           </div>
           <div className="text-muted-foreground group-hover:text-green-600 transition-colors mt-1">→</div>
@@ -560,7 +560,7 @@ function InitialView({
           <div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center text-xl shrink-0">💎</div>
           <div className="flex-1">
             <p className="font-bold text-base mb-0.5">Plan Trimestral</p>
-            <p className="text-xs text-muted-foreground">$60 USD / $240,000 COP por 3 meses. ¡Ahorra frente al mensual!</p>
+            <p className="text-xs text-muted-foreground">$68 USD / $250,000 COP por 3 meses. ¡Ahorra frente al mensual!</p>
             <span className="inline-block mt-1.5 text-xs font-bold text-violet-700 bg-violet-100 rounded-full px-2.5 py-0.5">⏱ Activación en máx. 24 h hábiles</span>
           </div>
         </div>

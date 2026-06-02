@@ -149,11 +149,11 @@ function TrimestralPlanCard({ onSelect }: { onSelect: () => void }) {
           <p className="text-sm text-muted-foreground">3 meses de acceso completo</p>
           <div className="mt-4 space-y-1">
             <div className="flex items-end gap-1.5">
-              <span className="text-5xl font-extrabold">$60</span>
+              <span className="text-5xl font-extrabold">$68</span>
               <span className="text-muted-foreground mb-1.5 text-sm">USD / 3 meses</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="text-2xl font-bold text-foreground/70">$240,000</span>
+              <span className="text-2xl font-bold text-foreground/70">$250,000</span>
               <span className="text-muted-foreground text-sm">COP / 3 meses</span>
             </div>
           </div>
@@ -182,10 +182,10 @@ function TrimestralPlanCard({ onSelect }: { onSelect: () => void }) {
 }
 
 const FAQ = [
-  { q: '¿Cuánto cuesta después de los días gratis?', a: 'Solo $15 USD ó $55,000 COP al mes. Sin contratos ni compromisos.' },
+  { q: '¿Cuánto cuesta después de los días gratis?', a: 'Solo $16 USD ó $60,000 COP al mes. Sin contratos ni compromisos.' },
   { q: '¿Cómo puedo pagar?', a: 'Aceptamos transferencia bancaria o pago por PayPal. Escríbenos y te indicamos el método más conveniente para ti.' },
   { q: '¿Puedo cancelar cuando quiera?', a: '¡Claro! No hay contratos ni compromisos. Cancelas cuando quieras desde tu perfil, sin cargos ocultos.' },
-  { q: '¿Las sesiones en vivo son incluidas?', a: 'Las sesiones 1 a 1 son un complemento opcional por $10 USD ó $35,000 COP por sesión, independiente de tu suscripción mensual.' },
+  { q: '¿Las sesiones en vivo son incluidas?', a: 'Las sesiones 1 a 1 son un complemento opcional por $14 USD ó $50,000 COP por sesión, independiente de tu suscripción mensual.' },
   { q: '¿Hay compromiso al empezar?', a: 'No. Los días de prueba son completamente gratis y sin ningún compromiso. Cancelas cuando quieras.' },
 ];
 
@@ -303,7 +303,7 @@ export default function PricingPage({ isLoggedIn = false, onOpenAuth, onLogout, 
                 <span className="text-amber-400">empieza hoy gratis</span> 🎉
               </motion.h1>
               <motion.p variants={fadeUp} className="text-lg text-white/80 max-w-xl mb-4">
-                {trialDays} días de prueba gratis. Luego solo <strong className="text-white">$15 USD</strong> ó <strong className="text-white">$55,000 COP</strong> al mes.
+                {trialDays} días de prueba gratis. Luego solo <strong className="text-white">$16 USD</strong> ó <strong className="text-white">$60,000 COP</strong> al mes.
               </motion.p>
               <motion.div variants={fadeUp}>
                 <span className="inline-flex items-center gap-2 bg-green-400/20 text-green-300 text-sm font-bold px-5 py-2 rounded-full border border-green-400/30">
@@ -324,7 +324,7 @@ export default function PricingPage({ isLoggedIn = false, onOpenAuth, onLogout, 
                   animate={{ y: [-5, 5, -5] }} transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
                   className="absolute -top-2 -right-2 bg-white text-gray-900 rounded-2xl px-3 py-1.5 shadow-xl font-bold text-xs"
                 >
-                  💰 $15 USD / mes
+                  💰 $16 USD / mes
                 </motion.div>
                 <motion.div
                   animate={{ y: [5, -5, 5] }} transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
@@ -510,7 +510,7 @@ export default function PricingPage({ isLoggedIn = false, onOpenAuth, onLogout, 
               ¡Empieza gratis hoy!
             </motion.h2>
             <motion.p variants={fadeUp} className="text-lg text-white/80 mb-8">
-              {trialDays} días gratis. Luego solo $15 USD o $55,000 COP al mes 🎊
+              {trialDays} días gratis. Luego solo $16 USD o $60,000 COP al mes 🎊
             </motion.p>
             <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button size="lg"
@@ -731,8 +731,8 @@ export default function PricingPage({ isLoggedIn = false, onOpenAuth, onLogout, 
                         <div className="px-4 py-3 border-b border-blue-200/70 flex items-center justify-between">
                           <span className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Resumen de pago</span>
                           <div className="text-right">
-                            <span className="text-lg font-extrabold text-blue-900">$10 USD</span>
-                            <span className="text-xs text-blue-600 ml-1.5">/ $35.000 COP</span>
+                            <span className="text-lg font-extrabold text-blue-900">$14 USD</span>
+                            <span className="text-xs text-blue-600 ml-1.5">/ $50.000 COP</span>
                           </div>
                         </div>
                         <div className="px-4 py-3">

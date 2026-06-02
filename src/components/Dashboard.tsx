@@ -46,7 +46,7 @@ const LEVEL_COLORS: Record<string, { color: string; badge: string }> = {
 const FAQ_QUICK = [
   { q: '¿Cómo cancelo mi suscripción?', a: 'Ve a la pestaña "Pagos" en tu perfil y selecciona "Cancelar suscripción". Tu acceso continuará hasta el final del período pagado.' },
   { q: '¿Puedo cambiar mi correo?', a: 'Por seguridad el correo no se puede cambiar directamente. Escríbenos a blangenglishlearning@blangenglish.com con tu solicitud.' },
-  { q: '¿Cómo reservo una sesión en vivo?', a: 'Desde la sección "Sesiones en Vivo" en el inicio podrás reservar. Recuerda que el costo es de $10 USD por hora.' },
+  { q: '¿Cómo reservo una sesión en vivo?', a: 'Desde la sección "Sesiones en Vivo" en el inicio podrás reservar. Recuerda que el costo es de $14 USD / $50,000 COP por sesión.' },
   { q: '¿Cómo funciona la práctica con IA?', a: 'Al final de cada unidad encontrarás el paso 5 de práctica con IA, donde podrás conversar y escribir con inteligencia artificial para reforzar lo aprendido.' },
   { q: '¿Qué pasa si tengo un problema técnico?', a: 'Escríbenos usando el formulario de la sección de Preguntas Frecuentes o por nuestros canales de WhatsApp e Instagram.' },
 ];
@@ -236,7 +236,7 @@ function PlanSelector({ currentUserId, currentEmail, onPlanSaved, onOpenPaypal, 
       <div className="rounded-2xl border-2 border-primary/20 p-5 bg-background space-y-4">
         <div>
           <h3 className="font-extrabold text-xl mb-1">Reactivar suscripción 🔄</h3>
-          <p className="text-sm text-muted-foreground">Plan Mensual — <strong>$15 USD/mes</strong></p>
+          <p className="text-sm text-muted-foreground">Plan Mensual — <strong>$16 USD/mes</strong></p>
         </div>
 
         {/* PayPal */}
@@ -302,7 +302,7 @@ function PlanSelector({ currentUserId, currentEmail, onPlanSaved, onOpenPaypal, 
             <ul className="space-y-1">
               <li className="text-xs text-foreground/70 flex items-center gap-1.5"><Check className="w-3 h-3 text-blue-500" /> Cancela cuando quieras</li>
               <li className="text-xs text-foreground/70 flex items-center gap-1.5"><Check className="w-3 h-3 text-blue-500" /> Acceso módulo A1</li>
-              <li className="text-xs text-foreground/70 flex items-center gap-1.5"><Check className="w-3 h-3 text-blue-500" /> Después $15 USD / $55,000 COP/mes</li>
+              <li className="text-xs text-foreground/70 flex items-center gap-1.5"><Check className="w-3 h-3 text-blue-500" /> Después $16 USD / $60,000 COP/mes</li>
             </ul>
           </button>
 
@@ -323,9 +323,9 @@ function PlanSelector({ currentUserId, currentEmail, onPlanSaved, onOpenPaypal, 
             <div>
               <p className="font-extrabold text-base">Plan Mensual</p>
               <div className="flex items-baseline gap-2">
-                <p className="text-2xl font-black text-primary">$15 USD</p>
+                <p className="text-2xl font-black text-primary">$16 USD</p>
               </div>
-              <p className="text-xs text-muted-foreground">o $55,000 COP / mes</p>
+              <p className="text-xs text-muted-foreground">o $60,000 COP / mes</p>
             </div>
             <ul className="space-y-1">
               <li className="text-xs text-foreground/70 flex items-center gap-1.5"><Check className="w-3 h-3 text-primary" /> Acceso completo a TODOS los cursos</li>
@@ -345,7 +345,7 @@ function PlanSelector({ currentUserId, currentEmail, onPlanSaved, onOpenPaypal, 
             ) : (
               <Button className="w-full rounded-xl py-3 font-bold"
                 onClick={() => setStep('pay')}>
-                Continuar con Plan Mensual → $15 USD
+                Continuar con Plan Mensual → $16 USD
               </Button>
             )}
           </div>
@@ -514,8 +514,8 @@ function TrialPaymentBlock({
       {/* Plan único */}
       <div className="rounded-2xl p-4 text-left border-2 border-primary bg-primary/5 shadow-md">
         <p className="font-extrabold text-sm">Plan Mensual</p>
-        <p className="text-xl font-black text-primary">$15 <span className="text-xs font-normal text-muted-foreground">USD / mes</span></p>
-        <p className="text-sm text-muted-foreground">o $55,000 COP al mes</p>
+        <p className="text-xl font-black text-primary">$16 <span className="text-xs font-normal text-muted-foreground">USD / mes</span></p>
+        <p className="text-sm text-muted-foreground">o $60,000 COP al mes</p>
       </div>
 
       {/* Selector de método de pago */}
@@ -1473,7 +1473,7 @@ useEffect(() => {
                         </div>
                         <div className="flex-1">
                           <p className="font-extrabold text-foreground">{subscription?.status === 'cancelled' ? '¡Tu suscripción fue cancelada! 🔒' : 'Elige un plan para habilitar tus cursos 🎓'}</p>
-                          <p className="text-sm text-muted-foreground mt-1">Tu cuenta está deshabilitada. Ve a Pagos para reactivar tu acceso por $15 USD o $55,000 COP al mes.</p>
+                          <p className="text-sm text-muted-foreground mt-1">Tu cuenta está deshabilitada. Ve a Pagos para reactivar tu acceso por $16 USD o $60,000 COP al mes.</p>
                           <Button size="sm" className="mt-3 rounded-xl gap-1.5" onClick={() => setActiveTab('pagos')}>
                             <CreditCard className="w-3.5 h-3.5" /> Ir a Pagos y elegir plan
                           </Button>
@@ -1678,7 +1678,7 @@ useEffect(() => {
                             <span className="text-xs font-bold bg-white/20 border border-white/30 px-2.5 py-0.5 rounded-full">✨ Clases 1 a 1</span>
                           </div>
                           <h2 className="font-extrabold text-xl leading-tight">Sesión con el profesor</h2>
-                          <p className="text-white/80 text-sm mt-0.5">Personalizada · $10 USD / hora</p>
+                          <p className="text-white/80 text-sm mt-0.5">Personalizada · $14 USD / sesión</p>
                         </div>
                       </div>
                       <div className="relative flex flex-wrap gap-2 mt-4">
@@ -1859,7 +1859,7 @@ useEffect(() => {
                                 <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                 Enviando...
                               </span>
-                            ) : 'Solicitar sesión — $10 USD / hora 🎓'}
+                            ) : 'Solicitar sesión — $14 USD / sesión 🎓'}
                           </Button>
                           <div className="flex items-center justify-center flex-wrap gap-3 text-xs text-muted-foreground">
                             <span>✅ Sin compromiso</span>
@@ -2271,7 +2271,7 @@ useEffect(() => {
                                 <span className="inline-block text-xs font-bold px-3 py-1 rounded-full mb-2 bg-primary/10 text-primary">Bienvenido/a</span>
                                 <h2 className="font-extrabold text-xl mb-1">¡Hola en BLANG English!</h2>
                                 <p className="text-sm text-muted-foreground">
-                                  Elige cómo quieres comenzar: solicita 7 días de prueba gratuita o paga el plan mensual ($15 USD / $55,000 COP).
+                                  Elige cómo quieres comenzar: solicita 7 días de prueba gratuita o paga el plan mensual ($16 USD / $60,000 COP).
                                 </p>
                               </div>
                             </div>

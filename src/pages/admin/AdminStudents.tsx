@@ -1608,7 +1608,7 @@ export default function AdminStudents() {
                                       {([
                                         { id: 'trial',      label: '🎁 7 días gratis',   amt: 0  },
                                         { id: 'mensual',    label: '📅 Plan Mensual',     amt: 15 },
-                                        { id: 'trimestral', label: '🗓️ Plan Trimestral',  amt: 60 },
+                                        { id: 'trimestral', label: '🗓️ Plan Trimestral',  amt: 68 },
                                       ] as const).map(p => (
                                         <button
                                           key={p.id}

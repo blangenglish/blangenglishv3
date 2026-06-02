@@ -141,9 +141,9 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
               <div className="mt-3 flex flex-col items-center gap-1">
                 <p className="text-lg sm:text-2xl md:text-3xl font-extrabold text-white/80 whitespace-nowrap">
                   por solo{' '}
-                  <span className="text-white text-3xl sm:text-4xl md:text-5xl font-black">$15</span>
+                  <span className="text-white text-3xl sm:text-4xl md:text-5xl font-black">$16</span>
                   <span className="text-white/60 text-base sm:text-xl font-bold"> USD/mes</span>
-                  {' '}<span className="bg-amber-400 text-black text-xs sm:text-sm font-extrabold px-3 py-1 rounded-full align-middle whitespace-nowrap">o $55,000 COP</span>
+                  {' '}<span className="bg-amber-400 text-black text-xs sm:text-sm font-extrabold px-3 py-1 rounded-full align-middle whitespace-nowrap">o $60,000 COP</span>
                 </p>
               </div>
               <p className="text-white/60 text-xs sm:text-base mt-2">
@@ -210,10 +210,10 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
                   {/* Precio */}
                   <div>
                     <div className="flex items-end gap-1.5">
-                      <p className="text-4xl font-black text-black leading-none">$15</p>
+                      <p className="text-4xl font-black text-black leading-none">$16</p>
                       <p className="text-black/60 text-sm mb-0.5">USD / mes</p>
                     </div>
-                    <p className="text-black/70 text-xs font-semibold mt-1">o $55,000 COP al mes</p>
+                    <p className="text-black/70 text-xs font-semibold mt-1">o $60,000 COP al mes</p>
                   </div>
                   {/* Divider */}
                   <div className="h-px bg-black/15" />
@@ -261,10 +261,10 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
                   {/* Precio */}
                   <div>
                     <div className="flex items-end gap-1.5">
-                      <p className="text-4xl font-black text-white leading-none">$60</p>
+                      <p className="text-4xl font-black text-white leading-none">$68</p>
                       <p className="text-white/60 text-sm mb-0.5">USD / 3 meses</p>
                     </div>
-                    <p className="text-white/70 text-xs font-semibold mt-1">o $240,000 COP por 3 meses</p>
+                    <p className="text-white/70 text-xs font-semibold mt-1">o $250,000 COP por 3 meses</p>
                   </div>
                   {/* Divider */}
                   <div className="h-px bg-white/15" />
@@ -324,7 +324,7 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
             <motion.div variants={staggerItem} className="mt-5 sm:mt-8 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
               <div className="bg-white/10 backdrop-blur border border-white/20 rounded-2xl px-4 sm:px-6 py-3 w-full sm:flex-1">
                 <p className="text-white/85 text-xs sm:text-sm text-center leading-relaxed">
-                  ✅ Empieza gratis. Después continúa por <strong className="text-amber-300">$15 USD</strong> o <strong className="text-amber-300">$55,000 COP</strong> al mes.
+                  ✅ Empieza gratis. Después continúa por <strong className="text-amber-300">$16 USD</strong> o <strong className="text-amber-300">$60,000 COP</strong> al mes.
                 </p>
               </div>
               <div className="flex items-center gap-3 sm:gap-4 text-white/60 flex-wrap justify-center">
@@ -729,9 +729,9 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
                       </div>
                     </div>
                     <div className="flex items-end gap-2 mb-2">
-                      <span className="text-5xl sm:text-7xl font-black leading-none">$35,000</span>
+                      <span className="text-5xl sm:text-7xl font-black leading-none">$50,000</span>
                     </div>
-                    <p className="text-white/70 text-xs sm:text-sm mb-4 sm:mb-6">COP por hora · Sin contratos</p>
+                    <p className="text-white/70 text-xs sm:text-sm mb-4 sm:mb-6">COP por sesión · Sin contratos</p>
                     <ul className="space-y-2 sm:space-y-2.5 mb-6 sm:mb-8">
                       {[
                         '✓  Corrección en tiempo real',
