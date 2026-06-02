@@ -53,8 +53,8 @@ function PlanCard({ plan, onSelect, onMensualPlan }: { plan: DBPricingPlan; onSe
         className={`relative h-full flex flex-col rounded-3xl border-2 bg-gradient-to-br ${gradient} p-7 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1`}
       >
         {plan.is_popular && (
-          <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-            <span className="bg-primary text-primary-foreground text-xs font-bold px-5 py-1.5 rounded-full shadow-lg shadow-primary/30">
+          <div className="mb-3">
+            <span className="bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-full shadow-sm whitespace-nowrap">
               ⭐ Más Popular
             </span>
           </div>
@@ -137,14 +137,13 @@ function TrimestralPlanCard({ onSelect }: { onSelect: () => void }) {
   return (
     <motion.div variants={fadeUp} className="h-full">
       <div className="relative h-full flex flex-col rounded-3xl border-2 bg-gradient-to-br from-violet-50 to-indigo-50 border-violet-300 p-7 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-        {/* Badge */}
-        <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-          <span className="bg-amber-400 text-black text-xs font-bold px-5 py-1.5 rounded-full shadow-lg whitespace-nowrap">
+        <div className="mb-3">
+          <span className="bg-amber-400 text-black text-xs font-bold px-3 py-1 rounded-full shadow-sm whitespace-nowrap">
             ⭐ Mejor valor
           </span>
         </div>
 
-        <div className="mb-6 pt-2">
+        <div className="mb-6">
           <div className="text-4xl mb-3">💎</div>
           <h3 className="text-xl font-bold mb-1">Plan Trimestral</h3>
           <p className="text-sm text-muted-foreground">3 meses de acceso completo</p>
