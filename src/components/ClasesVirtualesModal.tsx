@@ -32,8 +32,14 @@ const PRECIOS = {
   },
 } as const;
 
+const TRM = 3566.08; // tasa de cambio fija 1 USD = $3,566.08 COP
+
 function formatCOP(n: number) {
   return '$' + n.toLocaleString('es-CO');
+}
+
+function formatUSD(cop: number) {
+  return '≈ $' + (cop / TRM).toFixed(2) + ' USD';
 }
 
 const FRANJAS_1H = [
@@ -81,6 +87,7 @@ export function ClasesVirtualesModal({
   const [diasSemana, setDiasSemana] = useState<number>(2);
   const [diasSel, setDiasSel] = useState<string[]>([]);
   const [franja, setFranja] = useState('');
+  const [payMethod, setPayMethod] = useState<'bold' | 'paypal'>('bold');
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
@@ -99,6 +106,7 @@ export function ClasesVirtualesModal({
       setDiasSemana(2);
       setDiasSel([]);
       setFranja('');
+      setPayMethod('bold');
       setSent(false);
       setError('');
     }
@@ -148,8 +156,10 @@ export function ClasesVirtualesModal({
             `💰 PRECIO ESTIMADO\n` +
             `${precio.unidades} ${precio.label}s al mes\n` +
             `Precio regular: ${formatCOP(precio.regular)} COP\n` +
-            `Precio final: ${formatCOP(precio.final)} COP\n` +
-            `Valor por ${precio.label}: ~${formatCOP(precio.valorUnit)} COP`,
+            `Precio final: ${formatCOP(precio.final)} COP (${formatUSD(precio.final)})\n` +
+            `Valor por ${precio.label}: ~${formatCOP(precio.valorUnit)} COP\n\n` +
+            `💳 MÉTODO DE PAGO PREFERIDO\n` +
+            `${payMethod === 'bold' ? '💳 Bold / PSE — Pago en COP' : '🌐 PayPal — Pago en USD'}`,
         },
       });
       setSent(true);
@@ -365,14 +375,27 @@ export function ClasesVirtualesModal({
                     </p>
                     {/* Desglose incluido */}
                     <p className="text-xs text-violet-500 mt-1">
-                      📦 Incluido: uso de plataforma mensual ($60.000 COP)
+                      📦 Incluido: uso de plataforma mensual ($60.000 COP <span className="text-muted-foreground">{formatUSD(60000)}</span>)
                     </p>
                     {/* Precio final */}
                     <p className="text-xs text-violet-700 font-semibold mt-2 mb-0.5">Precio final</p>
-                    <p className="text-3xl font-extrabold text-violet-700 leading-none">
-                      {formatCOP(precio.final)}
-                      <span className="text-sm font-bold ml-1">COP / mes</span>
-                    </p>
+                    {payMethod === 'bold' ? (
+                      <>
+                        <p className="text-3xl font-extrabold text-violet-700 leading-none">
+                          {formatCOP(precio.final)}
+                          <span className="text-sm font-bold ml-1">COP / mes</span>
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{formatUSD(precio.final)}</p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-3xl font-extrabold text-violet-700 leading-none">
+                          ${(precio.final / TRM).toFixed(2)}
+                          <span className="text-sm font-bold ml-1">USD / mes</span>
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{formatCOP(precio.final)} COP</p>
+                      </>
+                    )}
                   </div>
 
                   {/* Valor por clase/hora */}
@@ -381,9 +404,17 @@ export function ClasesVirtualesModal({
                       <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold">
                         por {precio.label}
                       </p>
-                      <p className="text-base font-extrabold text-violet-600">
-                        ~{formatCOP(precio.valorUnit)}
-                      </p>
+                      {payMethod === 'bold' ? (
+                        <>
+                          <p className="text-base font-extrabold text-violet-600">~{formatCOP(precio.valorUnit)}</p>
+                          <p className="text-[10px] text-muted-foreground">{formatUSD(precio.valorUnit)}</p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-base font-extrabold text-violet-600">≈ ${(precio.valorUnit / TRM).toFixed(2)}</p>
+                          <p className="text-[10px] text-muted-foreground">~{formatCOP(precio.valorUnit)} COP</p>
+                        </>
+                      )}
                     </div>
                     {/* Ahorro */}
                     {precio.final < precio.regular && (
@@ -399,6 +430,48 @@ export function ClasesVirtualesModal({
                   <p className="text-[11px] text-muted-foreground">
                     📧 Recibirás la confirmación y detalles de pago en tu correo
                   </p>
+                </div>
+              </div>
+
+              {/* ── Selector de método de pago ── */}
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold">Método de pago *</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Bold / PSE */}
+                  <button
+                    type="button"
+                    onClick={() => setPayMethod('bold')}
+                    className={`rounded-xl border-2 p-3 text-left transition-all ${
+                      payMethod === 'bold'
+                        ? 'border-violet-500 bg-violet-50 shadow-sm'
+                        : 'border-border/50 hover:border-violet-300 hover:bg-violet-50/50'
+                    }`}
+                  >
+                    <p className="text-base mb-0.5">💳</p>
+                    <p className="text-sm font-bold leading-tight">Bold / PSE</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">Pagar en pesos (COP)</p>
+                    {payMethod === 'bold' && (
+                      <span className="inline-block mt-1.5 text-[10px] font-bold text-violet-700 bg-violet-100 rounded-full px-2 py-0.5">✓ Seleccionado</span>
+                    )}
+                  </button>
+
+                  {/* PayPal */}
+                  <button
+                    type="button"
+                    onClick={() => setPayMethod('paypal')}
+                    className={`rounded-xl border-2 p-3 text-left transition-all ${
+                      payMethod === 'paypal'
+                        ? 'border-blue-500 bg-blue-50 shadow-sm'
+                        : 'border-border/50 hover:border-blue-300 hover:bg-blue-50/50'
+                    }`}
+                  >
+                    <p className="text-base mb-0.5">🌐</p>
+                    <p className="text-sm font-bold leading-tight">PayPal</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">Pagar en dólares (USD)</p>
+                    {payMethod === 'paypal' && (
+                      <span className="inline-block mt-1.5 text-[10px] font-bold text-blue-700 bg-blue-100 rounded-full px-2 py-0.5">✓ Seleccionado</span>
+                    )}
+                  </button>
                 </div>
               </div>
 
