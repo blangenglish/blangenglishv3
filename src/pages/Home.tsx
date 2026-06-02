@@ -246,17 +246,16 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
               <div className="relative bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-700 rounded-3xl p-6 flex flex-col gap-4 shadow-2xl shadow-violet-500/40 overflow-hidden">
                 <div className="absolute -top-8 -right-8 w-40 h-40 bg-white/15 rounded-full blur-2xl pointer-events-none" />
                 <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-white/10 rounded-full blur-xl pointer-events-none" />
-                {/* Badge */}
-                <div className="absolute top-4 right-4 z-20">
-                  <span className="bg-amber-400 text-black text-[10px] font-extrabold px-2.5 py-1 rounded-full shadow whitespace-nowrap">⭐ Mejor valor</span>
-                </div>
                 <div className="relative z-10 flex flex-col gap-4 h-full">
                   {/* Header vertical */}
                   <div className="flex items-center gap-3">
                     <span className="text-4xl flex-shrink-0">💎</span>
                     <div>
                       <h2 className="text-xl font-black text-white leading-tight">Plan Trimestral</h2>
-                      <span className="inline-block bg-white/20 text-white text-xs font-extrabold px-2.5 py-0.5 rounded-full mt-1">3 meses</span>
+                      <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                        <span className="inline-block bg-white/20 text-white text-xs font-extrabold px-2.5 py-0.5 rounded-full">3 meses</span>
+                        <span className="inline-block bg-amber-400 text-black text-xs font-extrabold px-2.5 py-0.5 rounded-full">⭐ Mejor valor</span>
+                      </div>
                     </div>
                   </div>
                   {/* Precio */}
@@ -298,17 +297,16 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
               <div className="relative bg-gradient-to-br from-orange-500 via-red-500 to-rose-600 rounded-3xl p-6 flex flex-col gap-4 shadow-2xl shadow-orange-500/40 overflow-hidden">
                 <div className="absolute -top-8 -right-8 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none" />
                 <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-white/10 rounded-full blur-xl pointer-events-none" />
-                {/* Badge */}
-                <div className="absolute top-4 right-4 z-20">
-                  <span className="bg-white text-orange-600 text-[10px] font-extrabold px-2.5 py-1 rounded-full shadow whitespace-nowrap">🔜 Próximamente</span>
-                </div>
                 <div className="relative z-10 flex flex-col gap-4 h-full justify-between">
                   {/* Header */}
                   <div className="flex items-center gap-3">
                     <span className="text-4xl flex-shrink-0">🇪🇸</span>
                     <div>
                       <h2 className="text-xl font-black text-white leading-tight">Spanish for Foreigners</h2>
-                      <span className="inline-block bg-white/20 text-white text-xs font-extrabold px-2.5 py-0.5 rounded-full mt-1">Nuevo</span>
+                      <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                        <span className="inline-block bg-white/20 text-white text-xs font-extrabold px-2.5 py-0.5 rounded-full">Nuevo</span>
+                        <span className="inline-block bg-white text-orange-600 text-xs font-extrabold px-2.5 py-0.5 rounded-full">🔜 Próx.</span>
+                      </div>
                     </div>
                   </div>
                   {/* Coming soon */}

@@ -334,9 +334,9 @@ export default function PricingPage({ isLoggedIn = false, onOpenAuth, onLogout, 
                   🎁 {trialDays} días GRATIS
                 </motion.div>
               </div>
-              <div className="grid grid-cols-3 gap-2 w-full max-w-xs">
-                {[{e:'🎁',t:'Prueba Gratis'},{e:'🚀',t:'Plan Mensual'},{e:'💎',t:'Plan Trimestral'},{e:'🎥',t:'Clases Vivo'}].map(({e,t}) => (
-                  <div key={t} className="bg-white/10 backdrop-blur border border-white/20 rounded-xl px-2 py-2.5 text-center">
+              <div className="grid grid-cols-4 gap-2 w-full max-w-sm">
+                {[{e:'🎁',t:'Prueba Gratis'},{e:'🚀',t:'Plan Mensual'},{e:'💎',t:'Trimestral'},{e:'🎥',t:'Clases Vivo'}].map(({e,t}) => (
+                  <div key={t} className="bg-white/10 backdrop-blur border border-white/20 rounded-xl px-1.5 py-2.5 text-center">
                     <span className="text-xl block mb-0.5">{e}</span>
                     <p className="text-white/90 text-xs font-semibold leading-tight">{t}</p>
                   </div>
@@ -401,13 +401,13 @@ export default function PricingPage({ isLoggedIn = false, onOpenAuth, onLogout, 
                   <div className="relative h-full flex flex-col rounded-3xl border-2 border-orange-400/30 bg-gradient-to-br from-orange-500 via-red-500 to-rose-600 p-7 shadow-2xl shadow-orange-500/30 overflow-hidden hover:shadow-orange-500/50 hover:-translate-y-1 transition-all duration-300">
                     <div className="absolute -top-8 -right-8 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none" />
                     <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-white/10 rounded-full blur-xl pointer-events-none" />
-                    {/* Badge */}
-                    <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                      <span className="bg-white text-orange-600 text-xs font-extrabold px-5 py-1.5 rounded-full shadow-lg whitespace-nowrap">
-                        🔜 Próximamente
-                      </span>
-                    </div>
-                    <div className="relative z-10 flex flex-col h-full pt-2">
+                    <div className="relative z-10 flex flex-col h-full">
+                      {/* Badge inline */}
+                      <div className="mb-3">
+                        <span className="bg-white text-orange-600 text-xs font-extrabold px-3 py-1 rounded-full shadow-sm">
+                          🔜 Próximamente
+                        </span>
+                      </div>
                       <div className="mb-6">
                         <div className="text-4xl mb-3">🇪🇸</div>
                         <h3 className="text-xl font-bold text-white mb-1">Spanish for Foreigners</h3>
