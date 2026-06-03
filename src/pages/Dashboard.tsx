@@ -2505,8 +2505,11 @@ useEffect(() => {
                   </div>
 
                   {/* ── Banner: sin suscripción o cancelada → ir a pagos ── */}
-                  {/* Guardado con !profileLoading para no mostrar el mensaje mientras los datos cargan */}
-                  {!profileLoading && (!subscription || subscription.status === 'cancelled') && (
+                  {/* No mostrar si: cargando | plan de pago cancelado dentro del período (activo_cancelado) | pago pendiente */}
+                  {!profileLoading && (!subscription || subscription.status === 'cancelled') &&
+                   studentProfile?.account_status !== 'pending_payment' &&
+                   !(subscription?.status === 'cancelled' && subscription?.current_period_end && new Date(subscription.current_period_end) > new Date()) &&
+                   (
                     <div className="bg-primary/5 border-2 border-primary/30 rounded-2xl p-5 mb-5">
                       <div className="flex items-start gap-3">
                         <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center shrink-0">
@@ -2521,10 +2524,13 @@ useEffect(() => {
                         </div>
                       </div>
                     </div>
-                  )}
+                  ))}
 
                   {/* Payment pending warning — PSE/PayPal not yet approved */}
-                  {subscription && (subscription.payment_method === 'pse' || subscription.payment_method === 'paypal') && subscription.approved_by_admin === false && (
+                  {/* Solo mostrar si hay un pago REAL pendiente (no cancelled) */}
+                  {subscription && subscription.status !== 'cancelled' &&
+                   (subscription.payment_method === 'pse' || subscription.payment_method === 'paypal' || subscription.payment_method === 'bold_pse') &&
+                   subscription.approved_by_admin === false && (
                     <div className="bg-amber-50 border-2 border-amber-400 rounded-2xl p-5 mb-5">
                       <div className="flex items-start gap-3">
                         <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center shrink-0">
@@ -3365,7 +3371,11 @@ useEffect(() => {
 
                       // P3: Trial activo — va ANTES de 'activo' para no ser tapado por sub.status='active'
                       // (El edge function activate_plan solía hardcodear status='active' para trials)
-                      const isTrialSub  = sub?.plan_slug === 'free_trial' || sub?.status === 'trial';
+                      // isTrialSub: solo es trial si el status NO es cancelled/pending_approval/pending
+                      // (evita que un free_trial cancelado o con pago pendiente active la lógica de trial)
+                      const isTrialActive = sub?.status === 'trial' || sub?.status === 'active';
+                      const isTrialSub  = (sub?.plan_slug === 'free_trial' || sub?.status === 'trial')
+                                         && isTrialActive;
                       const isTrialProf = prof?.account_status === 'active_trial' || prof?.trial_active === true;
                       if (isTrialSub || isTrialProf) {
                         const endDate = prof?.trial_end_date
