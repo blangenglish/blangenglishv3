@@ -1337,9 +1337,15 @@ function StepDot({ idx, currentIdx, completed, label }) {
   );
 }
 
-// ─── Caché de contenido por unidad (persiste mientras la sesión esté abierta) ──
-// Almacena materials + quizzes para que al reabrir la misma unidad no se vuelva a pedir a Supabase.
-const _unitContentCache: Record<string, { byStage: Record<string, any[]>; quizByStage: Record<string, any[]> }> = {};
+// ─── Caché de contenido por unidad con TTL de 3 minutos ──────────────────────
+// Evita re-pedir a Supabase si el estudiante abre la misma unidad varias veces
+// en poco tiempo, pero expira para reflejar cambios del admin.
+const CACHE_TTL_MS = 3 * 60 * 1000; // 3 minutos
+const _unitContentCache: Record<string, {
+  byStage: Record<string, any[]>;
+  quizByStage: Record<string, any[]>;
+  ts: number;
+}> = {};
 
 // ─── Main UnitViewer ──────────────────────────────────────────────────────────
 export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onClose, isLocked, isReview = false, studentPlanSlug = '' }) {
@@ -1364,7 +1370,9 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
       // ── Paso 1: contenido estático (materials + quizzes) desde caché o Supabase ──
       // Se ejecuta en paralelo con la consulta de progreso (que siempre va a Supabase).
       const getContent = async () => {
-        if (_unitContentCache[unitId]) return _unitContentCache[unitId];
+        // Usar caché si existe y no ha expirado (TTL = 3 min)
+        const cached = _unitContentCache[unitId];
+        if (cached && Date.now() - cached.ts < CACHE_TTL_MS) return cached;
 
         const [matsResult, quizResult] = await Promise.all([
           supabase
@@ -1384,7 +1392,7 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
           if (qs.length > 0) quizData[row.stage] = qs;
         });
 
-        _unitContentCache[unitId] = { byStage: byStageData, quizByStage: quizData };
+        _unitContentCache[unitId] = { byStage: byStageData, quizByStage: quizData, ts: Date.now() };
         return _unitContentCache[unitId];
       };
 
