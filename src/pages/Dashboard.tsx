@@ -358,6 +358,140 @@ function PlanSelector({ currentUserId, currentEmail, onPlanSaved, onOpenPaypal, 
   );
 }
 
+// ── PlanSelectorWithDelete: selector de 2 planes + formulario + eliminar cuenta ──
+// Usado en deshabilitado y prueba_finalizada (reemplaza PagoSolicitudForm directo)
+function PlanSelectorWithDelete({
+  defaultName, defaultEmail, userId,
+  trialView, setTrialView,
+  trialPlan, setTrialPlan,
+  trialDeleteReason, setTrialDeleteReason,
+  trialDeleteSent, setTrialDeleteSent,
+  trialDeleteSending, setTrialDeleteSending,
+  onSuccess,
+}: {
+  defaultName: string; defaultEmail: string; userId: string;
+  trialView: string; setTrialView: (v: any) => void;
+  trialPlan: string | null; setTrialPlan: (v: any) => void;
+  trialDeleteReason: string; setTrialDeleteReason: (v: string) => void;
+  trialDeleteSent: boolean; setTrialDeleteSent: (v: boolean) => void;
+  trialDeleteSending: boolean; setTrialDeleteSending: (v: boolean) => void;
+  onSuccess: () => void;
+}) {
+  // Vista: selector de plan (dos tarjetas + formulario)
+  if (trialView === 'plan') {
+    return (
+      <div className="space-y-4">
+        <button
+          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          onClick={() => { setTrialView('actions'); setTrialPlan(null); }}
+        >
+          ← Volver
+        </button>
+
+        <div className="grid grid-cols-2 gap-3">
+          {/* Plan Mensual */}
+          <button
+            type="button"
+            onClick={() => setTrialPlan('mensual')}
+            className={`rounded-2xl border-2 p-4 text-left transition-all ${
+              trialPlan === 'mensual'
+                ? 'border-primary bg-primary/5 shadow-md'
+                : 'border-border/50 hover:border-primary/40 hover:bg-primary/5'
+            }`}
+          >
+            <div className="text-2xl mb-2">🚀</div>
+            <p className="font-bold text-sm">Plan Mensual</p>
+            <p className="text-xl font-extrabold text-primary mt-1">$16 USD</p>
+            <p className="text-xs text-muted-foreground">$60,000 COP / mes</p>
+            {trialPlan === 'mensual' && (
+              <span className="inline-block mt-2 text-[10px] font-bold bg-primary/10 text-primary rounded-full px-2 py-0.5">✓ Seleccionado</span>
+            )}
+          </button>
+
+          {/* Plan Trimestral */}
+          <button
+            type="button"
+            onClick={() => setTrialPlan('trimestral')}
+            className={`rounded-2xl border-2 p-4 text-left transition-all relative ${
+              trialPlan === 'trimestral'
+                ? 'border-violet-500 bg-violet-50 shadow-md'
+                : 'border-border/50 hover:border-violet-400 hover:bg-violet-50/50'
+            }`}
+          >
+            <span className="absolute top-2 right-2 text-[10px] font-extrabold bg-amber-400 text-black rounded-full px-2 py-0.5">⭐ Mejor valor</span>
+            <div className="text-2xl mb-2">💎</div>
+            <p className="font-bold text-sm">Plan Trimestral</p>
+            <p className="text-xl font-extrabold text-violet-700 mt-1">$68 USD</p>
+            <p className="text-xs text-muted-foreground">$250,000 COP / 3 meses</p>
+            {trialPlan === 'trimestral' && (
+              <span className="inline-block mt-2 text-[10px] font-bold bg-violet-100 text-violet-700 rounded-full px-2 py-0.5">✓ Seleccionado</span>
+            )}
+          </button>
+        </div>
+
+        {trialPlan && (
+          <PagoSolicitudForm
+            defaultName={defaultName}
+            defaultEmail={defaultEmail}
+            userId={userId}
+            planSlug={trialPlan === 'mensual' ? 'monthly' : 'trimestral'}
+            planName={trialPlan === 'mensual' ? 'Plan Mensual' : 'Plan Trimestral'}
+            planPrice={trialPlan === 'mensual' ? '$16 USD / $60,000 COP al mes' : '$68 USD / $250,000 COP por 3 meses'}
+            planAmount={trialPlan === 'mensual' ? 16 : 68}
+            onSuccess={onSuccess}
+          />
+        )}
+      </div>
+    );
+  }
+
+  // Vista: formulario eliminar cuenta
+  if (trialView === 'delete_request') {
+    return (
+      <DeleteAccountRequest
+        name={defaultName} email={defaultEmail} userId={userId}
+        trialView={trialView} setTrialView={setTrialView}
+        trialDeleteReason={trialDeleteReason} setTrialDeleteReason={setTrialDeleteReason}
+        trialDeleteSent={trialDeleteSent} setTrialDeleteSent={setTrialDeleteSent}
+        trialDeleteSending={trialDeleteSending} setTrialDeleteSending={setTrialDeleteSending}
+      />
+    );
+  }
+
+  // Vista por defecto: dos botones de plan + link eliminar
+  return (
+    <div className="space-y-3">
+      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Elige un plan para continuar</p>
+      <div className="grid grid-cols-2 gap-3">
+        <Button
+          className="rounded-xl py-6 font-bold text-sm bg-primary hover:bg-primary/90 flex-col h-auto gap-1"
+          onClick={() => { setTrialView('plan'); setTrialPlan('mensual'); }}
+        >
+          <span className="text-lg">🚀</span>
+          <span>Plan Mensual</span>
+          <span className="text-xs font-normal opacity-80">$16 USD / mes</span>
+        </Button>
+        <Button
+          className="rounded-xl py-6 font-bold text-sm bg-violet-600 hover:bg-violet-700 flex-col h-auto gap-1"
+          onClick={() => { setTrialView('plan'); setTrialPlan('trimestral'); }}
+        >
+          <span className="text-lg">💎</span>
+          <span>Plan Trimestral</span>
+          <span className="text-xs font-normal opacity-80">$68 USD / 3 meses</span>
+        </Button>
+      </div>
+      <div className="text-center pt-1">
+        <button
+          className="text-xs text-muted-foreground hover:text-destructive transition-colors underline-offset-2 hover:underline"
+          onClick={() => { setTrialView('delete_request'); setTrialDeleteSent(false); setTrialDeleteReason(''); }}
+        >
+          🗑️ Solicitar eliminar cuenta
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── DeleteAccountRequest: link + formulario para solicitar eliminación de cuenta ──
 function DeleteAccountRequest({
   name, email, userId,
@@ -3519,29 +3653,21 @@ useEffect(() => {
                               <div>
                                 <p className="font-extrabold text-orange-900">Tu período de prueba ha terminado</p>
                                 <p className="text-sm text-orange-800 mt-0.5">
-                                  La prueba gratuita venció el <strong>{fmt(trialEnd)}</strong>. Solicita el plan mensual para continuar aprendiendo.
+                                  La prueba gratuita venció el <strong>{fmt(trialEnd)}</strong>. Elige un plan para continuar aprendiendo.
                                 </p>
                               </div>
                             </div>
                           </div>
-                          <PagoSolicitudForm
+                          <PlanSelectorWithDelete
                             defaultName={profileForm.name || userName || ''}
                             defaultEmail={currentEmail || ''}
                             userId={currentUserId}
+                            trialView={trialView} setTrialView={setTrialView}
+                            trialPlan={trialPlan} setTrialPlan={setTrialPlan}
+                            trialDeleteReason={trialDeleteReason} setTrialDeleteReason={setTrialDeleteReason}
+                            trialDeleteSent={trialDeleteSent} setTrialDeleteSent={setTrialDeleteSent}
+                            trialDeleteSending={trialDeleteSending} setTrialDeleteSending={setTrialDeleteSending}
                             onSuccess={async () => { if (currentUserId) await refreshProfile(currentUserId); }}
-                          />
-                          <DeleteAccountRequest
-                            name={profileForm.name || userName || ''}
-                            email={currentEmail || ''}
-                            userId={currentUserId}
-                            trialView={trialView}
-                            setTrialView={setTrialView}
-                            trialDeleteReason={trialDeleteReason}
-                            setTrialDeleteReason={setTrialDeleteReason}
-                            trialDeleteSent={trialDeleteSent}
-                            setTrialDeleteSent={setTrialDeleteSent}
-                            trialDeleteSending={trialDeleteSending}
-                            setTrialDeleteSending={setTrialDeleteSending}
                           />
                         </div>
                       );
@@ -3583,31 +3709,23 @@ useEffect(() => {
                                 <p className="font-extrabold text-red-900">Tu cuenta está deshabilitada</p>
                                 <p className="text-sm text-red-800 mt-0.5">
                                   {sub?.status === 'expired'
-                                    ? `Tu plan venció el ${fmt(nextBilling)}. Envía tu solicitud de renovación para reactivar el acceso.`
-                                    : 'Solicita el plan mensual para reactivar tu acceso completo a todos los cursos.'
+                                    ? `Tu plan venció el ${fmt(nextBilling)}. Elige un plan para reactivar el acceso.`
+                                    : 'Elige un plan para reactivar tu acceso completo a todos los cursos.'
                                   }
                                 </p>
                               </div>
                             </div>
                           </div>
-                          <PagoSolicitudForm
+                          <PlanSelectorWithDelete
                             defaultName={profileForm.name || userName || ''}
                             defaultEmail={currentEmail || ''}
                             userId={currentUserId}
+                            trialView={trialView} setTrialView={setTrialView}
+                            trialPlan={trialPlan} setTrialPlan={setTrialPlan}
+                            trialDeleteReason={trialDeleteReason} setTrialDeleteReason={setTrialDeleteReason}
+                            trialDeleteSent={trialDeleteSent} setTrialDeleteSent={setTrialDeleteSent}
+                            trialDeleteSending={trialDeleteSending} setTrialDeleteSending={setTrialDeleteSending}
                             onSuccess={async () => { if (currentUserId) await refreshProfile(currentUserId); }}
-                          />
-                          <DeleteAccountRequest
-                            name={profileForm.name || userName || ''}
-                            email={currentEmail || ''}
-                            userId={currentUserId}
-                            trialView={trialView}
-                            setTrialView={setTrialView}
-                            trialDeleteReason={trialDeleteReason}
-                            setTrialDeleteReason={setTrialDeleteReason}
-                            trialDeleteSent={trialDeleteSent}
-                            setTrialDeleteSent={setTrialDeleteSent}
-                            trialDeleteSending={trialDeleteSending}
-                            setTrialDeleteSending={setTrialDeleteSending}
                           />
                         </div>
                       );
