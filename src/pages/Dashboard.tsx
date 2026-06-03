@@ -3096,23 +3096,21 @@ useEffect(() => {
                       // P2: Acceso gratuito de admin
                       if (sub?.plan_slug === 'free_admin' && sub?.status === 'active') return 'free_admin';
 
-                      // P3: Cuenta activa confirmada
-                      if (prof?.account_status === 'active' && prof?.account_enabled === true) return 'activo';
-                      if (sub?.status === 'active' && sub?.account_enabled === true) return 'activo';
-
-                      // P4: Trial activo (activado por admin)
-                      if (prof?.account_status === 'active_trial' || prof?.trial_active === true) {
+                      // P3: Trial activo — va ANTES de 'activo' para no ser tapado por sub.status='active'
+                      // (El edge function activate_plan solía hardcodear status='active' para trials)
+                      const isTrialSub  = sub?.plan_slug === 'free_trial' || sub?.status === 'trial';
+                      const isTrialProf = prof?.account_status === 'active_trial' || prof?.trial_active === true;
+                      if (isTrialSub || isTrialProf) {
                         const endDate = prof?.trial_end_date
                           ? new Date(prof.trial_end_date)
-                          : (sub?.trial_ends_at ? new Date(sub.trial_ends_at) : null);
+                          : sub?.trial_ends_at ? new Date(sub.trial_ends_at) : null;
                         if (endDate && endDate < now) return 'prueba_finalizada';
                         return 'prueba_activa';
                       }
-                      if (sub?.plan_slug === 'free_trial' && sub?.status === 'active') {
-                        const endDate = sub?.trial_ends_at ? new Date(sub.trial_ends_at) : null;
-                        if (endDate && endDate < now) return 'prueba_finalizada';
-                        return 'prueba_activa';
-                      }
+
+                      // P4: Cuenta activa confirmada (pago real, no trial)
+                      if (prof?.account_status === 'active' && prof?.account_enabled === true) return 'activo';
+                      if (sub?.status === 'active' && sub?.account_enabled === true) return 'activo';
 
                       // P5: Trial vencido
                       if (prof?.account_status === 'expired_trial') return 'prueba_finalizada';
@@ -3230,15 +3228,24 @@ useEffect(() => {
                             <button
                               className="text-xs text-muted-foreground hover:text-destructive transition-colors underline-offset-2 hover:underline"
                               onClick={async () => {
-                                if (currentUserId) {
+                                if (!currentUserId) return;
+                                try {
+                                  // Usar edge function (service_role) para garantizar que bypasa RLS
+                                  const { error } = await supabase.functions.invoke('save-onboarding-2026', {
+                                    body: { action: 'cancel_subscription', student_id: currentUserId },
+                                  });
+                                  if (error) throw error;
+                                } catch {
+                                  // Fallback directo si la edge function falla
                                   await supabase.from('student_profiles').update({
                                     trial_active: false, account_status: 'disabled', account_enabled: false,
                                   }).eq('id', currentUserId);
                                   await supabase.from('subscriptions').update({
                                     trial_active: false, status: 'cancelled', account_enabled: false,
                                   }).eq('student_id', currentUserId);
-                                  await refreshProfile(currentUserId);
                                 }
+                                setSubscription(s => s ? { ...s, status: 'cancelled', account_enabled: false } : null);
+                                await refreshProfile(currentUserId);
                               }}
                             >
                               🚪 No me interesa por ahora — cancelar suscripción

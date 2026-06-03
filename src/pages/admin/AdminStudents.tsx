@@ -797,7 +797,8 @@ export default function AdminStudents() {
       }
 
       // 2. Asegurar que subscriptions tiene el plan_slug correcto (fallback si edge no lo guarda)
-      const subPayload = {
+      const isTrial = form.plan === 'trial';
+      const subPayload: Record<string, unknown> = {
         plan_slug:        planInfo.slug,
         plan_name:        planInfo.name,
         status:           planInfo.subStatus,
@@ -806,21 +807,33 @@ export default function AdminStudents() {
         account_enabled:  true,
         approved_by_admin: true,
         current_period_end: periodEnd.toISOString(),
+        trial_active:     isTrial,
         updated_at:       new Date().toISOString(),
       };
+      if (isTrial) {
+        subPayload.trial_ends_at = periodEnd.toISOString();
+      }
+      // Fix: usar filters:{student_id} en lugar de id: studentId
+      // (subscriptions.id !== studentId — el update anterior filtraba 0 filas silenciosamente)
       try {
-        await adminUpdate('subscriptions', subPayload, studentId);
+        await adminUpdate('subscriptions', subPayload, undefined, { student_id: studentId });
       } catch {
         try { await adminInsert('subscriptions', { student_id: studentId, ...subPayload }); } catch(e) { console.error('[activatePlan] sub insert:', e); }
       }
 
       // 3. Asegurar account_status correcto en student_profiles
       try {
-        await adminUpdate('student_profiles', {
+        const profilePayload: Record<string, unknown> = {
           account_enabled: true,
           account_status:  planInfo.accountStatus,
+          trial_active:    isTrial,
           updated_at:      new Date().toISOString(),
-        }, studentId);
+        };
+        if (isTrial) {
+          profilePayload.trial_start_date = activationDate.toISOString();
+          profilePayload.trial_end_date   = periodEnd.toISOString();
+        }
+        await adminUpdate('student_profiles', profilePayload, studentId);
       } catch(e) { console.error('[activatePlan] profile update:', e); }
 
       // 4. Registrar en payment_history con plan + vencimiento en notes
