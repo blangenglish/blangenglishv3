@@ -2060,10 +2060,15 @@ useEffect(() => {
     // Prioridad 1: revocación explícita
     if (revokedModuleIds.includes(course.id)) return false;
 
-    // Prioridad 1b: cuenta cancelada o deshabilitada — bloquea SIEMPRE,
-    // incluso si hay un grant explícito (cancel_subscription revoca los grants,
-    // pero como guard extra lo chequeamos aquí también)
-    if (subStatus === 'cancelled') return false;
+    // Prioridad 1b: cuenta cancelada o deshabilitada
+    if (subStatus === 'cancelled') {
+      // Plan de pago cancelado pero dentro del período pagado → mantener acceso
+      const isTrial = subscription?.plan_slug === 'free_trial';
+      const periodEnd = subscription?.current_period_end ? new Date(subscription.current_period_end) : null;
+      const withinPeriod = !isTrial && periodEnd && new Date() <= periodEnd;
+      if (!withinPeriod) return false; // trial o período vencido → bloquear
+      // else: fall through, acceso hasta fin de período
+    }
     if (isProfileDisabled) return false;
     if (subEnabled === false && profEnabled === false) return false;
 
@@ -3328,13 +3333,14 @@ useEffect(() => {
 
                     // ─── Estado explícito derivado de la BD ───
                     type EstadoUsuario =
-                      | 'primer_registro'   // nuevo: onboarding_step='pending_plan', sin sub
-                      | 'prueba_activa'     // account_status='trial', trial no vencido
-                      | 'prueba_finalizada' // trial vencido / status='cancelled'
-                      | 'pendiente_pago'    // envió comprobante, admin revisando
-                      | 'deshabilitado'     // admin deshabilitó (account_enabled=false)
-                      | 'free_admin'        // admin dio acceso gratuito
-                      | 'activo';           // pago aprobado, acceso completo
+                      | 'primer_registro'    // nuevo: onboarding_step='pending_plan', sin sub
+                      | 'prueba_activa'      // account_status='trial', trial no vencido
+                      | 'prueba_finalizada'  // trial vencido / status='cancelled'
+                      | 'pendiente_pago'     // envió comprobante, admin revisando
+                      | 'deshabilitado'      // admin deshabilitó (account_enabled=false)
+                      | 'free_admin'         // admin dio acceso gratuito
+                      | 'activo_cancelado'   // plan de pago cancelado pero aún dentro del período
+                      | 'activo';            // pago aprobado, acceso completo
 
                     const getEstado = (): EstadoUsuario => {
                       // ═══════════════════════════════════════════════════════
@@ -3367,6 +3373,13 @@ useEffect(() => {
                           : sub?.trial_ends_at ? new Date(sub.trial_ends_at) : null;
                         if (endDate && endDate < now) return 'prueba_finalizada';
                         return 'prueba_activa';
+                      }
+
+                      // P3.5: Plan de pago cancelado pero dentro del período pagado
+                      // (el estudiante sigue con acceso hasta current_period_end)
+                      if (subStatus === 'cancelled' && !isTrialSub) {
+                        const periodEnd = sub?.current_period_end ? new Date(sub.current_period_end) : null;
+                        if (periodEnd && periodEnd > now) return 'activo_cancelado';
                       }
 
                       // P4: Cuenta activa confirmada (pago real, no trial)
@@ -3731,6 +3744,65 @@ useEffect(() => {
                       );
                     }
 
+                    // ─── ACTIVO_CANCELADO: plan de pago cancelado pero dentro del período ───
+                    if (estado === 'activo_cancelado') {
+                      return (
+                        <div className="space-y-4">
+                          {/* Aviso de cancelación */}
+                          <div className="rounded-2xl border-2 border-amber-300 bg-amber-50/60 p-4 flex items-start gap-3">
+                            <span className="text-2xl shrink-0">⚠️</span>
+                            <div>
+                              <p className="font-bold text-amber-900 text-sm">Suscripción cancelada — acceso activo hasta el {fmt(nextBilling)}</p>
+                              <p className="text-xs text-amber-800 mt-0.5">
+                                Cancelaste tu plan pero sigues teniendo acceso completo hasta el vencimiento. Después de esa fecha tu cuenta quedará deshabilitada.
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Card info del plan */}
+                          <div className="rounded-2xl border-2 border-border/50 bg-background p-5 shadow-sm">
+                            <div className="flex items-start justify-between gap-3 mb-4">
+                              <div className="flex-1">
+                                <span className="inline-block text-xs font-bold px-3 py-1 rounded-full mb-2 bg-amber-100 text-amber-700 border border-amber-200">
+                                  ⏳ Cancelado al vencimiento
+                                </span>
+                                <h2 className="font-extrabold text-xl text-foreground">{sub?.plan_name || 'Plan Mensual'}</h2>
+                              </div>
+                              <div className="text-right shrink-0">
+                                <p className="font-extrabold text-2xl text-foreground">${sub?.amount_usd}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {sub?.plan_slug === 'trimestral' ? 'USD / 3 meses' : 'USD / mes'}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="bg-muted/30 rounded-xl p-3 border border-border/40">
+                                <p className="text-xs text-muted-foreground mb-0.5">📅 Inicio</p>
+                                <p className="font-bold text-sm">{fmt(regDate)}</p>
+                              </div>
+                              <div className="bg-amber-50 rounded-xl p-3 border border-amber-200/60">
+                                <p className="text-xs text-muted-foreground mb-0.5">📆 Acceso hasta</p>
+                                <p className="font-bold text-sm text-amber-700">{fmt(nextBilling)}</p>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Opciones: reactivar o eliminar cuenta */}
+                          <PlanSelectorWithDelete
+                            defaultName={profileForm.name || userName || ''}
+                            defaultEmail={currentEmail || ''}
+                            userId={currentUserId}
+                            trialView={trialView} setTrialView={setTrialView}
+                            trialPlan={trialPlan} setTrialPlan={setTrialPlan}
+                            trialDeleteReason={trialDeleteReason} setTrialDeleteReason={setTrialDeleteReason}
+                            trialDeleteSent={trialDeleteSent} setTrialDeleteSent={setTrialDeleteSent}
+                            trialDeleteSending={trialDeleteSending} setTrialDeleteSending={setTrialDeleteSending}
+                            onSuccess={async () => { if (currentUserId) await refreshProfile(currentUserId); }}
+                          />
+                        </div>
+                      );
+                    }
+
                     // ─── ACTIVO: plan mensual activo ───
                     return (
                       <div className="space-y-4">
@@ -3868,11 +3940,18 @@ useEffect(() => {
                 </div>
               )}
 
-              {/* ── Cancelar suscripción ── */}
-              {activeTab === 'pagos' && subscription && !['cancelled', 'pending_plan'].includes(subscription.status) && (
-                <div className="bg-background rounded-2xl border border-destructive/20 p-6 shadow-sm mt-2">
-                  <h2 className="font-bold text-base mb-2 text-destructive/80">⚠️ Cancelar suscripción</h2>
-                  <p className="text-sm text-muted-foreground mb-4">Si cancelas, tu cuenta quedará <strong>deshabilitada inmediatamente</strong> hasta que realices un nuevo pago.</p>
+              {/* ── Cancelar suscripción (solo para plan activo, no cancelado) ── */}
+              {activeTab === 'pagos' && subscription && subscription.status === 'active' && (
+                <div className="bg-background rounded-2xl border border-destructive/20 p-6 shadow-sm mt-2 space-y-4">
+                  <div>
+                    <h2 className="font-bold text-base mb-1 text-destructive/80">⚠️ Cancelar suscripción</h2>
+                    <p className="text-sm text-muted-foreground">
+                      {subscription.current_period_end
+                        ? <>Si cancelas, seguirás teniendo acceso completo hasta el <strong>{new Date(subscription.current_period_end).toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })}</strong>. Después tu cuenta quedará deshabilitada.</>
+                        : <>Si cancelas, tu suscripción quedará cancelada al final del período actual.</>
+                      }
+                    </p>
+                  </div>
                   {!cancelConfirm ? (
                     <Button variant="outline" className="border-destructive/40 text-destructive hover:bg-destructive/10 rounded-xl text-sm" onClick={() => setCancelConfirm(true)}>
                       Cancelar suscripción
@@ -3880,38 +3959,47 @@ useEffect(() => {
                   ) : (
                     <div className="bg-destructive/5 border border-destructive/20 rounded-xl p-4 space-y-3">
                       <p className="text-sm font-semibold text-destructive">¿Estás seguro/a de cancelar?</p>
-                      <p className="text-xs text-muted-foreground">Tu cuenta se deshabilitará de inmediato. Para reactivarla deberás realizar un nuevo pago.</p>
+                      <p className="text-xs text-muted-foreground">
+                        {subscription.current_period_end
+                          ? `Seguirás con acceso hasta el ${new Date(subscription.current_period_end).toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })}. Después tu cuenta quedará deshabilitada.`
+                          : 'Tu suscripción quedará cancelada. Puedes reactivarla en cualquier momento.'
+                        }
+                      </p>
                       <div className="flex gap-3">
                         <Button variant="destructive" size="sm" className="rounded-xl text-xs" onClick={async () => {
                           if (currentUserId) {
                             try {
-                              // Llamar edge function con service_role para cancelar
                               const { error } = await supabase.functions.invoke('save-onboarding-2026', {
                                 body: { action: 'cancel_subscription', student_id: currentUserId },
                               });
                               if (error) throw error;
                             } catch {
-                              // Fallback: update directo
-                              await supabase.from('subscriptions').update({
-                                status: 'cancelled',
-                                account_enabled: false,
-                                approved_by_admin: false,
-                              }).eq('student_id', currentUserId);
-                              await supabase.from('student_profiles').update({
-                                account_enabled: false,
-                              }).eq('id', currentUserId);
+                              await supabase.from('subscriptions').update({ status: 'cancelled' }).eq('student_id', currentUserId);
                             }
-                            // Actualizar estado local inmediatamente
-                            setSubscription(s => s ? { ...s, status: 'cancelled', account_enabled: false } : null);
-                            // Recargar desde BD para confirmar que se guardó
+                            setSubscription(s => s ? { ...s, status: 'cancelled' } : null);
                             await refreshProfile(currentUserId);
                           }
                           setCancelConfirm(false);
-                        }}>Sí, cancelar y deshabilitar</Button>
+                        }}>Sí, cancelar suscripción</Button>
                         <Button variant="outline" size="sm" className="rounded-xl text-xs" onClick={() => setCancelConfirm(false)}>No, mantener</Button>
                       </div>
                     </div>
                   )}
+
+                  {/* Solicitar eliminar cuenta — visible también desde el plan activo */}
+                  <DeleteAccountRequest
+                    name={profileForm.name || userName || ''}
+                    email={currentEmail || ''}
+                    userId={currentUserId}
+                    trialView={trialView}
+                    setTrialView={setTrialView}
+                    trialDeleteReason={trialDeleteReason}
+                    setTrialDeleteReason={setTrialDeleteReason}
+                    trialDeleteSent={trialDeleteSent}
+                    setTrialDeleteSent={setTrialDeleteSent}
+                    trialDeleteSending={trialDeleteSending}
+                    setTrialDeleteSending={setTrialDeleteSending}
+                  />
                 </div>
               )}
                 </motion.div>
