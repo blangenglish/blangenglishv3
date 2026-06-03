@@ -365,11 +365,19 @@ function PagoSolicitudForm({
   defaultEmail,
   userId,
   onSuccess,
+  planSlug = 'monthly',
+  planName = 'Plan Mensual',
+  planPrice = '$16 USD / $60,000 COP al mes',
+  planAmount = 16,
 }: {
   defaultName: string;
   defaultEmail: string;
   userId: string;
   onSuccess: () => void;
+  planSlug?: string;
+  planName?: string;
+  planPrice?: string;
+  planAmount?: number;
 }) {
   const [nombre, setNombre] = useState(defaultName);
   const [correo, setCorreo] = useState(defaultEmail);
@@ -393,7 +401,7 @@ function PagoSolicitudForm({
             userEmail: correo.trim(),
             requestType: 'payment_request',
             paymentMethod: metodo === 'paypal' ? 'PayPal' : 'Bold / PSE',
-            message: `Solicitud de plan mensual. Método: ${metodo === 'paypal' ? 'PayPal' : 'Bold / PSE'}.`,
+            message: `Solicitud de ${planName}. Método: ${metodo === 'paypal' ? 'PayPal' : 'Bold / PSE'}.`,
           },
         });
       } catch (_) { /* non-fatal */ }
@@ -416,18 +424,19 @@ function PagoSolicitudForm({
 
         // Si no había suscripción previa, insertar una nueva
         if (subUpErr) {
-          const monthEnd = new Date();
-          monthEnd.setMonth(monthEnd.getMonth() + 1);
+          const periodEnd = new Date();
+          if (planSlug === 'trimestral') periodEnd.setMonth(periodEnd.getMonth() + 3);
+          else periodEnd.setMonth(periodEnd.getMonth() + 1);
           await supabase.from('subscriptions').insert({
             student_id: userId,
-            plan_slug: 'monthly',
-            plan_name: 'Plan Mensual',
+            plan_slug: planSlug,
+            plan_name: planName,
             status: 'pending_approval',
-            amount_usd: 15,
+            amount_usd: planAmount,
             payment_method: metodo === 'paypal' ? 'paypal' : 'bold_pse',
             approved_by_admin: false,
             account_enabled: false,
-            current_period_end: monthEnd.toISOString(),
+            current_period_end: periodEnd.toISOString(),
           });
         }
       }
@@ -464,8 +473,8 @@ function PagoSolicitudForm({
   return (
     <div className="rounded-2xl border-2 border-primary/20 bg-background p-5 space-y-4">
       <div>
-        <h3 className="font-extrabold text-base mb-0.5">💳 Adquirir Plan Mensual</h3>
-        <p className="text-sm text-muted-foreground">$16 USD / $60,000 COP al mes · Acceso completo a todos los cursos</p>
+        <h3 className="font-extrabold text-base mb-0.5">💳 Adquirir {planName}</h3>
+        <p className="text-sm text-muted-foreground">{planPrice} · Acceso completo a todos los cursos</p>
       </div>
 
       <div className="space-y-1.5">
@@ -1244,6 +1253,13 @@ export default function Dashboard({ isLoggedIn = false, onOpenAuth, onLogout, us
   const [teacherForm, setTeacherForm] = useState({ name: '', email: '', message: '' });
   const [teacherSent, setTeacherSent] = useState(false);
   const [cancelConfirm, setCancelConfirm] = useState(false);
+  // ── Trial action states ──────────────────────────────────────────────────────
+  const [trialView, setTrialView] = useState<'actions' | 'plan' | 'cancel' | 'delete_request'>('actions');
+  const [trialPlan, setTrialPlan] = useState<'mensual' | 'trimestral' | null>(null);
+  const [trialDeleteReason, setTrialDeleteReason] = useState('');
+  const [trialDeleteSent, setTrialDeleteSent] = useState(false);
+  const [trialDeleteSending, setTrialDeleteSending] = useState(false);
+  const [trialCancelDone, setTrialCancelDone] = useState(false);
 const [showPaypalModal, setShowPaypalModal] = useState(false);
   const [paypalModalAmount, setPaypalModalAmount] = useState(15);
   const [payConfig, setPayConfig] = useState<Record<string, string>>({});
@@ -3185,6 +3201,26 @@ useEffect(() => {
 
                     // ─── PRUEBA_ACTIVA: período de 7 días en curso ───
                     if (estado === 'prueba_activa') {
+                      const cancelTrial = async () => {
+                        if (!currentUserId) return;
+                        try {
+                          const { error } = await supabase.functions.invoke('save-onboarding-2026', {
+                            body: { action: 'cancel_subscription', student_id: currentUserId },
+                          });
+                          if (error) throw error;
+                        } catch {
+                          await supabase.from('student_profiles').update({
+                            trial_active: false, account_status: 'disabled', account_enabled: false,
+                          }).eq('id', currentUserId);
+                          await supabase.from('subscriptions').update({
+                            trial_active: false, status: 'cancelled', account_enabled: false,
+                          }).eq('student_id', currentUserId);
+                        }
+                        setSubscription(s => s ? { ...s, status: 'cancelled', account_enabled: false } : null);
+                        setTrialCancelDone(true);
+                        await refreshProfile(currentUserId);
+                      };
+
                       return (
                         <div className="space-y-4">
                           {/* Banner prueba activa */}
@@ -3200,7 +3236,7 @@ useEffect(() => {
                                   Tienes acceso completo hasta el{' '}
                                   <span className="text-green-700 underline decoration-dotted">{fmt(trialEnd)}</span>
                                 </h2>
-                                <p className="text-xs text-muted-foreground">Solicita el plan mensual ahora para no perder el acceso al vencer</p>
+                                <p className="text-xs text-muted-foreground">Selecciona un plan para seguir aprendiendo al vencer</p>
                               </div>
                             </div>
                             <div className="mt-4 grid grid-cols-2 gap-3">
@@ -3215,42 +3251,218 @@ useEffect(() => {
                             </div>
                           </div>
 
-                          {/* Formulario de pago */}
-                          <PagoSolicitudForm
-                            defaultName={profileForm.name || userName || ''}
-                            defaultEmail={currentEmail || ''}
-                            userId={currentUserId}
-                            onSuccess={async () => { if (currentUserId) await refreshProfile(currentUserId); }}
-                          />
+                          {/* ── Vista: Acciones principales ── */}
+                          {trialView === 'actions' && (
+                            <div className="space-y-3">
+                              <Button
+                                className="w-full rounded-xl py-6 font-bold text-base bg-primary hover:bg-primary/90"
+                                onClick={() => { setTrialView('plan'); setTrialPlan(null); }}
+                              >
+                                📋 Escoger plan
+                              </Button>
+                              <Button
+                                variant="outline"
+                                className="w-full rounded-xl py-6 font-bold text-base border-2 border-destructive/30 text-destructive hover:bg-destructive/5"
+                                onClick={() => setTrialView('cancel')}
+                              >
+                                🚪 Cancelar suscripción — deshabilitar acceso
+                              </Button>
+                              <div className="text-center pt-1">
+                                <button
+                                  className="text-xs text-muted-foreground hover:text-destructive transition-colors underline-offset-2 hover:underline"
+                                  onClick={() => { setTrialView('delete_request'); setTrialDeleteSent(false); setTrialDeleteReason(''); }}
+                                >
+                                  🗑️ Solicitar eliminar cuenta
+                                </button>
+                              </div>
+                            </div>
+                          )}
 
-                          {/* Cancelar */}
-                          <div className="text-center pt-1">
-                            <button
-                              className="text-xs text-muted-foreground hover:text-destructive transition-colors underline-offset-2 hover:underline"
-                              onClick={async () => {
-                                if (!currentUserId) return;
-                                try {
-                                  // Usar edge function (service_role) para garantizar que bypasa RLS
-                                  const { error } = await supabase.functions.invoke('save-onboarding-2026', {
-                                    body: { action: 'cancel_subscription', student_id: currentUserId },
-                                  });
-                                  if (error) throw error;
-                                } catch {
-                                  // Fallback directo si la edge function falla
-                                  await supabase.from('student_profiles').update({
-                                    trial_active: false, account_status: 'disabled', account_enabled: false,
-                                  }).eq('id', currentUserId);
-                                  await supabase.from('subscriptions').update({
-                                    trial_active: false, status: 'cancelled', account_enabled: false,
-                                  }).eq('student_id', currentUserId);
-                                }
-                                setSubscription(s => s ? { ...s, status: 'cancelled', account_enabled: false } : null);
-                                await refreshProfile(currentUserId);
-                              }}
-                            >
-                              🚪 No me interesa por ahora — cancelar suscripción
-                            </button>
-                          </div>
+                          {/* ── Vista: Escoger plan ── */}
+                          {trialView === 'plan' && (
+                            <div className="space-y-4">
+                              <button
+                                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                                onClick={() => setTrialView('actions')}
+                              >
+                                ← Volver
+                              </button>
+
+                              {/* Selector de plan */}
+                              <div className="grid grid-cols-2 gap-3">
+                                {/* Plan Mensual */}
+                                <button
+                                  type="button"
+                                  onClick={() => setTrialPlan('mensual')}
+                                  className={`rounded-2xl border-2 p-4 text-left transition-all ${
+                                    trialPlan === 'mensual'
+                                      ? 'border-primary bg-primary/5 shadow-md'
+                                      : 'border-border/50 hover:border-primary/40 hover:bg-primary/5'
+                                  }`}
+                                >
+                                  <div className="text-2xl mb-2">🚀</div>
+                                  <p className="font-bold text-sm">Plan Mensual</p>
+                                  <p className="text-xl font-extrabold text-primary mt-1">$16 USD</p>
+                                  <p className="text-xs text-muted-foreground">$60,000 COP / mes</p>
+                                  {trialPlan === 'mensual' && (
+                                    <span className="inline-block mt-2 text-[10px] font-bold bg-primary/10 text-primary rounded-full px-2 py-0.5">✓ Seleccionado</span>
+                                  )}
+                                </button>
+
+                                {/* Plan Trimestral */}
+                                <button
+                                  type="button"
+                                  onClick={() => setTrialPlan('trimestral')}
+                                  className={`rounded-2xl border-2 p-4 text-left transition-all relative ${
+                                    trialPlan === 'trimestral'
+                                      ? 'border-violet-500 bg-violet-50 shadow-md'
+                                      : 'border-border/50 hover:border-violet-400 hover:bg-violet-50/50'
+                                  }`}
+                                >
+                                  <span className="absolute top-2 right-2 text-[10px] font-extrabold bg-amber-400 text-black rounded-full px-2 py-0.5">⭐ Mejor valor</span>
+                                  <div className="text-2xl mb-2">💎</div>
+                                  <p className="font-bold text-sm">Plan Trimestral</p>
+                                  <p className="text-xl font-extrabold text-violet-700 mt-1">$68 USD</p>
+                                  <p className="text-xs text-muted-foreground">$250,000 COP / 3 meses</p>
+                                  {trialPlan === 'trimestral' && (
+                                    <span className="inline-block mt-2 text-[10px] font-bold bg-violet-100 text-violet-700 rounded-full px-2 py-0.5">✓ Seleccionado</span>
+                                  )}
+                                </button>
+                              </div>
+
+                              {/* Formulario según plan seleccionado */}
+                              {trialPlan && (
+                                <PagoSolicitudForm
+                                  defaultName={profileForm.name || userName || ''}
+                                  defaultEmail={currentEmail || ''}
+                                  userId={currentUserId}
+                                  planSlug={trialPlan === 'mensual' ? 'monthly' : 'trimestral'}
+                                  planName={trialPlan === 'mensual' ? 'Plan Mensual' : 'Plan Trimestral'}
+                                  planPrice={trialPlan === 'mensual' ? '$16 USD / $60,000 COP al mes' : '$68 USD / $250,000 COP por 3 meses'}
+                                  planAmount={trialPlan === 'mensual' ? 16 : 68}
+                                  onSuccess={async () => { if (currentUserId) await refreshProfile(currentUserId); }}
+                                />
+                              )}
+                            </div>
+                          )}
+
+                          {/* ── Vista: Confirmar cancelación ── */}
+                          {trialView === 'cancel' && (
+                            <div className="rounded-2xl border-2 border-destructive/20 bg-destructive/5 p-5 space-y-4">
+                              <div className="flex items-start gap-3">
+                                <span className="text-2xl">⚠️</span>
+                                <div>
+                                  <p className="font-bold text-destructive text-sm">¿Cancelar acceso?</p>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    Tu cuenta quedará <strong>deshabilitada inmediatamente</strong>. Perderás el acceso a todos los cursos hasta que realices un nuevo pago.
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex gap-3">
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  className="flex-1 rounded-xl"
+                                  onClick={cancelTrial}
+                                >
+                                  Sí, cancelar y deshabilitar
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="flex-1 rounded-xl"
+                                  onClick={() => setTrialView('actions')}
+                                >
+                                  No, mantener acceso
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* ── Vista: Solicitar eliminar cuenta ── */}
+                          {trialView === 'delete_request' && (
+                            <div className="rounded-2xl border-2 border-border/50 bg-background p-5 space-y-4">
+                              <button
+                                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                                onClick={() => setTrialView('actions')}
+                              >
+                                ← Volver
+                              </button>
+
+                              {trialDeleteSent ? (
+                                <div className="text-center py-4 space-y-3">
+                                  <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mx-auto">
+                                    <Check className="w-6 h-6 text-green-600" />
+                                  </div>
+                                  <p className="font-bold text-base">Solicitud enviada ✅</p>
+                                  <p className="text-sm text-muted-foreground">
+                                    Recibimos tu solicitud. El administrador procesará la eliminación de tu cuenta en breve y te confirmará por correo.
+                                  </p>
+                                </div>
+                              ) : (
+                                <>
+                                  <div>
+                                    <h3 className="font-bold text-base mb-1">🗑️ Solicitar eliminación de cuenta</h3>
+                                    <p className="text-xs text-muted-foreground">
+                                      Esta acción enviará una solicitud al administrador. Recibirás confirmación por correo cuando tu cuenta sea eliminada.
+                                    </p>
+                                  </div>
+
+                                  <div className="space-y-1.5">
+                                    <Label className="text-sm font-semibold">Motivo (opcional)</Label>
+                                    <textarea
+                                      value={trialDeleteReason}
+                                      onChange={e => setTrialDeleteReason(e.target.value)}
+                                      placeholder="Ej: Ya no me interesa la plataforma, encontré otra opción..."
+                                      rows={3}
+                                      className="w-full rounded-xl border border-border/60 px-4 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors resize-none"
+                                    />
+                                  </div>
+
+                                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+                                    <p className="text-xs text-amber-800">
+                                      ⚠️ Al eliminar tu cuenta se borrarán todos tus datos, progreso y historial de forma permanente.
+                                    </p>
+                                  </div>
+
+                                  <Button
+                                    variant="destructive"
+                                    className="w-full rounded-xl py-5 font-bold"
+                                    disabled={trialDeleteSending}
+                                    onClick={async () => {
+                                      if (!currentUserId) return;
+                                      setTrialDeleteSending(true);
+                                      try {
+                                        await supabase.functions.invoke('send-contact-email', {
+                                          body: {
+                                            type: 'faq_contact',
+                                            name: profileForm.name || userName || 'Estudiante',
+                                            email: currentEmail || '',
+                                            subject: 'Solicitud de eliminación de cuenta',
+                                            category: '🗑️ Eliminar cuenta',
+                                            message: `El estudiante solicita la eliminación de su cuenta.\n\nNombre: ${profileForm.name || userName}\nCorreo: ${currentEmail}\nID: ${currentUserId}\n\nMotivo: ${trialDeleteReason || 'No especificado'}`,
+                                          },
+                                        });
+                                        setTrialDeleteSent(true);
+                                      } catch {
+                                        // Enviar de todas formas, no bloquear al usuario
+                                        setTrialDeleteSent(true);
+                                      } finally {
+                                        setTrialDeleteSending(false);
+                                      }
+                                    }}
+                                  >
+                                    {trialDeleteSending ? (
+                                      <span className="flex items-center gap-2">
+                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        Enviando solicitud...
+                                      </span>
+                                    ) : '🗑️ Enviar solicitud de eliminación'}
+                                  </Button>
+                                </>
+                              )}
+                            </div>
+                          )}
                         </div>
                       );
                     }
