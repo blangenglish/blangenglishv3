@@ -358,6 +358,109 @@ function PlanSelector({ currentUserId, currentEmail, onPlanSaved, onOpenPaypal, 
   );
 }
 
+// ── DeleteAccountRequest: link + formulario para solicitar eliminación de cuenta ──
+function DeleteAccountRequest({
+  name, email, userId,
+  trialView, setTrialView,
+  trialDeleteReason, setTrialDeleteReason,
+  trialDeleteSent, setTrialDeleteSent,
+  trialDeleteSending, setTrialDeleteSending,
+}: {
+  name: string; email: string; userId: string;
+  trialView: string; setTrialView: (v: any) => void;
+  trialDeleteReason: string; setTrialDeleteReason: (v: string) => void;
+  trialDeleteSent: boolean; setTrialDeleteSent: (v: boolean) => void;
+  trialDeleteSending: boolean; setTrialDeleteSending: (v: boolean) => void;
+}) {
+  if (trialView !== 'delete_request') {
+    return (
+      <div className="text-center pt-1">
+        <button
+          className="text-xs text-muted-foreground hover:text-destructive transition-colors underline-offset-2 hover:underline"
+          onClick={() => { setTrialView('delete_request'); setTrialDeleteSent(false); setTrialDeleteReason(''); }}
+        >
+          🗑️ Solicitar eliminar cuenta
+        </button>
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-2xl border-2 border-border/50 bg-background p-5 space-y-4">
+      <button
+        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        onClick={() => setTrialView('actions')}
+      >
+        ← Volver
+      </button>
+      {trialDeleteSent ? (
+        <div className="text-center py-4 space-y-3">
+          <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mx-auto">
+            <Check className="w-6 h-6 text-green-600" />
+          </div>
+          <p className="font-bold text-base">Solicitud enviada ✅</p>
+          <p className="text-sm text-muted-foreground">
+            Recibimos tu solicitud. El administrador procesará la eliminación de tu cuenta en breve y te confirmará por correo.
+          </p>
+        </div>
+      ) : (
+        <>
+          <div>
+            <h3 className="font-bold text-base mb-1">🗑️ Solicitar eliminación de cuenta</h3>
+            <p className="text-xs text-muted-foreground">
+              Esta acción enviará una solicitud al administrador. Recibirás confirmación por correo cuando tu cuenta sea eliminada.
+            </p>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-sm font-semibold">Motivo (opcional)</Label>
+            <textarea
+              value={trialDeleteReason}
+              onChange={e => setTrialDeleteReason(e.target.value)}
+              placeholder="Ej: Ya no me interesa la plataforma, encontré otra opción..."
+              rows={3}
+              className="w-full rounded-xl border border-border/60 px-4 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors resize-none"
+            />
+          </div>
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+            <p className="text-xs text-amber-800">
+              ⚠️ Al eliminar tu cuenta se borrarán todos tus datos, progreso e historial de forma permanente.
+            </p>
+          </div>
+          <Button
+            variant="destructive"
+            className="w-full rounded-xl py-5 font-bold"
+            disabled={trialDeleteSending}
+            onClick={async () => {
+              if (!userId) return;
+              setTrialDeleteSending(true);
+              try {
+                await supabase.functions.invoke('send-contact-email', {
+                  body: {
+                    type: 'faq_contact',
+                    name,
+                    email,
+                    subject: 'Solicitud de eliminación de cuenta',
+                    category: '🗑️ Eliminar cuenta',
+                    message: `El estudiante solicita la eliminación de su cuenta.\n\nNombre: ${name}\nCorreo: ${email}\nID: ${userId}\n\nMotivo: ${trialDeleteReason || 'No especificado'}`,
+                  },
+                });
+              } catch { /* non-fatal */ }
+              setTrialDeleteSent(true);
+              setTrialDeleteSending(false);
+            }}
+          >
+            {trialDeleteSending ? (
+              <span className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Enviando solicitud...
+              </span>
+            ) : '🗑️ Enviar solicitud de eliminación'}
+          </Button>
+        </>
+      )}
+    </div>
+  );
+}
+
 // ── PagoSolicitudForm: formulario directo para solicitar plan mensual ──
 // Usado en: prueba_activa, prueba_finalizada, deshabilitado
 function PagoSolicitudForm({
@@ -1822,6 +1925,14 @@ useEffect(() => {
 
     // Prioridad 1: revocación explícita
     if (revokedModuleIds.includes(course.id)) return false;
+
+    // Prioridad 1b: cuenta cancelada o deshabilitada — bloquea SIEMPRE,
+    // incluso si hay un grant explícito (cancel_subscription revoca los grants,
+    // pero como guard extra lo chequeamos aquí también)
+    if (subStatus === 'cancelled') return false;
+    if (isProfileDisabled) return false;
+    if (subEnabled === false && profEnabled === false) return false;
+
     // Prioridad 2: concesión explícita del curso completo
     if (grantedModuleIds.includes(course.id)) return true;
     // Prioridad 2b: al menos una unidad del curso tiene grant individual → curso visible
@@ -3380,89 +3491,19 @@ useEffect(() => {
                           )}
 
                           {/* ── Vista: Solicitar eliminar cuenta ── */}
-                          {trialView === 'delete_request' && (
-                            <div className="rounded-2xl border-2 border-border/50 bg-background p-5 space-y-4">
-                              <button
-                                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                                onClick={() => setTrialView('actions')}
-                              >
-                                ← Volver
-                              </button>
-
-                              {trialDeleteSent ? (
-                                <div className="text-center py-4 space-y-3">
-                                  <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mx-auto">
-                                    <Check className="w-6 h-6 text-green-600" />
-                                  </div>
-                                  <p className="font-bold text-base">Solicitud enviada ✅</p>
-                                  <p className="text-sm text-muted-foreground">
-                                    Recibimos tu solicitud. El administrador procesará la eliminación de tu cuenta en breve y te confirmará por correo.
-                                  </p>
-                                </div>
-                              ) : (
-                                <>
-                                  <div>
-                                    <h3 className="font-bold text-base mb-1">🗑️ Solicitar eliminación de cuenta</h3>
-                                    <p className="text-xs text-muted-foreground">
-                                      Esta acción enviará una solicitud al administrador. Recibirás confirmación por correo cuando tu cuenta sea eliminada.
-                                    </p>
-                                  </div>
-
-                                  <div className="space-y-1.5">
-                                    <Label className="text-sm font-semibold">Motivo (opcional)</Label>
-                                    <textarea
-                                      value={trialDeleteReason}
-                                      onChange={e => setTrialDeleteReason(e.target.value)}
-                                      placeholder="Ej: Ya no me interesa la plataforma, encontré otra opción..."
-                                      rows={3}
-                                      className="w-full rounded-xl border border-border/60 px-4 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors resize-none"
-                                    />
-                                  </div>
-
-                                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
-                                    <p className="text-xs text-amber-800">
-                                      ⚠️ Al eliminar tu cuenta se borrarán todos tus datos, progreso y historial de forma permanente.
-                                    </p>
-                                  </div>
-
-                                  <Button
-                                    variant="destructive"
-                                    className="w-full rounded-xl py-5 font-bold"
-                                    disabled={trialDeleteSending}
-                                    onClick={async () => {
-                                      if (!currentUserId) return;
-                                      setTrialDeleteSending(true);
-                                      try {
-                                        await supabase.functions.invoke('send-contact-email', {
-                                          body: {
-                                            type: 'faq_contact',
-                                            name: profileForm.name || userName || 'Estudiante',
-                                            email: currentEmail || '',
-                                            subject: 'Solicitud de eliminación de cuenta',
-                                            category: '🗑️ Eliminar cuenta',
-                                            message: `El estudiante solicita la eliminación de su cuenta.\n\nNombre: ${profileForm.name || userName}\nCorreo: ${currentEmail}\nID: ${currentUserId}\n\nMotivo: ${trialDeleteReason || 'No especificado'}`,
-                                          },
-                                        });
-                                        setTrialDeleteSent(true);
-                                      } catch {
-                                        // Enviar de todas formas, no bloquear al usuario
-                                        setTrialDeleteSent(true);
-                                      } finally {
-                                        setTrialDeleteSending(false);
-                                      }
-                                    }}
-                                  >
-                                    {trialDeleteSending ? (
-                                      <span className="flex items-center gap-2">
-                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                        Enviando solicitud...
-                                      </span>
-                                    ) : '🗑️ Enviar solicitud de eliminación'}
-                                  </Button>
-                                </>
-                              )}
-                            </div>
-                          )}
+                          <DeleteAccountRequest
+                            name={profileForm.name || userName || ''}
+                            email={currentEmail || ''}
+                            userId={currentUserId}
+                            trialView={trialView}
+                            setTrialView={setTrialView}
+                            trialDeleteReason={trialDeleteReason}
+                            setTrialDeleteReason={setTrialDeleteReason}
+                            trialDeleteSent={trialDeleteSent}
+                            setTrialDeleteSent={setTrialDeleteSent}
+                            trialDeleteSending={trialDeleteSending}
+                            setTrialDeleteSending={setTrialDeleteSending}
+                          />
                         </div>
                       );
                     }
@@ -3488,6 +3529,19 @@ useEffect(() => {
                             defaultEmail={currentEmail || ''}
                             userId={currentUserId}
                             onSuccess={async () => { if (currentUserId) await refreshProfile(currentUserId); }}
+                          />
+                          <DeleteAccountRequest
+                            name={profileForm.name || userName || ''}
+                            email={currentEmail || ''}
+                            userId={currentUserId}
+                            trialView={trialView}
+                            setTrialView={setTrialView}
+                            trialDeleteReason={trialDeleteReason}
+                            setTrialDeleteReason={setTrialDeleteReason}
+                            trialDeleteSent={trialDeleteSent}
+                            setTrialDeleteSent={setTrialDeleteSent}
+                            trialDeleteSending={trialDeleteSending}
+                            setTrialDeleteSending={setTrialDeleteSending}
                           />
                         </div>
                       );
@@ -3541,6 +3595,19 @@ useEffect(() => {
                             defaultEmail={currentEmail || ''}
                             userId={currentUserId}
                             onSuccess={async () => { if (currentUserId) await refreshProfile(currentUserId); }}
+                          />
+                          <DeleteAccountRequest
+                            name={profileForm.name || userName || ''}
+                            email={currentEmail || ''}
+                            userId={currentUserId}
+                            trialView={trialView}
+                            setTrialView={setTrialView}
+                            trialDeleteReason={trialDeleteReason}
+                            setTrialDeleteReason={setTrialDeleteReason}
+                            trialDeleteSent={trialDeleteSent}
+                            setTrialDeleteSent={setTrialDeleteSent}
+                            trialDeleteSending={trialDeleteSending}
+                            setTrialDeleteSending={setTrialDeleteSending}
                           />
                         </div>
                       );
