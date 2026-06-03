@@ -1360,68 +1360,79 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
     setLoading(true);
     setShowQuiz(false);
 
-    // ── Paso 1: contenido estático (materials + quizzes) desde caché o Supabase ──
-    // Se ejecuta en paralelo con la consulta de progreso (que siempre va a Supabase).
-    const getContent = async () => {
-      if (_unitContentCache[unitId]) return _unitContentCache[unitId];
+    try {
+      // ── Paso 1: contenido estático (materials + quizzes) desde caché o Supabase ──
+      // Se ejecuta en paralelo con la consulta de progreso (que siempre va a Supabase).
+      const getContent = async () => {
+        if (_unitContentCache[unitId]) return _unitContentCache[unitId];
 
-      const [matsResult, quizResult] = await Promise.all([
-        supabase
-          .from('unit_stage_materials').select('*')
-          .eq('unit_id', unitId).order('sort_order', { ascending: true }),
-        supabase
-          .from('unit_stage_quizzes').select('stage, questions')
-          .eq('unit_id', unitId),
+        const [matsResult, quizResult] = await Promise.all([
+          supabase
+            .from('unit_stage_materials').select('*')
+            .eq('unit_id', unitId).order('sort_order', { ascending: true }),
+          supabase
+            .from('unit_stage_quizzes').select('stage, questions')
+            .eq('unit_id', unitId),
+        ]);
+
+        const byStageData: Record<string, any[]> = Object.fromEntries(STAGES.map(s => [s.id, []]));
+        (matsResult.data || []).forEach(m => { if (m.stage in byStageData) byStageData[m.stage].push(m); });
+
+        const quizData: Record<string, any[]> = {};
+        (quizResult.data || []).forEach(row => {
+          const qs = Array.isArray(row.questions) ? row.questions : [];
+          if (qs.length > 0) quizData[row.stage] = qs;
+        });
+
+        _unitContentCache[unitId] = { byStage: byStageData, quizByStage: quizData };
+        return _unitContentCache[unitId];
+      };
+
+      // ── Paso 2: contenido y progreso en paralelo ──
+      const [content, progResult] = await Promise.all([
+        getContent(),
+        isLocked
+          ? Promise.resolve({ data: null, error: null })
+          : supabase
+              .from('unit_progress').select('stage, completed, completed_at, quiz_passed')
+              .eq('unit_id', unitId).eq('student_id', studentId),
       ]);
 
-      const byStageData: Record<string, any[]> = Object.fromEntries(STAGES.map(s => [s.id, []]));
-      (matsResult.data || []).forEach(m => { if (m.stage in byStageData) byStageData[m.stage].push(m); });
+      const { byStage: map, quizByStage: qmap } = content;
+      setByStage(map);
+      setQuizByStage(qmap);
 
-      const quizData: Record<string, any[]> = {};
-      (quizResult.data || []).forEach(row => {
-        const qs = Array.isArray(row.questions) ? row.questions : [];
-        if (qs.length > 0) quizData[row.stage] = qs;
-      });
+      if (!isLocked) {
+        // Bug 1 fix: loguear el error del SELECT en lugar de ignorarlo silenciosamente
+        if ((progResult as any).error) {
+          console.error('[UnitViewer] ❌ Error cargando progreso desde Supabase:', (progResult as any).error?.message);
+        }
 
-      _unitContentCache[unitId] = { byStage: byStageData, quizByStage: quizData };
-      return _unitContentCache[unitId];
-    };
+        const pm: Record<string, any> = {};
+        ((progResult as any).data || []).forEach((p: any) => {
+          pm[p.stage] = { completed: p.completed, completed_at: p.completed_at, quiz_passed: p.quiz_passed };
+        });
+        setProgress(pm);
 
-    // ── Paso 2: contenido y progreso en paralelo ──
-    const [content, progResult] = await Promise.all([
-      getContent(),
-      isLocked
-        ? Promise.resolve({ data: null })
-        : supabase
-            .from('unit_progress').select('stage, completed, completed_at, quiz_passed')
-            .eq('unit_id', unitId).eq('student_id', studentId),
-    ]);
-
-    const { byStage: map, quizByStage: qmap } = content;
-    setByStage(map);
-    setQuizByStage(qmap);
-
-    if (!isLocked) {
-      const pm: Record<string, any> = {};
-      ((progResult as any).data || []).forEach((p: any) => {
-        pm[p.stage] = { completed: p.completed, completed_at: p.completed_at, quiz_passed: p.quiz_passed };
-      });
-      setProgress(pm);
-
-      const stagesWC = STAGES.filter(s => map[s.id]?.length > 0 || qmap[s.id]);
-      if (isReview) {
-        // En repaso: siempre empezar desde la primera parte
-        const globalIdx = STAGES.findIndex(s => s.id === stagesWC[0]?.id);
-        setCurrentStageIdx(globalIdx >= 0 ? globalIdx : 0);
-      } else {
-        const firstInc = stagesWC.findIndex(s => !pm[s.id]?.completed);
-        const startStage = stagesWC[firstInc >= 0 ? firstInc : Math.max(0, stagesWC.length - 1)];
-        const globalIdx = STAGES.findIndex(s => s.id === (startStage?.id || STAGES[0].id));
-        setCurrentStageIdx(globalIdx >= 0 ? globalIdx : 0);
+        const stagesWC = STAGES.filter(s => map[s.id]?.length > 0 || qmap[s.id]);
+        if (isReview) {
+          // En repaso: siempre empezar desde la primera parte
+          const globalIdx = STAGES.findIndex(s => s.id === stagesWC[0]?.id);
+          setCurrentStageIdx(globalIdx >= 0 ? globalIdx : 0);
+        } else {
+          const firstInc = stagesWC.findIndex(s => !pm[s.id]?.completed);
+          const startStage = stagesWC[firstInc >= 0 ? firstInc : Math.max(0, stagesWC.length - 1)];
+          const globalIdx = STAGES.findIndex(s => s.id === (startStage?.id || STAGES[0].id));
+          setCurrentStageIdx(globalIdx >= 0 ? globalIdx : 0);
+        }
       }
+    } catch (e) {
+      // Bug 2 fix: sin este catch, cualquier error de red dejaba el spinner girando para siempre
+      console.error('[UnitViewer] ❌ Excepción cargando unidad:', e);
+    } finally {
+      // Bug 2 fix: setLoading(false) ahora se ejecuta SIEMPRE, incluso si hay error
+      setLoading(false);
     }
-
-    setLoading(false);
   }, [unitId, studentId, isLocked]);
 
   useEffect(() => { loadData(); }, [loadData]);
@@ -1459,6 +1470,17 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
 
   const markCompleted = async () => {
     if (!currentStage || markingDone) return;
+
+    // Bug 1 fix: capturar studentId y unitId al inicio. Si no hay sesión activa,
+    // no intentar el upsert (evita errores silenciosos de RLS con student_id vacío).
+    const sid = studentId;
+    const uid = unitId;
+    const stageId = currentStage.id;
+    if (!sid || !uid) {
+      console.error('[UnitViewer] ❌ markCompleted: studentId o unitId no disponible — progreso no guardado', { sid, uid });
+      return;
+    }
+
     setMarkingDone(true);
 
     const now = new Date().toISOString();
@@ -1466,24 +1488,28 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
     // 1. Actualizar UI inmediatamente (optimista) — sin esperar a Supabase
     setProgress(prev => ({
       ...prev,
-      [currentStage.id]: { completed: true, completed_at: now, quiz_passed: hasQuiz },
+      [stageId]: { completed: true, completed_at: now, quiz_passed: hasQuiz },
     }));
     setShowQuiz(false);
 
-    // 2. Navegar a la siguiente parte si existe (sin esperar al save)
-    if (localIdx < stagesWithContent.length - 1) {
+    // 2. Capturar el índice de navegación ANTES de que el re-render lo cambie
+    const nextLocalIdx = localIdx + 1;
+    const nextStage = stagesWithContent[nextLocalIdx];
+
+    // 3. Navegar a la siguiente parte si existe (sin esperar al save)
+    if (nextStage) {
       setTimeout(() => {
-        setCurrentStageIdx(STAGES.findIndex(s => s.id === stagesWithContent[localIdx + 1].id));
+        setCurrentStageIdx(STAGES.findIndex(s => s.id === nextStage.id));
       }, 400);
     }
 
-    // 3. Guardar en Supabase en segundo plano (timeout de seguridad: 6 s)
+    // 4. Guardar en Supabase en segundo plano (timeout de seguridad: 6 s)
     try {
       const savePromise = supabase.from('unit_progress').upsert(
         {
-          student_id: studentId,
-          unit_id: unitId,
-          stage: currentStage.id,
+          student_id: sid,
+          unit_id: uid,
+          stage: stageId,
           completed: true,
           completed_at: now,
           quiz_passed: hasQuiz,
@@ -1491,8 +1517,8 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
         },
         { onConflict: 'student_id,unit_id,stage' },
       );
-      // Si Supabase tarda más de 6 s, el timeout resuelve con error falso pero
-      // la UI ya navegó (optimista), así que el estudiante nunca queda bloqueado.
+      // Si Supabase tarda más de 6 s, el timeout resuelve con error para no bloquear la UI.
+      // El upsert sigue corriendo en background y puede completarse después.
       const { error } = await Promise.race([
         savePromise,
         new Promise(resolve =>
@@ -1500,9 +1526,9 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
         ),
       ]);
       if (error) {
-        console.error('[UnitViewer] ❌ Error/timeout guardando progreso:', error.message);
+        console.error('[UnitViewer] ❌ Error/timeout guardando progreso:', error.message, { sid, uid, stageId });
       } else {
-        console.log('[UnitViewer] ✅ Progreso guardado:', currentStage.id);
+        console.log('[UnitViewer] ✅ Progreso guardado:', stageId);
       }
     } catch (e) {
       console.error('[UnitViewer] ❌ Excepción guardando progreso:', e);
