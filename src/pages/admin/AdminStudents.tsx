@@ -527,18 +527,22 @@ export default function AdminStudents() {
   }>>({});
   const [activating, setActivating] = useState<string | null>(null);
   const [activatingTrial, setActivatingTrial] = useState<string | null>(null);
-  const getActivationForm = (studentId: string) => activationForm[studentId] || {
+  const defaultActivationForm = () => ({
     activationDate: new Date().toISOString().split('T')[0],
-    amount: '15',
+    amount: '16',
     method: 'paypal',
     level: 'Todas',
     notes: '',
     plan: 'mensual' as const,
-  };
+  });
+  const getActivationForm = (studentId: string) => activationForm[studentId] || defaultActivationForm();
   const setActivationField = (studentId: string, field: string, value: string) => {
+    // Bug fix: usar prev[studentId] en lugar de getActivationForm() para evitar leer
+    // estado stale cuando hay dos setActivationField consecutivos en el mismo evento
+    // (p.ej. al hacer clic en un plan: se actualizan 'plan' y 'amount' al mismo tiempo).
     setActivationForm(prev => ({
       ...prev,
-      [studentId]: { ...getActivationForm(studentId), [field]: value },
+      [studentId]: { ...(prev[studentId] || defaultActivationForm()), [field]: value },
     }));
   };
 
