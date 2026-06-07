@@ -33,7 +33,6 @@ import AdminEnglishForStudents from '@/pages/admin/AdminEnglishForStudents';
 import AdminReviews from '@/pages/admin/AdminReviews';
 import AdminSchedule from '@/pages/admin/AdminSchedule';
 import AdminMundoReal from '@/pages/admin/AdminMundoReal';
-import AdminImageOptimizer from '@/pages/admin/AdminImageOptimizer';
 
 const queryClient = new QueryClient();
 
@@ -171,7 +170,6 @@ function AppRoutes() {
         <Route path={ADMIN_ROUTES.REVIEWS} element={<AdminReviews />} />
         <Route path={ADMIN_ROUTES.SCHEDULE} element={<AdminSchedule />} />
         <Route path={ADMIN_ROUTES.MUNDO_REAL} element={<AdminMundoReal />} />
-        <Route path={ADMIN_ROUTES.IMAGE_OPTIMIZER} element={<AdminImageOptimizer />} />
       </Routes>
     );
   }
