@@ -152,7 +152,7 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
             </motion.div>
 
             {/* ── CUATRO TARJETAS DE PRECIOS ── */}
-            <motion.div variants={staggerItem} className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mt-6 sm:mt-10">
+            <motion.div variants={staggerItem} className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 mt-6 sm:mt-10">
 
               {/* ── PRUEBA GRATIS ── */}
               <div className="bg-white/10 backdrop-blur-md border border-white/25 rounded-3xl p-6 flex flex-col gap-4 hover:bg-white/15 transition-all duration-300 shadow-xl">

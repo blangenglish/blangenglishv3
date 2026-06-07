@@ -357,7 +357,7 @@ export default function PricingPage({ isLoggedIn = false, onOpenAuth, onLogout, 
             </div>
           ) : (
             <motion.div
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 max-w-7xl mx-auto items-stretch"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 max-w-7xl mx-auto items-stretch"
               initial="hidden" animate="visible" variants={stagger}
             >
               {/* Prueba Gratis + Plan Mensual + Plan Trimestral */}
