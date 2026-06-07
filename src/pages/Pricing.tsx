@@ -385,33 +385,6 @@ export default function PricingPage({ isLoggedIn = false, onOpenAuth, onLogout, 
                 />
               ))}
 
-              {/* Spanish for Foreigners */}
-              <motion.div variants={fadeUp} className="h-full">
-                <div className="relative h-full flex flex-col rounded-3xl border-2 border-orange-400/30 bg-gradient-to-br from-orange-500 via-red-500 to-rose-600 p-7 shadow-2xl shadow-orange-500/30 overflow-hidden hover:shadow-orange-500/50 hover:-translate-y-1 transition-all duration-300">
-                  <div className="absolute -top-8 -right-8 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none" />
-                  <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-white/10 rounded-full blur-xl pointer-events-none" />
-                  <div className="relative z-10 flex flex-col h-full">
-                    <div className="mb-3">
-                      <span className="bg-white text-orange-600 text-xs font-extrabold px-3 py-1 rounded-full shadow-sm">
-                        🔜 Próximamente
-                      </span>
-                    </div>
-                    <div className="mb-6">
-                      <div className="text-4xl mb-3">🇪🇸</div>
-                      <h3 className="text-xl font-bold text-white mb-1">Spanish for Foreigners</h3>
-                      <p className="text-sm text-white/70">Para quienes quieren aprender español</p>
-                    </div>
-                    <div className="flex-1 flex flex-col items-center justify-center py-4 gap-3">
-                      <span className="text-5xl">⏳</span>
-                      <p className="text-white font-extrabold text-lg text-center leading-tight">Próximamente disponible</p>
-                      <p className="text-white/70 text-sm text-center leading-relaxed">We're preparing something special for English speakers who want to learn Spanish the right way.</p>
-                    </div>
-                    <div className="mt-4 bg-white/20 rounded-2xl px-5 py-3 text-center">
-                      <p className="text-white/90 text-xs font-semibold">¡Muy pronto! 🚀</p>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
             </motion.div>
           )}
 

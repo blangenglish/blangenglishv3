@@ -293,31 +293,6 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
                 </div>
               </div>
 
-              {/* ── SPANISH FOR FOREIGNERS ── */}
-              <div className="relative bg-gradient-to-br from-orange-500 via-red-500 to-rose-600 rounded-3xl p-6 flex flex-col gap-4 shadow-2xl shadow-orange-500/40 overflow-hidden">
-                <div className="absolute -top-8 -right-8 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none" />
-                <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-white/10 rounded-full blur-xl pointer-events-none" />
-                <div className="relative z-10 flex flex-col gap-4 h-full justify-between">
-                  {/* Header */}
-                  <div className="flex items-center gap-3">
-                    <span className="text-4xl flex-shrink-0">🇪🇸</span>
-                    <div>
-                      <h2 className="text-xl font-black text-white leading-tight">Spanish for Foreigners</h2>
-                      <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                        <span className="inline-block bg-white/20 text-white text-xs font-extrabold px-2.5 py-0.5 rounded-full">Nuevo</span>
-                        <span className="inline-block bg-white text-orange-600 text-xs font-extrabold px-2.5 py-0.5 rounded-full">🔜 Próx.</span>
-                      </div>
-                    </div>
-                  </div>
-                  {/* Coming soon */}
-                  <div className="flex flex-col items-center justify-center flex-1 py-4 gap-3">
-                    <span className="text-5xl">⏳</span>
-                    <p className="text-white font-extrabold text-lg text-center leading-tight">Próximamente disponible</p>
-                    <p className="text-white/70 text-sm text-center">We're preparing something special for English speakers who want to learn Spanish the right way.</p>
-                  </div>
-                </div>
-              </div>
-
             </motion.div>
 
             {/* ── FOOTER INFO ── */}
