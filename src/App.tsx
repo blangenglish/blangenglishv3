@@ -33,10 +33,6 @@ import AdminEnglishForStudents from '@/pages/admin/AdminEnglishForStudents';
 import AdminReviews from '@/pages/admin/AdminReviews';
 import AdminSchedule from '@/pages/admin/AdminSchedule';
 import AdminMundoReal from '@/pages/admin/AdminMundoReal';
-import AdminTeachers from '@/pages/admin/AdminTeachers';
-import TeacherDashboard from '@/pages/TeacherDashboard';
-import TeacherStudentDetail from '@/pages/TeacherStudentDetail';
-import TeacherUnits from '@/pages/TeacherUnits';
 
 const queryClient = new QueryClient();
 
@@ -119,7 +115,7 @@ function AppRoutes() {
     return () => subscription.unsubscribe();
   }, [isAdminRoute]);
 
-  const handleLogin = (email: string, name: string, uid?: string, isAdmin?: boolean, country?: string, city?: string, isNewReg?: boolean, isTeacher?: boolean) => {
+  const handleLogin = (email: string, name: string, uid?: string, isAdmin?: boolean, country?: string, city?: string, isNewReg?: boolean) => {
     setIsLoggedIn(true);
     setUserName(name);
     setUserEmail(email);
@@ -131,12 +127,6 @@ function AppRoutes() {
     // Solo ir al panel admin si isAdmin=true fue EXPLÍCITAMENTE aprobado
     if (isAdmin === true) {
       setTimeout(() => navigate(ADMIN_ROUTES.DASHBOARD), 300);
-      return;
-    }
-
-    // Profesor → dashboard de profesor
-    if (isTeacher === true) {
-      setTimeout(() => navigate(ROUTE_PATHS.TEACHER_DASHBOARD), 300);
       return;
     }
 
@@ -180,7 +170,6 @@ function AppRoutes() {
         <Route path={ADMIN_ROUTES.REVIEWS} element={<AdminReviews />} />
         <Route path={ADMIN_ROUTES.SCHEDULE} element={<AdminSchedule />} />
         <Route path={ADMIN_ROUTES.MUNDO_REAL} element={<AdminMundoReal />} />
-        <Route path={ADMIN_ROUTES.TEACHERS} element={<AdminTeachers />} />
       </Routes>
     );
   }
@@ -211,15 +200,12 @@ function AppRoutes() {
         <Route path={ROUTE_PATHS.RESET_PASSWORD} element={<ResetPassword />} />
         <Route path={ROUTE_PATHS.ENGLISH_MODULE} element={<EnglishModule {...sharedProps} />} />
         <Route path={ROUTE_PATHS.PHONETICS} element={<Phonetics {...sharedProps} />} />
-        <Route path={ROUTE_PATHS.TEACHER_DASHBOARD} element={<TeacherDashboard onLogout={handleLogout} userName={userName} />} />
-        <Route path={ROUTE_PATHS.TEACHER_STUDENT_DETAIL} element={<TeacherStudentDetail onLogout={handleLogout} />} />
-        <Route path={ROUTE_PATHS.TEACHER_UNITS} element={<TeacherUnits onLogout={handleLogout} />} />
       </Routes>
 
       <AuthModals
         open={authModal}
         onClose={() => setAuthModal(null)}
-        onLogin={(email, name, uid, isAdmin, country, city, isNewReg, isTeacher) => handleLogin(email, name, uid, isAdmin, country, city, isNewReg, isTeacher)}
+        onLogin={(email, name, uid, isAdmin, country, city, isNewReg) => handleLogin(email, name, uid, isAdmin, country, city, isNewReg)}
       />
 
       {showOnboarding && userId && (

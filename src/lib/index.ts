@@ -13,9 +13,6 @@ export const ROUTE_PATHS = {
   ENGLISH_MODULE: '/english/:moduleSlug',
   ENGLISH: '/english',
   PHONETICS: '/phonetics',
-  TEACHER_DASHBOARD: '/profesor',
-  TEACHER_STUDENT_DETAIL: '/profesor/estudiante/:studentId',
-  TEACHER_UNITS: '/profesor/unidades',
 } as const;
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────

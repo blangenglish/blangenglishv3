@@ -89,7 +89,6 @@ export const IMAGES = {
   STUDENT_LAPTOP_6: "https://images.unsplash.com/photo-1659356874536-3c88677b4654?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4Mzc5NTV8MHwxfHNlYXJjaHw0fHxvbmxpbmUlMjBsZWFybmluZyUyMGxhcHRvcCUyMGVkdWNhdGlvbiUyMGhhcHB5JTIwc3R1ZGVudHxlbnwwfDB8fHwxNzc2MTczNzY1fDA&ixlib=rb-4.1.0&q=80&w=1080",
   STUDENT_LAPTOP_7: "https://images.unsplash.com/photo-1659356874404-934e567df530?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4Mzc5NTV8MHwxfHNlYXJjaHwzfHxvbmxpbmUlMjBsZWFybmluZyUyMGxhcHRvcCUyMGVkdWNhdGlvbiUyMGhhcHB5JTIwc3R1ZGVudHxlbnwwfDB8fHwxNzc2MTczNzY1fDA&ixlib=rb-4.1.0&q=80&w=1080",
   STUDENT_LAPTOP_8: "https://images.unsplash.com/photo-1758598497535-44de35355c99?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4Mzc5NTV8MHwxfHNlYXJjaHw2fHxvbmxpbmUlMjBsZWFybmluZyUyMGxhcHRvcCUyMGVkdWNhdGlvbiUyMGhhcHB5JTIwc3R1ZGVudHxlbnwwfDB8fHwxNzc2MTczNzY1fDA&ixlib=rb-4.1.0&q=80&w=1080",
-  TEACHER_MONEY: "/images/teacher_money.png",
 } as const;
 
 export type ImageKey = keyof typeof IMAGES;

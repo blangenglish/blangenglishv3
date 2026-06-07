@@ -7,7 +7,6 @@ export const ADMIN_ROUTES = {
   PAYMENTS: '/adminblang/pagos',
   SETTINGS: '/adminblang/configuracion',
   STUDENTS: '/adminblang/estudiantes',
-  TEACHERS: '/adminblang/profesores',
   REVENUE: '/adminblang/ingresos',
   SITE_EDITOR: '/adminblang/sitio',
   ENGLISH_FOR_STUDENTS: '/adminblang/english-students',
