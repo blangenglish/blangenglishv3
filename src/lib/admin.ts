@@ -13,6 +13,7 @@ export const ADMIN_ROUTES = {
   REVIEWS: '/adminblang/comentarios',
   SCHEDULE: '/adminblang/agenda',
   MUNDO_REAL: '/adminblang/mundo-real',
+  IMAGE_OPTIMIZER: '/adminblang/optimizar-imagenes',
 } as const;
 
 export interface DBCourse {
