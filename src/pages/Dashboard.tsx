@@ -2524,7 +2524,7 @@ useEffect(() => {
                         </div>
                       </div>
                     </div>
-                  ))}
+                  )}
 
                   {/* Payment pending warning — PSE/PayPal not yet approved */}
                   {/* Solo mostrar si hay un pago REAL pendiente (no cancelled) */}
