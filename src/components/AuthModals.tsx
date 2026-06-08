@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Eye, EyeOff, Mail, Lock, User, CheckCircle, AlertCircle, Calendar, MapPin, ChevronDown, ArrowLeft, Search, ShieldCheck, BookOpen, School } from 'lucide-react';
+import { X, Eye, EyeOff, Mail, Lock, User, CheckCircle, AlertCircle, Calendar, MapPin, ChevronDown, ArrowLeft, Search, ShieldCheck, BookOpen, School, GraduationCap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

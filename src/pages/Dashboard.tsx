@@ -34,6 +34,7 @@ interface DashboardProps {
   onOpenAuth?: (modal: AuthModal) => void;
   onLogout?: () => void;
   userName?: string;
+  userId?: string;
 }
 
 type TabId = 'cursos' | 'cuenta' | 'pagos' | 'progreso' | 'sesion' | 'ayuda' | 'english';
@@ -1454,7 +1455,7 @@ function UpdateRequestForm({ studentName, studentEmail }: { studentName: string;
   );
 }
 
-export default function Dashboard({ isLoggedIn = false, onOpenAuth, onLogout, userName }: DashboardProps) {
+export default function Dashboard({ isLoggedIn = false, onOpenAuth, onLogout, userName, userId: userIdProp = '' }: DashboardProps) {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabId>('cursos');
   const [profileForm, setProfileForm] = useState({ name: '', country: '', city: '', birthday: '' });
@@ -1538,7 +1539,7 @@ const [showPaypalModal, setShowPaypalModal] = useState(false);
   const [showLevelOnboarding, setShowLevelOnboarding] = useState(false);
   const [showLevelExam, setShowLevelExam] = useState(false);
   const [onboardingInitialStep, setOnboardingInitialStep] = useState<string>('welcome');
-  const [currentUserId, setCurrentUserId] = useState('');
+  const [currentUserId, setCurrentUserId] = useState(userIdProp);
 
   // Real courses & units from Supabase
   const [dbCourses, setDbCourses] = useState<DBCourseRow[]>([]);
