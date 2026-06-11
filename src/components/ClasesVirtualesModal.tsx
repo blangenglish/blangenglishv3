@@ -375,7 +375,7 @@ export function ClasesVirtualesModal({
                     </p>
                     {/* Desglose incluido */}
                     <p className="text-xs text-violet-500 mt-1">
-                      📦 Incluido: uso de plataforma mensual ($60.000 COP <span className="text-muted-foreground">{formatUSD(60000)}</span>)
+                      📦 Uso de la plataforma gratis en cualquier plan
                     </p>
                     {/* Precio final */}
                     <p className="text-xs text-violet-700 font-semibold mt-2 mb-0.5">Precio final</p>
