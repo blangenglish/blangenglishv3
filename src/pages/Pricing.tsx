@@ -13,6 +13,7 @@ import type { DBPricingPlan } from '@/lib/admin';
 import type { AuthModal } from '@/lib/index';
 import { supabase } from '@/integrations/supabase/client';
 import { ClasesVirtualesModal } from '@/components/ClasesVirtualesModal';
+import { BeneficiosClasesModal } from '@/components/BeneficiosClasesModal';
 
 interface PricingPageProps {
   isLoggedIn?: boolean;
@@ -41,7 +42,7 @@ const PLAN_BTN: Record<string, string> = {
   'clase-vivo': 'bg-blue-600 hover:bg-blue-700 text-white',
 };
 
-function PlanCard({ plan, onSelect, onMensualPlan }: { plan: DBPricingPlan; onSelect: () => void; onMensualPlan?: () => void }) {
+function PlanCard({ plan, onSelect, onMensualPlan, onBeneficios }: { plan: DBPricingPlan; onSelect: () => void; onMensualPlan?: () => void; onBeneficios?: () => void }) {
   const features: string[] = Array.isArray(plan.features) ? (plan.features as string[]) : [];
   const isFree = plan.price_usd === 0;
   const gradient = PLAN_GRADIENTS[plan.slug] ?? 'from-muted/30 to-muted/10 border-border/50';
@@ -119,6 +120,16 @@ function PlanCard({ plan, onSelect, onMensualPlan }: { plan: DBPricingPlan; onSe
             onClick={onMensualPlan}
           >
             📅 Arma tu plan mensual
+          </Button>
+        )}
+
+        {onBeneficios && (
+          <Button
+            variant="outline"
+            className="w-full rounded-xl py-5 font-bold text-sm mt-2 border-blue-300 text-blue-700 hover:bg-blue-50 transition-all"
+            onClick={onBeneficios}
+          >
+            📊 Beneficios
           </Button>
         )}
       </div>
@@ -210,6 +221,7 @@ export default function PricingPage({ isLoggedIn = false, onOpenAuth, onLogout, 
   const trialDays = settings?.trial_days ?? '7';
 
   const [showClasesModal, setShowClasesModal] = useState(false);
+  const [showBeneficiosModal, setShowBeneficiosModal] = useState(false);
 
   // Slots booking modal state
   const [showSlots, setShowSlots] = useState(false);
@@ -382,6 +394,7 @@ export default function PricingPage({ isLoggedIn = false, onOpenAuth, onLogout, 
                   plan={plan}
                   onSelect={openSlotBooking}
                   onMensualPlan={() => setShowClasesModal(true)}
+                  onBeneficios={() => setShowBeneficiosModal(true)}
                 />
               ))}
 
@@ -775,6 +788,11 @@ export default function PricingPage({ isLoggedIn = false, onOpenAuth, onLogout, 
       <ClasesVirtualesModal
         open={showClasesModal}
         onClose={() => setShowClasesModal(false)}
+      />
+
+      <BeneficiosClasesModal
+        open={showBeneficiosModal}
+        onClose={() => setShowBeneficiosModal(false)}
       />
 
     </Layout>
