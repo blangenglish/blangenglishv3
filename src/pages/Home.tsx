@@ -151,147 +151,76 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
               </p>
             </motion.div>
 
-            {/* ── CUATRO TARJETAS DE PRECIOS ── */}
-            <motion.div variants={staggerItem} className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 mt-6 sm:mt-10">
+            {/* ── CUATRO TARJETAS DE PLANES ── */}
+            <motion.div variants={staggerItem} className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mt-6 sm:mt-10">
 
-              {/* ── PRUEBA GRATIS ── */}
-              <div className="bg-white/10 backdrop-blur-md border border-white/25 rounded-3xl p-6 flex flex-col gap-4 hover:bg-white/15 transition-all duration-300 shadow-xl">
-                {/* Header vertical */}
-                <div className="flex items-center gap-3">
-                  <span className="text-4xl flex-shrink-0">🎁</span>
-                  <div>
-                    <h2 className="text-xl font-black text-white leading-tight">Prueba Gratis</h2>
-                    <p className="text-white/65 text-xs font-medium mt-0.5">7 días sin costo</p>
-                  </div>
-                </div>
-                {/* Precio */}
-                <div>
-                  <p className="text-4xl font-black text-green-400 leading-none">GRATIS</p>
-                  <p className="text-white/50 text-xs mt-1">7 días completos</p>
-                </div>
-                {/* Divider */}
-                <div className="h-px bg-white/15" />
-                {/* Features */}
-                <ul className="space-y-2.5 flex-1">
-                  {[
-                    '7 días completamente gratis',
-                    'Acceso a las primeras 5 lecciones del nivel A1',
-                    'Cancela en cualquier momento',
-                    'Pagos fáciles y seguros por PayPal y PSE',
-                  ].map((f, i) => (
-                    <li key={i} className="flex items-start gap-2.5 text-white/90 text-sm font-medium">
-                      <span className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center text-white text-[10px] font-black flex-shrink-0 mt-0.5">✓</span>
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                {/* CTA */}
-                <button
-                  onClick={() => onOpenAuth?.('register')}
-                  className="w-full bg-green-500 hover:bg-green-400 active:scale-[0.98] text-white font-extrabold text-base py-4 rounded-2xl transition-all shadow-lg shadow-green-500/40"
-                >
-                  Empezar gratis ahora →
-                </button>
-              </div>
-
-              {/* ── PLAN MENSUAL ── */}
-              <div className="relative bg-gradient-to-br from-amber-400 via-orange-400 to-amber-500 rounded-3xl p-6 flex flex-col gap-4 shadow-2xl shadow-amber-400/40 overflow-hidden">
-                <div className="absolute -top-8 -right-8 w-40 h-40 bg-white/20 rounded-full blur-2xl pointer-events-none" />
-                <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-white/10 rounded-full blur-xl pointer-events-none" />
-                <div className="relative z-10 flex flex-col gap-4 h-full">
-                  {/* Header vertical */}
-                  <div className="flex items-center gap-3">
-                    <span className="text-4xl flex-shrink-0">🚀</span>
-                    <div>
-                      <h2 className="text-xl font-black text-black leading-tight">Plan Mensual</h2>
-                      <span className="inline-block bg-black/15 text-black text-xs font-extrabold px-2.5 py-0.5 rounded-full mt-1">Acceso completo</span>
+              {[
+                {
+                  emoji: '🎁',
+                  title: 'Prueba gratis',
+                  desc: 'Accede por 7 días a las 5 primeras lecciones del A1',
+                  price: null,
+                  bg: 'bg-gradient-to-br from-green-500 via-emerald-500 to-green-600',
+                  border: 'border-green-300/40',
+                  btn: 'bg-white text-green-700 hover:bg-green-50',
+                },
+                {
+                  emoji: '🚀',
+                  title: 'Plan Mensual',
+                  desc: 'Acceso completo a todos los cursos. Desde A1 hasta C1',
+                  price: '$16 USD/mes',
+                  priceSub: 'o $60,000 COP al mes',
+                  bg: 'bg-gradient-to-br from-slate-400 via-gray-300 to-slate-500',
+                  border: 'border-slate-200/50',
+                  textColor: 'text-slate-900',
+                  btn: 'bg-slate-900 text-white hover:bg-slate-800',
+                },
+                {
+                  emoji: '💎',
+                  title: 'Plan Trimestral',
+                  desc: 'Acceso completo a todos los cursos + IA para practicar (Speakology)',
+                  price: '$68 USD / 3 meses',
+                  priceSub: 'o $250,000 COP por 3 meses',
+                  bg: 'bg-gradient-to-br from-amber-400 via-yellow-500 to-amber-600',
+                  border: 'border-amber-200/50',
+                  textColor: 'text-amber-950',
+                  btn: 'bg-amber-950 text-white hover:bg-amber-900',
+                },
+                {
+                  emoji: '🎥',
+                  title: 'Clases en Vivo',
+                  desc: 'Plataforma gratis + sesiones en vivo según el horario que escojas',
+                  price: '$14 USD/sesión',
+                  priceSub: '$50,000 COP/sesión, o arma tu plan mensual y te damos un descuento',
+                  bg: 'bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-700',
+                  border: 'border-violet-300/40',
+                  btn: 'bg-white text-violet-700 hover:bg-violet-50',
+                },
+              ].map((card, i) => (
+                <div key={i} className={`relative ${card.bg} border ${card.border} rounded-3xl p-6 flex flex-col gap-4 shadow-2xl overflow-hidden`}>
+                  <div className="absolute -top-8 -right-8 w-40 h-40 bg-white/15 rounded-full blur-2xl pointer-events-none" />
+                  <div className="relative z-10 flex flex-col gap-4 h-full">
+                    <div className="flex items-center gap-3">
+                      <span className="text-4xl flex-shrink-0">{card.emoji}</span>
+                      <h2 className={`text-xl font-black leading-tight ${card.textColor || 'text-white'}`}>{card.title}</h2>
                     </div>
-                  </div>
-                  {/* Precio */}
-                  <div>
-                    <div className="flex items-end gap-1.5">
-                      <p className="text-4xl font-black text-black leading-none">$16</p>
-                      <p className="text-black/60 text-sm mb-0.5">USD / mes</p>
-                    </div>
-                    <p className="text-black/70 text-xs font-semibold mt-1">o $60,000 COP al mes</p>
-                  </div>
-                  {/* Divider */}
-                  <div className="h-px bg-black/15" />
-                  {/* Features */}
-                  <ul className="space-y-2.5 flex-1">
-                    {[
-                      'Acceso completo a TODOS los cursos',
-                      'Práctica con ChatGPT usando prompts ya creados',
-                      'Acceso completo a English for you: Fonética, Inglés para el Mundo Real, Escritura, Lectura, Gramática, Listening y Vocabulario',
-                      'Soporte prioritario',
-                      'Sin contratos anuales',
-                    ].map((f, i) => (
-                      <li key={i} className="flex items-start gap-2.5 text-black text-sm font-semibold">
-                        <span className="w-5 h-5 rounded-full bg-black/20 flex items-center justify-center text-black text-[10px] font-black flex-shrink-0 mt-0.5">✓</span>
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-                  {/* CTA */}
-                  <button
-                    onClick={() => onOpenAuth?.('register')}
-                    className="w-full bg-black hover:bg-gray-900 active:scale-[0.98] text-white font-extrabold text-base py-4 rounded-2xl transition-all shadow-xl"
-                  >
-                    ¡Inscribirme ahora! 🚀
-                  </button>
-                </div>
-              </div>
-
-              {/* ── PLAN TRIMESTRAL ── */}
-              <div className="relative bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-700 rounded-3xl p-6 flex flex-col gap-4 shadow-2xl shadow-violet-500/40 overflow-hidden">
-                <div className="absolute -top-8 -right-8 w-40 h-40 bg-white/15 rounded-full blur-2xl pointer-events-none" />
-                <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-white/10 rounded-full blur-xl pointer-events-none" />
-                <div className="relative z-10 flex flex-col gap-4 h-full">
-                  {/* Header vertical */}
-                  <div className="flex items-center gap-3">
-                    <span className="text-4xl flex-shrink-0">💎</span>
-                    <div>
-                      <h2 className="text-xl font-black text-white leading-tight">Plan Trimestral</h2>
-                      <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                        <span className="inline-block bg-white/20 text-white text-xs font-extrabold px-2.5 py-0.5 rounded-full">3 meses</span>
-                        <span className="inline-block bg-amber-400 text-black text-xs font-extrabold px-2.5 py-0.5 rounded-full">⭐ Mejor valor</span>
+                    {card.price && (
+                      <div>
+                        <p className={`text-2xl font-black leading-none ${card.textColor || 'text-white'}`}>{card.price}</p>
+                        <p className={`text-xs font-semibold mt-1 ${card.textColor ? card.textColor + '/70' : 'text-white/70'}`}>{card.priceSub}</p>
                       </div>
-                    </div>
+                    )}
+                    <div className={`h-px ${card.textColor ? 'bg-black/15' : 'bg-white/15'}`} />
+                    <p className={`text-sm font-medium flex-1 ${card.textColor || 'text-white/90'}`}>{card.desc}</p>
+                    <button
+                      onClick={() => navigate(ROUTE_PATHS.PRICING)}
+                      className={`w-full ${card.btn} active:scale-[0.98] font-extrabold text-base py-4 rounded-2xl transition-all shadow-xl`}
+                    >
+                      Más información
+                    </button>
                   </div>
-                  {/* Precio */}
-                  <div>
-                    <div className="flex items-end gap-1.5">
-                      <p className="text-4xl font-black text-white leading-none">$68</p>
-                      <p className="text-white/60 text-sm mb-0.5">USD / 3 meses</p>
-                    </div>
-                    <p className="text-white/70 text-xs font-semibold mt-1">o $250,000 COP por 3 meses</p>
-                  </div>
-                  {/* Divider */}
-                  <div className="h-px bg-white/15" />
-                  {/* Features */}
-                  <ul className="space-y-2.5 flex-1">
-                    {[
-                      'Acceso completo a TODOS los cursos',
-                      'Módulos A1, A2, B1, B2, C1',
-                      'Práctica con IA para cada módulo de cada unidad (Speakology)',
-                      'Acceso completo a English for you: Fonética, Inglés para el Mundo Real, Escritura, Lectura, Gramática, Listening y Vocabulario',
-                      'Sin contratos anuales',
-                    ].map((f, i) => (
-                      <li key={i} className="flex items-start gap-2.5 text-white text-sm font-semibold">
-                        <span className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-white text-[10px] font-black flex-shrink-0 mt-0.5">✓</span>
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-                  {/* CTA */}
-                  <button
-                    onClick={() => onOpenAuth?.('register')}
-                    className="w-full bg-white hover:bg-white/90 active:scale-[0.98] text-violet-700 font-extrabold text-base py-4 rounded-2xl transition-all shadow-xl"
-                  >
-                    Inscribirme ahora →
-                  </button>
                 </div>
-              </div>
+              ))}
 
             </motion.div>
 
