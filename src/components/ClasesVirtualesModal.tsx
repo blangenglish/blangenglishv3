@@ -33,6 +33,7 @@ const PRECIOS = {
 } as const;
 
 const TRM = 3566.08; // tasa de cambio fija 1 USD = $3,566.08 COP
+const SPEAKOLOGY_FEE = 82000; // cargo único trimestral por activar Speakology IA
 
 function formatCOP(n: number) {
   return '$' + n.toLocaleString('es-CO');
@@ -88,6 +89,7 @@ export function ClasesVirtualesModal({
   const [diasSel, setDiasSel] = useState<string[]>([]);
   const [franja, setFranja] = useState('');
   const [payMethod, setPayMethod] = useState<'bold' | 'paypal'>('bold');
+  const [iaPlatform, setIaPlatform] = useState<'mensual' | 'trimestral'>('mensual');
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
@@ -107,6 +109,7 @@ export function ClasesVirtualesModal({
       setDiasSel([]);
       setFranja('');
       setPayMethod('bold');
+      setIaPlatform('mensual');
       setSent(false);
       setError('');
     }
@@ -132,6 +135,8 @@ export function ClasesVirtualesModal({
     franja;
 
   const precio = PRECIOS[horasDia][diasSemana as 2 | 3 | 4 | 5];
+  const iaFee = iaPlatform === 'trimestral' ? SPEAKOLOGY_FEE : 0;
+  const totalFinal = precio.final + iaFee;
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
@@ -153,10 +158,16 @@ export function ClasesVirtualesModal({
             `Clases a la semana: ${diasSemana} día${diasSemana !== 1 ? 's' : ''}\n` +
             `Días seleccionados: ${diasSel.join(', ')}\n` +
             `Franja horaria fija: ${franja}\n\n` +
+            `🤖 PLATAFORMA DE PRÁCTICA IA\n` +
+            `${iaPlatform === 'trimestral'
+              ? `Speakology IA — cargo único trimestral de ${formatCOP(SPEAKOLOGY_FEE)} COP (se cobra cada 3 meses, los meses 2 y 3 no se cobra)`
+              : 'Plataforma mensual gratis (uso de ChatGPT) — sin costo adicional'}\n\n` +
             `💰 PRECIO ESTIMADO\n` +
             `${precio.unidades} ${precio.label}s al mes\n` +
             `Precio regular: ${formatCOP(precio.regular)} COP\n` +
-            `Precio final: ${formatCOP(precio.final)} COP (${formatUSD(precio.final)})\n` +
+            `Precio final clases: ${formatCOP(precio.final)} COP (${formatUSD(precio.final)})\n` +
+            `${iaFee > 0 ? `+ Activación Speakology IA (única vez cada 3 meses): ${formatCOP(iaFee)} COP\n` : ''}` +
+            `Total a pagar este mes: ${formatCOP(totalFinal)} COP (${formatUSD(totalFinal)})\n` +
             `Valor por ${precio.label}: ~${formatCOP(precio.valorUnit)} COP\n\n` +
             `💳 MÉTODO DE PAGO PREFERIDO\n` +
             `${payMethod === 'bold' ? '💳 Bold / PSE — Pago en COP' : '🌐 PayPal — Pago en USD'}`,
@@ -354,6 +365,48 @@ export function ClasesVirtualesModal({
                 </p>
               )}
 
+              {/* ── Plataforma de práctica IA ── */}
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold">Plataforma de práctica con IA *</Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIaPlatform('mensual')}
+                    className={`rounded-xl border-2 p-3 text-left transition-all ${
+                      iaPlatform === 'mensual'
+                        ? 'border-green-500 bg-green-50 shadow-sm'
+                        : 'border-border/50 hover:border-green-300 hover:bg-green-50/50'
+                    }`}
+                  >
+                    <p className="text-sm font-bold leading-tight">Plataforma mensual gratis</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">Uso de ChatGPT — sin costo adicional</p>
+                    {iaPlatform === 'mensual' && (
+                      <span className="inline-block mt-1.5 text-[10px] font-bold text-green-700 bg-green-100 rounded-full px-2 py-0.5">✓ Seleccionado</span>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIaPlatform('trimestral')}
+                    className={`rounded-xl border-2 p-3 text-left transition-all ${
+                      iaPlatform === 'trimestral'
+                        ? 'border-amber-500 bg-amber-50 shadow-sm'
+                        : 'border-border/50 hover:border-amber-300 hover:bg-amber-50/50'
+                    }`}
+                  >
+                    <p className="text-sm font-bold leading-tight">Plataforma trimestral</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">Uso de Speakology IA — +{formatCOP(SPEAKOLOGY_FEE)} COP</p>
+                    {iaPlatform === 'trimestral' && (
+                      <span className="inline-block mt-1.5 text-[10px] font-bold text-amber-700 bg-amber-100 rounded-full px-2 py-0.5">✓ Seleccionado</span>
+                    )}
+                  </button>
+                </div>
+                {iaPlatform === 'trimestral' && (
+                  <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 leading-relaxed">
+                    💡 Este pago de {formatCOP(SPEAKOLOGY_FEE)} COP es para activar el plan con <strong>Speakology</strong>, el uso de la plataforma de inteligencia artificial conectada con los módulos de la página para práctica extra. Este valor corresponde a un único pago cada tres meses — el siguiente mes no pagas este valor.
+                  </p>
+                )}
+              </div>
+
               {/* ── Resumen de precio dinámico ── */}
               <div className="rounded-2xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 to-indigo-50 overflow-hidden">
                 {/* Cabecera */}
@@ -377,23 +430,29 @@ export function ClasesVirtualesModal({
                     <p className="text-xs text-violet-500 mt-1">
                       📦 Uso de la plataforma gratis en cualquier plan
                     </p>
+                    {/* Cargo Speakology */}
+                    {iaFee > 0 && (
+                      <p className="text-xs text-amber-600 font-semibold mt-1">
+                        🤖 + Activación Speakology IA (única vez / 3 meses): {formatCOP(iaFee)} COP
+                      </p>
+                    )}
                     {/* Precio final */}
-                    <p className="text-xs text-violet-700 font-semibold mt-2 mb-0.5">Precio final</p>
+                    <p className="text-xs text-violet-700 font-semibold mt-2 mb-0.5">{iaFee > 0 ? 'Total este mes' : 'Precio final'}</p>
                     {payMethod === 'bold' ? (
                       <>
                         <p className="text-3xl font-extrabold text-violet-700 leading-none">
-                          {formatCOP(precio.final)}
+                          {formatCOP(totalFinal)}
                           <span className="text-sm font-bold ml-1">COP / mes</span>
                         </p>
-                        <p className="text-xs text-muted-foreground mt-0.5">{formatUSD(precio.final)}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{formatUSD(totalFinal)}</p>
                       </>
                     ) : (
                       <>
                         <p className="text-3xl font-extrabold text-violet-700 leading-none">
-                          ${(precio.final / TRM).toFixed(2)}
+                          ${(totalFinal / TRM).toFixed(2)}
                           <span className="text-sm font-bold ml-1">USD / mes</span>
                         </p>
-                        <p className="text-xs text-muted-foreground mt-0.5">{formatCOP(precio.final)} COP</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{formatCOP(totalFinal)} COP</p>
                       </>
                     )}
                   </div>
