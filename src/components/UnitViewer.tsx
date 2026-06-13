@@ -1511,6 +1511,10 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
       }, 400);
     }
 
+    // Liberar el botón de inmediato: el guardado sigue en segundo plano
+    // y no debe bloquear que la estudiante marque la siguiente parte.
+    setMarkingDone(false);
+
     // 4. Guardar en Supabase en segundo plano (timeout de seguridad: 6 s)
     try {
       const savePromise = supabase.from('unit_progress').upsert(
@@ -1541,8 +1545,6 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
     } catch (e) {
       console.error('[UnitViewer] ❌ Excepción guardando progreso:', e);
     }
-
-    setMarkingDone(false);
   };
 
   // ── Completar en modo repaso: solo avanza de stage, NO guarda en Supabase ──
