@@ -1,0 +1,2 @@
+Source: user-provided slide specification in the current thread.
+Assets: native editable shapes and Unicode emoji only. No identity assets or external images.

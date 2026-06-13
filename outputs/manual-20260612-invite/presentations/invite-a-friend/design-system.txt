@@ -1,0 +1,9 @@
+Slide size: 1280x720.
+Background: warm off-white with deep navy title areas and bright blue accents.
+Typography: Aptos Display for titles; Aptos for body; all core text 20-48 pt.
+Palette: navy #12304A, blue #2477C8, sky #DCEEFF, mint #DDF4EA, amber #FFE8A3, coral #FFDDD2, paper #F8FAFC.
+Grammar: left-aligned title band, large numbered actions, flat panels, thin rules, minimal rounded containment.
+Footer: small stage number and project label.
+Identity assets: none; emoji are instructional cues, not brand marks.
+Layout families: cover, three-step path, place list, example comparison, dialogue split, email timeline, share stage, assessment lanes, reflection prompts.
+Banned motifs: photos, dense prose, tiny text, generic dashboard grids.

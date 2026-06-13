@@ -1,0 +1,16 @@
+Primary profile: consumer-retail with adult A1-A2 classroom gates — PASS.
+Story: 5/5
+Specificity: 5/5
+Rhythm: 5/5
+Whitespace: 5/5
+Chart clarity: 4/5 (not applicable; structured learning visuals are clear)
+Typography: 5/5
+Restraint: 5/5
+Precision: 5/5
+Coherence: 5/5
+Total: 44/45
+Reference delta: n/a; no reference deck supplied.
+Package checks: 9 slides; 45,147 bytes; zero empty media.
+Render checks: all slides rendered at 1280x720; no clipping, overlap, or contrast failures.
+Accepted warnings: split-inline warnings are intentional label/example constructions and visually clean.
+Residual gaps: none blocking.

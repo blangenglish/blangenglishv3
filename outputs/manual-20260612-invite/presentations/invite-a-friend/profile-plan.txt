@@ -1,0 +1,8 @@
+task mode: create
+primary deck-profile: consumer-retail
+secondary profile gates: adult A1-A2 classroom readability
+required proof objects: step sequences, place map, pair dialogue, email scaffold, assessment key
+source/asset requirements: user-provided copy only; no external assets or real images
+brand authenticity constraints: none
+profile-specific QA gates: English only, 18+ pt core text, one stage per slide, clear student actions
+known missing inputs: none
