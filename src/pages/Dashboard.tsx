@@ -1842,8 +1842,13 @@ useEffect(() => {
 
   useEffect(() => {
     if (!isLoggedIn) return;
+    // Si ya tenemos el userId desde App.tsx, cargar el perfil de inmediato sin esperar getSession()
+    if (userIdProp) refreshProfile(userIdProp);
+    // Timeout de seguridad: si getSession() tarda más de 8s, liberar el spinner
+    const safetyTimer = setTimeout(() => setProfileLoading(false), 8000);
     // Cargar sesión y perfil al montar — usando getSession para tener el token listo
     supabase.auth.getSession().then(({ data: { session } }) => {
+      clearTimeout(safetyTimer);
       const user = session?.user;
       if (!user) { setProfileLoading(false); return; }
       setCurrentEmail(user.email || '');
