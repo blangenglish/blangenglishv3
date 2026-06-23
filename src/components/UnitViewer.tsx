@@ -1356,7 +1356,19 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
   const [progress, setProgress] = useState({});
   const [currentStageIdx, setCurrentStageIdx] = useState(0);
   const [markingDone, setMarkingDone] = useState(false);
+  const [pendingSaves, setPendingSaves] = useState(0);
   const [showQuiz, setShowQuiz] = useState(false);
+
+  // Avisar al navegador si intenta cerrar/recargar mientras hay guardados en proceso
+  useEffect(() => {
+    if (pendingSaves === 0) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [pendingSaves]);
   // Modo repaso: stages "pasados" en esta sesión (no se guardan en Supabase)
   const [reviewPassedSet, setReviewPassedSet] = useState<Set<string>>(new Set());
   // Activado cuando el estudiante elige repasar desde la pantalla de unidad completa
@@ -1516,6 +1528,8 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
     setMarkingDone(false);
 
     // 4. Guardar en Supabase en segundo plano (timeout de seguridad: 6 s)
+    // pendingSaves activa el aviso "no cierres esta pantalla" mientras se guarda.
+    setPendingSaves(n => n + 1);
     try {
       const savePromise = supabase.from('unit_progress').upsert(
         {
@@ -1544,6 +1558,8 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
       }
     } catch (e) {
       console.error('[UnitViewer] ❌ Excepción guardando progreso:', e);
+    } finally {
+      setPendingSaves(n => Math.max(0, n - 1));
     }
   };
 
@@ -1602,6 +1618,12 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
               <span className="font-bold text-primary">{progressPct}%</span>
             </div>
             <Progress value={progressPct} className="h-2" />
+          </div>
+        )}
+        {pendingSaves > 0 && (
+          <div className="mt-2 flex items-center gap-2 bg-amber-50 border border-amber-300 text-amber-800 text-xs font-semibold rounded-xl px-3 py-2">
+            <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
+            Guardando tu progreso... no cierres esta pantalla, espera 5 segundos.
           </div>
         )}
       </div>
