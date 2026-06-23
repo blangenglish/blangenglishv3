@@ -1644,11 +1644,16 @@ useEffect(() => {
   }, []);
 
   useEffect(() => {
+    // Timeout de seguridad: si la consulta de cursos tarda más de 8s, liberar el spinner igual
+    const safetyTimer = setTimeout(() => setCoursesLoading(false), 8000);
     // Load published courses from DB
-    supabase.from('courses').select('*').eq('is_published', true).order('sort_order').then(({ data }) => {
+    supabase.from('courses').select('*').eq('is_published', true).order('sort_order').then(({ data, error }) => {
+      clearTimeout(safetyTimer);
+      if (error) console.error('[Dashboard] courses error:', error);
       if (data) setDbCourses(data as DBCourseRow[]);
       setCoursesLoading(false);
     });
+    return () => clearTimeout(safetyTimer);
   }, []);
 
   // Cargar overrides de Mundo Real (ediciones del admin)
