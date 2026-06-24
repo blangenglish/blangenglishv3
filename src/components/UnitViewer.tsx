@@ -1408,14 +1408,20 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
         return _unitContentCache[unitId];
       };
 
-      // ── Paso 2: contenido y progreso en paralelo ──
-      const [content, progResult] = await Promise.all([
-        getContent(),
-        isLocked
-          ? Promise.resolve({ data: null, error: null })
-          : supabase
-              .from('unit_progress').select('stage, completed, completed_at, quiz_passed')
-              .eq('unit_id', unitId).eq('student_id', studentId),
+      // ── Paso 2: contenido y progreso en paralelo (timeout de seguridad: 10 s) ──
+      const timeoutFallback = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Timeout (>10 s) cargando la unidad')), 10000),
+      );
+      const [content, progResult] = await Promise.race([
+        Promise.all([
+          getContent(),
+          isLocked
+            ? Promise.resolve({ data: null, error: null })
+            : supabase
+                .from('unit_progress').select('stage, completed, completed_at, quiz_passed')
+                .eq('unit_id', unitId).eq('student_id', studentId),
+        ]),
+        timeoutFallback,
       ]);
 
       const { byStage: map, quizByStage: qmap } = content;
