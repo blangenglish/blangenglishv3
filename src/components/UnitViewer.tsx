@@ -1587,12 +1587,6 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
             <Progress value={progressPct} className="h-2" />
           </div>
         )}
-        {pendingSaves > 0 && (
-          <div className="mt-2 flex items-center gap-2 bg-amber-50 border border-amber-300 text-amber-800 text-xs font-semibold rounded-xl px-3 py-2">
-            <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
-            Guardando tu progreso... no cierres esta pantalla, espera 5 segundos.
-          </div>
-        )}
       </div>
 
       {/* Body */}
