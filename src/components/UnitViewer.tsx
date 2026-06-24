@@ -12,6 +12,7 @@ import {
   CheckCircle, XCircle, Volume2, Copy, Check,
 } from 'lucide-react';
 import { STAGES, MATERIAL_TYPE_CONFIG, type Stage, type UnitStageMaterial } from '@/lib/stages';
+import { getUnitProgress, setStageCompleted } from '@/lib/localProgress';
 
 // ─── YouTube helpers ──────────────────────────────────────────────────────────
 function extractYouTubeId(url) {
@@ -1356,19 +1357,7 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
   const [progress, setProgress] = useState({});
   const [currentStageIdx, setCurrentStageIdx] = useState(0);
   const [markingDone, setMarkingDone] = useState(false);
-  const [pendingSaves, setPendingSaves] = useState(0);
   const [showQuiz, setShowQuiz] = useState(false);
-
-  // Avisar al navegador si intenta cerrar/recargar mientras hay guardados en proceso
-  useEffect(() => {
-    if (pendingSaves === 0) return;
-    const handler = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      e.returnValue = '';
-    };
-    window.addEventListener('beforeunload', handler);
-    return () => window.removeEventListener('beforeunload', handler);
-  }, [pendingSaves]);
   // Modo repaso: stages "pasados" en esta sesión (no se guardan en Supabase)
   const [reviewPassedSet, setReviewPassedSet] = useState<Set<string>>(new Set());
   // Activado cuando el estudiante elige repasar desde la pantalla de unidad completa
@@ -1408,36 +1397,20 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
         return _unitContentCache[unitId];
       };
 
-      // ── Paso 2: contenido y progreso en paralelo (timeout de seguridad: 10 s) ──
+      // ── Paso 2: contenido (timeout de seguridad: 10 s) ──
       const timeoutFallback = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('Timeout (>10 s) cargando la unidad')), 10000),
       );
-      const [content, progResult] = await Promise.race([
-        Promise.all([
-          getContent(),
-          isLocked
-            ? Promise.resolve({ data: null, error: null })
-            : supabase
-                .from('unit_progress').select('stage, completed, completed_at, quiz_passed')
-                .eq('unit_id', unitId).eq('student_id', studentId),
-        ]),
-        timeoutFallback,
-      ]);
+      const content = await Promise.race([getContent(), timeoutFallback]);
 
       const { byStage: map, quizByStage: qmap } = content;
       setByStage(map);
       setQuizByStage(qmap);
 
       if (!isLocked) {
-        // Bug 1 fix: loguear el error del SELECT en lugar de ignorarlo silenciosamente
-        if ((progResult as any).error) {
-          console.error('[UnitViewer] ❌ Error cargando progreso desde Supabase:', (progResult as any).error?.message);
-        }
-
-        const pm: Record<string, any> = {};
-        ((progResult as any).data || []).forEach((p: any) => {
-          pm[p.stage] = { completed: p.completed, completed_at: p.completed_at, quiz_passed: p.quiz_passed };
-        });
+        // El progreso ya no depende de Supabase: se lee directo de localStorage
+        // (instantáneo, no requiere red ni puede "quedarse cargando").
+        const pm: Record<string, any> = getUnitProgress(studentId, unitId);
         setProgress(pm);
 
         const stagesWC = STAGES.filter(s => map[s.id]?.length > 0 || qmap[s.id]);
@@ -1510,34 +1483,32 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
     setMarkingDone(true);
 
     const now = new Date().toISOString();
+    const stageData = { completed: true, completed_at: now, quiz_passed: hasQuiz };
 
-    // 1. Actualizar UI inmediatamente (optimista) — sin esperar a Supabase
-    setProgress(prev => ({
-      ...prev,
-      [stageId]: { completed: true, completed_at: now, quiz_passed: hasQuiz },
-    }));
+    // 1. Guardar de inmediato en localStorage — es la fuente de verdad real,
+    // síncrona y nunca depende de la red. Actualiza la UI con el resultado.
+    const updated = setStageCompleted(sid, uid, stageId, stageData);
+    setProgress(updated);
     setShowQuiz(false);
 
     // 2. Capturar el índice de navegación ANTES de que el re-render lo cambie
     const nextLocalIdx = localIdx + 1;
     const nextStage = stagesWithContent[nextLocalIdx];
 
-    // 3. Navegar a la siguiente parte si existe (sin esperar al save)
+    // 3. Navegar a la siguiente parte si existe
     if (nextStage) {
       setTimeout(() => {
         setCurrentStageIdx(STAGES.findIndex(s => s.id === nextStage.id));
       }, 400);
     }
 
-    // Liberar el botón de inmediato: el guardado sigue en segundo plano
-    // y no debe bloquear que la estudiante marque la siguiente parte.
-    setMarkingDone(false);
+    // Pequeño debounce de UI para evitar doble clic — ya no depende de ninguna red.
+    setTimeout(() => setMarkingDone(false), 300);
 
-    // 4. Guardar en Supabase en segundo plano (timeout de seguridad: 6 s)
-    // pendingSaves activa el aviso "no cierres esta pantalla" mientras se guarda.
-    setPendingSaves(n => n + 1);
+    // 4. Intento de guardado en Supabase en segundo plano, solo para reportes del
+    // panel admin. Es best-effort: si falla o tarda, no afecta al estudiante en nada.
     try {
-      const savePromise = supabase.from('unit_progress').upsert(
+      const { error } = await supabase.from('unit_progress').upsert(
         {
           student_id: sid,
           unit_id: uid,
@@ -1549,23 +1520,13 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
         },
         { onConflict: 'student_id,unit_id,stage' },
       );
-      // Si Supabase tarda más de 6 s, el timeout resuelve con error para no bloquear la UI.
-      // El upsert sigue corriendo en background y puede completarse después.
-      const { error } = await Promise.race([
-        savePromise,
-        new Promise(resolve =>
-          setTimeout(() => resolve({ data: null, error: { message: 'Timeout (>6 s) al guardar progreso' } }), 6000),
-        ),
-      ]);
       if (error) {
-        console.error('[UnitViewer] ❌ Error/timeout guardando progreso:', error.message, { sid, uid, stageId });
+        console.error('[UnitViewer] ⚠️ No se pudo respaldar el progreso en Supabase (no afecta al estudiante):', error.message, { sid, uid, stageId });
       } else {
-        console.log('[UnitViewer] ✅ Progreso guardado:', stageId);
+        console.log('[UnitViewer] ✅ Progreso respaldado en Supabase:', stageId);
       }
     } catch (e) {
-      console.error('[UnitViewer] ❌ Excepción guardando progreso:', e);
-    } finally {
-      setPendingSaves(n => Math.max(0, n - 1));
+      console.error('[UnitViewer] ⚠️ Excepción respaldando progreso en Supabase (no afecta al estudiante):', e);
     }
   };
 
@@ -1659,6 +1620,19 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
                 Puedes repasar cualquier parte cuando quieras.
               </p>
             </div>
+            <Button
+              className="rounded-xl gap-2 font-bold bg-green-600 hover:bg-green-700 text-white"
+              onClick={() => {
+                // Solo vuelve a mostrar el contenido desde el inicio — NO borra el progreso
+                // guardado, la unidad sigue apareciendo como completada en el menú.
+                const firstStage = stagesWithContent[0];
+                setCurrentStageIdx(STAGES.findIndex(x => x.id === firstStage?.id));
+                setShowQuiz(false);
+                setIsReviewing(true);
+              }}
+            >
+              <RefreshCw className="w-4 h-4" /> Empezar de nuevo
+            </Button>
             <div className="w-full max-w-sm space-y-2">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Repasar parte</p>
               {stagesWithContent.map(s => (

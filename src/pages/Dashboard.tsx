@@ -11,6 +11,7 @@ import { Progress } from '@/components/ui/progress';
 import { IMAGES } from '@/assets/images';
 import { ROUTE_PATHS } from '@/lib/index';
 import type { AuthModal } from '@/lib/index';
+import { getAllProgressForStudent, getUnitProgress } from '@/lib/localProgress';
 import { supabase } from '@/integrations/supabase/client';
 import { UnitViewer } from '@/components/UnitViewer';
 import { RenewalAlert } from '@/components/RenewalAlert';
@@ -1698,13 +1699,8 @@ useEffect(() => {
     if (units.length > 0 && currentUserId) {
       const unitIds = units.map(u => u.id);
 
-      // Tres consultas en paralelo: progreso completado + materiales + quizzes
-      const [{ data: progData }, { data: matStages }, { data: quizStages }] = await Promise.all([
-        supabase.from('unit_progress')
-          .select('unit_id')
-          .in('unit_id', unitIds)
-          .eq('student_id', currentUserId)
-          .eq('completed', true),
+      // Materiales + quizzes desde Supabase; progreso completado desde localStorage
+      const [{ data: matStages }, { data: quizStages }] = await Promise.all([
         supabase.from('unit_stage_materials')
           .select('unit_id, stage')
           .in('unit_id', unitIds),
@@ -1712,6 +1708,10 @@ useEffect(() => {
           .select('unit_id, stage')
           .in('unit_id', unitIds),
       ]);
+      const progData = unitIds.flatMap(uid => {
+        const stages = getUnitProgress(currentUserId, uid);
+        return Object.values(stages).filter((s: any) => s?.completed).map(() => ({ unit_id: uid }));
+      });
 
       // Total de partes por unidad = stages únicos con material O quiz
       const stageSetMap: Record<string, Set<string>> = {};
@@ -1860,39 +1860,28 @@ useEffect(() => {
       setCurrentUserId(user.id);
       setSessionEmail(user.email || '');
       refreshProfile(user.id);
-      // Load real progress from unit_progress
-      supabase.from('unit_progress')
-        .select('unit_id, completed, completed_at')
-        .eq('student_id', user.id)
-        .eq('completed', true)
-        .then(({ data }) => {
-          if (data) {
-            // Count unique completed units
-            const uniqueUnits = new Set(data.map((p: { unit_id: string }) => p.unit_id));
-            setRealCompletedUnits(uniqueUnits.size);
-            setTotalUnitsCompleted(uniqueUnits.size);
-            // Calc streak from completed_at dates
-            const dates = data
-              .map((p: { completed_at: string | null }) => p.completed_at)
-              .filter(Boolean) as string[];
-            const uniqueDays = [...new Set(dates.map(d => d.slice(0, 10)))].sort().reverse();
-            const today = new Date().toISOString().slice(0, 10);
-            const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-            if (uniqueDays.length === 0 || (uniqueDays[0] !== today && uniqueDays[0] !== yesterday)) {
-              setStreakDays(0);
-            } else {
-              let streak = 1;
-              for (let i = 1; i < uniqueDays.length; i++) {
-                const prev = new Date(uniqueDays[i - 1]);
-                const curr = new Date(uniqueDays[i]);
-                const diff = (prev.getTime() - curr.getTime()) / 86400000;
-                if (Math.round(diff) === 1) streak++;
-                else break;
-              }
-              setStreakDays(streak);
-            }
-          }
-        });
+      // Progreso real: leído de localStorage (fuente de verdad), no de Supabase
+      const localData = getAllProgressForStudent(user.id).filter(p => p.completed);
+      const uniqueUnits = new Set(localData.map(p => p.unitId));
+      setRealCompletedUnits(uniqueUnits.size);
+      setTotalUnitsCompleted(uniqueUnits.size);
+      const dates = localData.map(p => p.completed_at).filter(Boolean) as string[];
+      const uniqueDays = [...new Set(dates.map(d => d.slice(0, 10)))].sort().reverse();
+      const today = new Date().toISOString().slice(0, 10);
+      const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+      if (uniqueDays.length === 0 || (uniqueDays[0] !== today && uniqueDays[0] !== yesterday)) {
+        setStreakDays(0);
+      } else {
+        let streak = 1;
+        for (let i = 1; i < uniqueDays.length; i++) {
+          const prev = new Date(uniqueDays[i - 1]);
+          const curr = new Date(uniqueDays[i]);
+          const diff = (prev.getTime() - curr.getTime()) / 86400000;
+          if (Math.round(diff) === 1) streak++;
+          else break;
+        }
+        setStreakDays(streak);
+      }
     });
   }, [isLoggedIn]); // userName excluido: cambia después del primer load y dispararía doble carga
 
@@ -1987,33 +1976,6 @@ useEffect(() => {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'student_profiles',      filter: `id=eq.${currentUserId}` },       doRefresh)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'subscriptions',         filter: `student_id=eq.${currentUserId}` }, doRefresh)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'student_module_access', filter: `student_id=eq.${currentUserId}` }, doRefresh)
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'unit_progress', filter: `student_id=eq.${currentUserId}` },
-        (payload: any) => {
-          const unitId = payload.new?.unit_id;
-          if (!unitId) return;
-          // Refrescar conteo de partes completadas para esta unidad específica
-          supabase.from('unit_progress')
-            .select('unit_id')
-            .eq('unit_id', unitId)
-            .eq('student_id', currentUserId)
-            .eq('completed', true)
-            .then(({ data }) => {
-              if (data) setUnitProgressMap(prev => ({ ...prev, [unitId]: data.length }));
-            });
-          // Refrescar el contador global de "unidades con progreso"
-          supabase.from('unit_progress')
-            .select('unit_id')
-            .eq('student_id', currentUserId)
-            .eq('completed', true)
-            .then(({ data }) => {
-              if (data) {
-                const unique = new Set(data.map((p: any) => p.unit_id));
-                setRealCompletedUnits(unique.size);
-              }
-            });
-        },
-      )
       .subscribe();
 
     // Polling de respaldo cada 8s para asegurar que cambios admin se reflejen
@@ -2096,12 +2058,8 @@ useEffect(() => {
 
     // Prioridad 3: plan free_admin activo => acceso completo
     if (subPlan === 'free_admin' && subStatus === 'active') {
-      if (!studentLevel) return true;
-      const req = course.required_level || course.level;
-      const idx = LEVEL_ORDER.indexOf(req);
-      if (idx <= studentLevelIdx) return true;
-      if (idx === studentLevelIdx + 1) return completedLevels.includes(LEVEL_ORDER[studentLevelIdx]);
-      return false;
+      // Ya no se exige completar el nivel anterior para desbloquear el siguiente
+      return true;
     }
 
     // Prioridad 4: cancelado
@@ -2122,28 +2080,14 @@ useEffect(() => {
 
     // Prioridad 8a: cuenta activa por perfil (admin habilitó directo en student_profiles)
     if (isProfileActive) {
-      if (!studentLevel) {
-        const lvl = course.required_level || course.level;
-        return lvl === 'A1';
-      }
-      const req = course.required_level || course.level;
-      const idx = LEVEL_ORDER.indexOf(req);
-      if (idx <= studentLevelIdx) return true;
-      if (idx === studentLevelIdx + 1) return completedLevels.includes(LEVEL_ORDER[studentLevelIdx]);
-      return false;
+      // Ya no se exige completar el nivel anterior para desbloquear el siguiente
+      return true;
     }
 
     // Prioridad 8b: plan activo y aprobado en subscription
     if (subStatus === 'active' && subApproved === true && subEnabled === true) {
-      if (!studentLevel) {
-        const lvl = course.required_level || course.level;
-        return lvl === 'A1';
-      }
-      const req = course.required_level || course.level;
-      const idx = LEVEL_ORDER.indexOf(req);
-      if (idx <= studentLevelIdx) return true;
-      if (idx === studentLevelIdx + 1) return completedLevels.includes(LEVEL_ORDER[studentLevelIdx]);
-      return false;
+      // Ya no se exige completar el nivel anterior para desbloquear el siguiente
+      return true;
     }
 
     // Por defecto bloquear
