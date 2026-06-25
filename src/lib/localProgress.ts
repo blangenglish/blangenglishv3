@@ -35,6 +35,43 @@ export function setStageCompleted(
   return updated;
 }
 
+// ── Migración única: trae a localStorage el progreso que ya existía en Supabase ──
+// antes de este cambio, para que un estudiante no "pierda" lo que ya había completado.
+const MIGRATED_PREFIX = 'blang_progress_migrated';
+
+export function hasMigrated(studentId: string): boolean {
+  if (!studentId) return true;
+  try {
+    return localStorage.getItem(`${MIGRATED_PREFIX}::${studentId}`) === '1';
+  } catch {
+    return true; // si no hay localStorage disponible, no insistir
+  }
+}
+
+export function markMigrated(studentId: string): void {
+  try {
+    localStorage.setItem(`${MIGRATED_PREFIX}::${studentId}`, '1');
+  } catch {
+    // ignorar
+  }
+}
+
+export function mergeFromRemote(
+  studentId: string,
+  rows: Array<{ unit_id: string; stage: string; completed: boolean; completed_at: string; quiz_passed?: boolean }>,
+): void {
+  rows.forEach(row => {
+    if (!row.completed) return;
+    const current = getUnitProgress(studentId, row.unit_id);
+    if (current[row.stage]?.completed) return; // ya existe localmente, no sobreescribir
+    setStageCompleted(studentId, row.unit_id, row.stage, {
+      completed: true,
+      completed_at: row.completed_at,
+      quiz_passed: !!row.quiz_passed,
+    });
+  });
+}
+
 export function getAllProgressForStudent(
   studentId: string,
 ): Array<{ unitId: string; stage: string; completed: boolean; completed_at: string }> {

@@ -12,7 +12,7 @@ import {
   CheckCircle, XCircle, Volume2, Copy, Check,
 } from 'lucide-react';
 import { STAGES, MATERIAL_TYPE_CONFIG, type Stage, type UnitStageMaterial } from '@/lib/stages';
-import { getUnitProgress, setStageCompleted } from '@/lib/localProgress';
+import { getUnitProgress, setStageCompleted, hasMigrated, mergeFromRemote } from '@/lib/localProgress';
 
 // ─── YouTube helpers ──────────────────────────────────────────────────────────
 function extractYouTubeId(url) {
@@ -1351,6 +1351,7 @@ const _unitContentCache: Record<string, {
 // ─── Main UnitViewer ──────────────────────────────────────────────────────────
 export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onClose, isLocked, isReview = false, studentPlanSlug = '' }) {
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [byStage, setByStage] = useState(() =>
     Object.fromEntries(STAGES.map(s => [s.id, []])));
   const [quizByStage, setQuizByStage] = useState({});
@@ -1365,6 +1366,7 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
 
   const loadData = useCallback(async () => {
     setLoading(true);
+    setLoadError(false);
     setShowQuiz(false);
 
     try {
@@ -1410,7 +1412,27 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
       if (!isLocked) {
         // El progreso ya no depende de Supabase: se lee directo de localStorage
         // (instantáneo, no requiere red ni puede "quedarse cargando").
-        const pm: Record<string, any> = getUnitProgress(studentId, unitId);
+        let pm: Record<string, any> = getUnitProgress(studentId, unitId);
+
+        // Respaldo: si no hay nada local para esta unidad y aún no se migró el
+        // historial completo (ver Dashboard), traer solo esta unidad desde Supabase
+        // para no mostrarla como "no iniciada" si en realidad ya estaba completada.
+        if (Object.keys(pm).length === 0 && !hasMigrated(studentId)) {
+          try {
+            const { data: remoteRows } = await Promise.race([
+              supabase.from('unit_progress')
+                .select('unit_id, stage, completed, completed_at, quiz_passed')
+                .eq('unit_id', unitId).eq('student_id', studentId),
+              new Promise<{ data: null }>(resolve => setTimeout(() => resolve({ data: null }), 5000)),
+            ]);
+            if (remoteRows) {
+              mergeFromRemote(studentId, remoteRows as any);
+              pm = getUnitProgress(studentId, unitId);
+            }
+          } catch (e) {
+            console.error('[UnitViewer] ⚠️ No se pudo respaldar el progreso histórico desde Supabase:', e);
+          }
+        }
         setProgress(pm);
 
         const stagesWC = STAGES.filter(s => map[s.id]?.length > 0 || qmap[s.id]);
@@ -1428,6 +1450,7 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
     } catch (e) {
       // Bug 2 fix: sin este catch, cualquier error de red dejaba el spinner girando para siempre
       console.error('[UnitViewer] ❌ Excepción cargando unidad:', e);
+      setLoadError(true);
     } finally {
       // Bug 2 fix: setLoading(false) ahora se ejecuta SIEMPRE, incluso si hay error
       setLoading(false);
@@ -1594,6 +1617,15 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
         {loading ? (
           <div className="flex items-center justify-center h-full">
             <Loader2 className="h-8 w-8 text-primary animate-spin" />
+          </div>
+        ) : loadError && stagesWithContent.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-center px-6 space-y-3">
+            <BookOpen className="h-12 w-12 text-muted-foreground" />
+            <p className="font-medium">No se pudo cargar el contenido</p>
+            <p className="text-sm text-muted-foreground">Revisa tu conexión a internet e intenta de nuevo</p>
+            <Button variant="outline" className="rounded-xl gap-2 mt-2" onClick={() => loadData()}>
+              <RefreshCw className="w-4 h-4" /> Intentar de nuevo
+            </Button>
           </div>
         ) : stagesWithContent.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-6 space-y-3">

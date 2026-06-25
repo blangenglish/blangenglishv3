@@ -11,7 +11,7 @@ import { Progress } from '@/components/ui/progress';
 import { IMAGES } from '@/assets/images';
 import { ROUTE_PATHS } from '@/lib/index';
 import type { AuthModal } from '@/lib/index';
-import { getAllProgressForStudent, getUnitProgress } from '@/lib/localProgress';
+import { getAllProgressForStudent, getUnitProgress, hasMigrated, markMigrated, mergeFromRemote } from '@/lib/localProgress';
 import { supabase } from '@/integrations/supabase/client';
 import { UnitViewer } from '@/components/UnitViewer';
 import { RenewalAlert } from '@/components/RenewalAlert';
@@ -1852,7 +1852,7 @@ useEffect(() => {
     // Timeout de seguridad: si getSession() tarda más de 8s, liberar el spinner
     const safetyTimer = setTimeout(() => setProfileLoading(false), 8000);
     // Cargar sesión y perfil al montar — usando getSession para tener el token listo
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       clearTimeout(safetyTimer);
       const user = session?.user;
       if (!user) { setProfileLoading(false); return; }
@@ -1860,6 +1860,20 @@ useEffect(() => {
       setCurrentUserId(user.id);
       setSessionEmail(user.email || '');
       refreshProfile(user.id);
+      // Migración única: traer a localStorage el progreso que ya existía en Supabase
+      // antes de este cambio, para no "perder" lo que el estudiante ya había completado.
+      if (!hasMigrated(user.id)) {
+        try {
+          const { data: remoteRows } = await supabase
+            .from('unit_progress')
+            .select('unit_id, stage, completed, completed_at, quiz_passed')
+            .eq('student_id', user.id);
+          if (remoteRows) mergeFromRemote(user.id, remoteRows);
+        } catch (e) {
+          console.error('[Dashboard] Error migrando progreso desde Supabase:', e);
+        }
+        markMigrated(user.id);
+      }
       // Progreso real: leído de localStorage (fuente de verdad), no de Supabase
       const localData = getAllProgressForStudent(user.id).filter(p => p.completed);
       const uniqueUnits = new Set(localData.map(p => p.unitId));
