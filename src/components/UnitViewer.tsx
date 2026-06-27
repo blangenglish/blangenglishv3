@@ -1352,6 +1352,7 @@ const _unitContentCache: Record<string, {
 export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onClose, isLocked, isReview = false, studentPlanSlug = '' }) {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  const [saveErrorMsg, setSaveErrorMsg] = useState('');
   const [byStage, setByStage] = useState(() =>
     Object.fromEntries(STAGES.map(s => [s.id, []])));
   const [quizByStage, setQuizByStage] = useState({});
@@ -1492,14 +1493,27 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
 
   const markCompleted = async () => {
     if (!currentStage || markingDone) return;
+    setSaveErrorMsg('');
 
-    // Bug 1 fix: capturar studentId y unitId al inicio. Si no hay sesión activa,
-    // no intentar el upsert (evita errores silenciosos de RLS con student_id vacío).
-    const sid = studentId;
+    // Bug 1 fix: capturar studentId y unitId al inicio.
+    let sid = studentId;
     const uid = unitId;
     const stageId = currentStage.id;
+
+    // Respaldo: si el prop studentId todavía no llegó (carrera con la sesión cargando
+    // en Dashboard), intentar obtenerlo directo de Supabase antes de fallar en silencio.
+    if (!sid) {
+      try {
+        const { data } = await supabase.auth.getSession();
+        sid = data?.session?.user?.id || '';
+      } catch {
+        sid = '';
+      }
+    }
+
     if (!sid || !uid) {
       console.error('[UnitViewer] ❌ markCompleted: studentId o unitId no disponible — progreso no guardado', { sid, uid });
+      setSaveErrorMsg('No se pudo identificar tu sesión. Por favor recarga la página (Ctrl+F5) e intenta de nuevo.');
       return;
     }
 
@@ -1608,6 +1622,12 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
               <span className="font-bold text-primary">{progressPct}%</span>
             </div>
             <Progress value={progressPct} className="h-2" />
+          </div>
+        )}
+        {saveErrorMsg && (
+          <div className="mt-2 flex items-center gap-2 bg-red-50 border border-red-300 text-red-800 text-xs font-semibold rounded-xl px-3 py-2">
+            <XCircle className="h-3.5 w-3.5 shrink-0" />
+            {saveErrorMsg}
           </div>
         )}
       </div>
