@@ -88,7 +88,7 @@ export function ClasesVirtualesModal({
   const [diasSemana, setDiasSemana] = useState<number>(2);
   const [diasSel, setDiasSel] = useState<string[]>([]);
   const [franja, setFranja] = useState('');
-  const [payMethod, setPayMethod] = useState<'bold' | 'paypal'>('bold');
+  const [payMethod, setPayMethod] = useState<'bold' | 'paypal' | 'bancolombia'>('bold');
   const [iaPlatform, setIaPlatform] = useState<'mensual' | 'trimestral'>('mensual');
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
@@ -161,7 +161,7 @@ export function ClasesVirtualesModal({
       `Total a pagar este mes: ${formatCOP(totalFinal)} COP (${formatUSD(totalFinal)})\n` +
       `Valor por ${precio.label}: ~${formatCOP(precio.valorUnit)} COP\n\n` +
       `💳 MÉTODO DE PAGO PREFERIDO\n` +
-      `${payMethod === 'bold' ? '💳 Bold / PSE — Pago en COP' : '🌐 PayPal — Pago en USD'}`;
+      `${payMethod === 'bold' ? '💳 Bold / PSE — Pago en COP' : payMethod === 'bancolombia' ? '🟡 Transferencia Bancolombia — Pago en COP' : '🌐 PayPal — Pago en USD'}`;
     openWhatsApp(mensaje);
     setSent(true);
   };
@@ -423,7 +423,7 @@ export function ClasesVirtualesModal({
                     )}
                     {/* Precio final */}
                     <p className="text-xs text-violet-700 font-semibold mt-2 mb-0.5">{iaFee > 0 ? 'Total este mes' : 'Precio final'}</p>
-                    {payMethod === 'bold' ? (
+                    {payMethod !== 'paypal' ? (
                       <>
                         <p className="text-3xl font-extrabold text-violet-700 leading-none">
                           {formatCOP(totalFinal)}
@@ -448,7 +448,7 @@ export function ClasesVirtualesModal({
                       <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold">
                         por {precio.label}
                       </p>
-                      {payMethod === 'bold' ? (
+                      {payMethod !== 'paypal' ? (
                         <>
                           <p className="text-base font-extrabold text-violet-600">~{formatCOP(precio.valorUnit)}</p>
                           <p className="text-[10px] text-muted-foreground">{formatUSD(precio.valorUnit)}</p>
@@ -480,7 +480,7 @@ export function ClasesVirtualesModal({
               {/* ── Selector de método de pago ── */}
               <div className="space-y-2">
                 <Label className="text-sm font-semibold">Método de pago *</Label>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-2">
                   {/* Bold / PSE */}
                   <button
                     type="button"
@@ -493,7 +493,7 @@ export function ClasesVirtualesModal({
                   >
                     <p className="text-base mb-0.5">💳</p>
                     <p className="text-sm font-bold leading-tight">Bold / PSE</p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">Pagar en pesos (COP)</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">Pesos (COP)</p>
                     {payMethod === 'bold' && (
                       <span className="inline-block mt-1.5 text-[10px] font-bold text-violet-700 bg-violet-100 rounded-full px-2 py-0.5">✓ Seleccionado</span>
                     )}
@@ -511,9 +511,27 @@ export function ClasesVirtualesModal({
                   >
                     <p className="text-base mb-0.5">🌐</p>
                     <p className="text-sm font-bold leading-tight">PayPal</p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">Pagar en dólares (USD)</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">Dólares (USD)</p>
                     {payMethod === 'paypal' && (
                       <span className="inline-block mt-1.5 text-[10px] font-bold text-blue-700 bg-blue-100 rounded-full px-2 py-0.5">✓ Seleccionado</span>
+                    )}
+                  </button>
+
+                  {/* Bancolombia */}
+                  <button
+                    type="button"
+                    onClick={() => setPayMethod('bancolombia')}
+                    className={`rounded-xl border-2 p-3 text-left transition-all ${
+                      payMethod === 'bancolombia'
+                        ? 'border-yellow-400 bg-yellow-50 shadow-sm'
+                        : 'border-border/50 hover:border-yellow-300 hover:bg-yellow-50/50'
+                    }`}
+                  >
+                    <p className="text-base mb-0.5">🟡</p>
+                    <p className="text-sm font-bold leading-tight">Bancolombia</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">Pesos (COP)</p>
+                    {payMethod === 'bancolombia' && (
+                      <span className="inline-block mt-1.5 text-[10px] font-bold text-yellow-800 bg-yellow-100 rounded-full px-2 py-0.5">✓ Seleccionado</span>
                     )}
                   </button>
                 </div>

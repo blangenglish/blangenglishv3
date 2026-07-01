@@ -33,7 +33,7 @@ type FlowState =
   | 'LEVEL_SELECT'         // Seleccionar nivel manualmente
   | 'LEVEL_SAVED';         // Nivel guardado con éxito
 
-type PayMethod = 'paypal' | 'pse';
+type PayMethod = 'paypal' | 'pse' | 'bancolombia';
 
 interface OnboardingFlowProps {
   open: boolean;
@@ -219,7 +219,7 @@ export function OnboardingFlow({
         'Plan seleccionado: ' + planLabel + '\n' +
         'Nombre: ' + payName + '\n' +
         'Correo: ' + payEmail + '\n' +
-        'Método de pago: ' + (payMethod === 'paypal' ? 'PayPal' : 'PSE / Transferencia bancaria') + '\n' +
+        'Método de pago: ' + (payMethod === 'paypal' ? 'PayPal (USD)' : payMethod === 'bancolombia' ? 'Transferencia Bancolombia (COP)' : 'PSE / Bold (COP)') + '\n' +
         'Monto: $' + amount + ' USD';
 
       openWhatsApp(msg);
@@ -704,7 +704,7 @@ function PaymentFormView({
       {/* Selector método de pago */}
       <div>
         <p className="text-xs font-semibold mb-2">¿Cómo prefieres pagar?</p>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           <button
             type="button"
             onClick={() => onMethodChange('paypal')}
@@ -716,7 +716,7 @@ function PaymentFormView({
           >
             <PayPalIcon />
             <span>PayPal</span>
-            <span className="text-[10px] font-normal opacity-70">Dólares (USD)</span>
+            <span className="text-[10px] font-normal opacity-70">USD</span>
           </button>
           <button
             type="button"
@@ -729,7 +729,20 @@ function PaymentFormView({
           >
             <span className="text-lg">🏦</span>
             <span>PSE / Bold</span>
-            <span className="text-[10px] font-normal opacity-70">Pesos colombianos</span>
+            <span className="text-[10px] font-normal opacity-70">COP</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => onMethodChange('bancolombia')}
+            className={`rounded-xl py-3 px-2 text-sm font-bold border-2 transition-all flex flex-col items-center justify-center gap-1 ${
+              payMethod === 'bancolombia'
+                ? 'border-yellow-400 bg-yellow-50 text-yellow-900'
+                : 'border-border/40 text-muted-foreground hover:border-border'
+            }`}
+          >
+            <span className="text-lg">🟡</span>
+            <span className="text-[11px]">Bancolombia</span>
+            <span className="text-[10px] font-normal opacity-70">COP</span>
           </button>
         </div>
       </div>

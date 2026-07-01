@@ -615,29 +615,23 @@ function PagoSolicitudForm({
 }) {
   const [nombre, setNombre] = useState(defaultName);
   const [correo, setCorreo] = useState(defaultEmail);
-  const [metodo, setMetodo] = useState<'paypal' | 'bold_pse'>('paypal');
+  const [metodo, setMetodo] = useState<'paypal' | 'bold_pse' | 'bancolombia'>('paypal');
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [formError, setFormError] = useState('');
 
   const canSubmit = nombre.trim() && correo.trim();
 
+  const metodoLabel = metodo === 'paypal' ? 'PayPal (USD)' : metodo === 'bancolombia' ? 'Transferencia Bancolombia (COP)' : 'Bold / PSE (COP)';
+
   const handleSubmit = async () => {
     if (!canSubmit) return;
     setSending(true);
     setFormError('');
     try {
-      // 1. Enviar email al admin (non-fatal)
+      // 1. Notificar al admin por WhatsApp (non-fatal)
       try {
-        await supabase.functions.invoke('send-trial-request-2026', {
-          body: {
-            userName: nombre.trim(),
-            userEmail: correo.trim(),
-            requestType: 'payment_request',
-            paymentMethod: metodo === 'paypal' ? 'PayPal' : 'Bold / PSE',
-            message: `Solicitud de ${planName}. Método: ${metodo === 'paypal' ? 'PayPal' : 'Bold / PSE'}.`,
-          },
-        });
+        openWhatsApp(`💳 SOLICITUD DE PAGO — BLANG ENGLISH\n\nPlan: ${planName}\nNombre: ${nombre.trim()}\nCorreo: ${correo.trim()}\nMétodo de pago: ${metodoLabel}`);
       } catch (_) { /* non-fatal */ }
 
       // 2. Actualizar estado en BD
@@ -652,7 +646,7 @@ function PagoSolicitudForm({
           trial_active: false,
           status: 'pending_approval',
           account_enabled: false,
-          payment_method: metodo === 'paypal' ? 'paypal' : 'bold_pse',
+          payment_method: metodo,
           updated_at: new Date().toISOString(),
         }).eq('student_id', userId);
 
@@ -667,7 +661,7 @@ function PagoSolicitudForm({
             plan_name: planName,
             status: 'pending_approval',
             amount_usd: planAmount,
-            payment_method: metodo === 'paypal' ? 'paypal' : 'bold_pse',
+            payment_method: metodo,
             approved_by_admin: false,
             account_enabled: false,
             current_period_end: periodEnd.toISOString(),
@@ -734,19 +728,26 @@ function PagoSolicitudForm({
 
       <div className="space-y-1.5">
         <Label className="text-sm font-semibold">Método de pago *</Label>
-        <div className="grid grid-cols-2 gap-2">
-          {(['paypal', 'bold_pse'] as const).map(m => (
+        <div className="grid grid-cols-3 gap-2">
+          {([
+            { id: 'paypal', label: '💳 PayPal', sub: 'USD' },
+            { id: 'bold_pse', label: '🏦 Bold / PSE', sub: 'COP' },
+            { id: 'bancolombia', label: '🟡 Bancolombia', sub: 'COP' },
+          ] as const).map(m => (
             <button
-              key={m}
+              key={m.id}
               type="button"
-              onClick={() => setMetodo(m)}
-              className={`py-3 rounded-xl font-bold text-sm border-2 transition-all ${
-                metodo === m
-                  ? 'border-primary bg-primary/10 text-primary shadow-sm'
+              onClick={() => setMetodo(m.id)}
+              className={`py-3 rounded-xl font-bold text-sm border-2 transition-all flex flex-col items-center gap-0.5 ${
+                metodo === m.id
+                  ? m.id === 'bancolombia'
+                    ? 'border-yellow-400 bg-yellow-50 text-yellow-900 shadow-sm'
+                    : 'border-primary bg-primary/10 text-primary shadow-sm'
                   : 'border-border/50 text-muted-foreground hover:border-primary/40 hover:text-foreground'
               }`}
             >
-              {m === 'paypal' ? '💳 PayPal' : '🏦 Bold / PSE'}
+              <span>{m.label}</span>
+              <span className="text-[10px] font-normal opacity-70">{m.sub}</span>
             </button>
           ))}
         </div>
@@ -800,7 +801,7 @@ function PlanPickerInline({
   const [selected, setSelected] = useState<PlanChoice | null>(null);
   const [nombre, setNombre] = useState(defaultName);
   const [correo, setCorreo] = useState(defaultEmail);
-  const [metodo, setMetodo] = useState<'paypal' | 'bold_pse'>('paypal');
+  const [metodo, setMetodo] = useState<'paypal' | 'bold_pse' | 'bancolombia'>('paypal');
   const [trialMsg, setTrialMsg] = useState('');
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
@@ -820,23 +821,15 @@ function PlanPickerInline({
     setFormError('');
     const info = PLAN_INFO[selected];
     const isTrial = selected === 'trial';
-    const methodLabel = metodo === 'paypal' ? 'PayPal' : 'Bold / PSE';
+    const methodLabel = metodo === 'paypal' ? 'PayPal (USD)' : metodo === 'bancolombia' ? 'Transferencia Bancolombia (COP)' : 'Bold / PSE (COP)';
 
     try {
-      // 1. Email al admin (non-fatal)
+      // 1. Notificar al admin por WhatsApp (non-fatal)
       try {
         const msg = isTrial
           ? `📋 SOLICITUD DE PRUEBA GRATUITA — BLANG ENGLISH\n\nNombre: ${nombre.trim()}\nCorreo: ${correo.trim()}${trialMsg ? '\nMensaje: ' + trialMsg : ''}`
           : `💳 SOLICITUD DE PAGO — BLANG ENGLISH\n\nPlan: ${info.name}\nNombre: ${nombre.trim()}\nCorreo: ${correo.trim()}\nMétodo de pago: ${methodLabel}\nMonto: $${info.amount} USD`;
-        await supabase.functions.invoke('send-trial-request-2026', {
-          body: {
-            userName: nombre.trim(),
-            userEmail: correo.trim(),
-            message: msg,
-            requestType: isTrial ? 'trial_request' : 'payment_request',
-            paymentMethod: isTrial ? '' : methodLabel,
-          },
-        });
+        openWhatsApp(msg);
       } catch (_) { /* non-fatal */ }
 
       // 2. Actualizar BD
@@ -960,20 +953,26 @@ function PlanPickerInline({
         {!isTrial && (
           <div className="space-y-1.5">
             <Label className="text-sm font-semibold">¿Cómo prefieres pagar?</Label>
-            <div className="grid grid-cols-2 gap-2">
-              {(['paypal', 'bold_pse'] as const).map(m => (
+            <div className="grid grid-cols-3 gap-2">
+              {([
+                { id: 'paypal', label: '💳 PayPal', sub: 'Dólares (USD)' },
+                { id: 'bold_pse', label: '🏦 PSE / Bold', sub: 'Pesos (COP)' },
+                { id: 'bancolombia', label: '🟡 Bancolombia', sub: 'Pesos (COP)' },
+              ] as const).map(m => (
                 <button
-                  key={m}
+                  key={m.id}
                   type="button"
-                  onClick={() => setMetodo(m)}
+                  onClick={() => setMetodo(m.id)}
                   className={`py-3 rounded-xl font-bold text-sm border-2 transition-all flex flex-col items-center gap-0.5 ${
-                    metodo === m
-                      ? 'border-primary bg-primary/10 text-primary shadow-sm'
+                    metodo === m.id
+                      ? m.id === 'bancolombia'
+                        ? 'border-yellow-400 bg-yellow-50 text-yellow-900 shadow-sm'
+                        : 'border-primary bg-primary/10 text-primary shadow-sm'
                       : 'border-border/50 text-muted-foreground hover:border-primary/40'
                   }`}
                 >
-                  <span>{m === 'paypal' ? '💳 PayPal' : '🏦 PSE / Bold'}</span>
-                  <span className="text-[10px] font-normal opacity-70">{m === 'paypal' ? 'Dólares (USD)' : 'Pesos colombianos'}</span>
+                  <span>{m.label}</span>
+                  <span className="text-[10px] font-normal opacity-70">{m.sub}</span>
                 </button>
               ))}
             </div>
