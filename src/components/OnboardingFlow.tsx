@@ -33,7 +33,7 @@ type FlowState =
   | 'LEVEL_SELECT'         // Seleccionar nivel manualmente
   | 'LEVEL_SAVED';         // Nivel guardado con éxito
 
-type PayMethod = 'paypal' | 'pse' | 'bancolombia' | 'breb';
+type PayMethod = 'paypal' | 'pse' | 'bancolombia' | 'breb'; // v2
 
 interface OnboardingFlowProps {
   open: boolean;
