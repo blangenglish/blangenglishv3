@@ -1243,33 +1243,54 @@ function MaterialItem({ mat, stage }: { mat: any; stage?: string }) {
           </>
         )}
 
-        {/* ── PDF: Google Docs viewer (works in Chrome) + direct download ── */}
+        {/* ── PDF ── */}
         {mat.material_type === 'pdf' && (
           <div className="space-y-2">
             {mat.file_url ? (
-              <>
-                {/* Google Docs viewer bypasses Chrome's cross-origin iframe PDF block */}
-                <iframe
-                  src={`https://docs.google.com/viewer?url=${encodeURIComponent(mat.file_url)}&embedded=true`}
-                  className="w-full rounded-lg border border-border bg-muted/10"
-                  style={{ height: '480px', minHeight: '320px' }}
-                  title={mat.title}
-                  allow="fullscreen"
-                />
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" className="flex-1 gap-2"
-                    onClick={() => window.open(
-                      `https://docs.google.com/viewer?url=${encodeURIComponent(mat.file_url)}`,
-                      '_blank'
-                    )}>
-                    <ExternalLink className="h-3.5 w-3.5" /> Ver en pantalla completa
-                  </Button>
-                  <Button variant="default" size="sm" className="flex-1 gap-2"
-                    onClick={() => window.open(mat.file_url, '_blank')}>
-                    <ExternalLink className="h-3.5 w-3.5" /> Descargar PDF
-                  </Button>
-                </div>
-              </>
+              (() => {
+                const driveId = getGoogleDriveId(mat.file_url);
+                if (driveId) {
+                  return (
+                    <>
+                      <iframe
+                        src={`https://drive.google.com/file/d/${driveId}/preview`}
+                        className="w-full rounded-lg border border-border bg-muted/10"
+                        style={{ height: '480px', minHeight: '320px' }}
+                        title={mat.title}
+                        allow="fullscreen"
+                      />
+                      <Button variant="outline" size="sm" className="w-full gap-2"
+                        onClick={() => window.open(mat.file_url, '_blank')}>
+                        <ExternalLink className="h-3.5 w-3.5" /> Abrir en Google Drive
+                      </Button>
+                    </>
+                  );
+                }
+                return (
+                  <>
+                    <iframe
+                      src={`https://docs.google.com/viewer?url=${encodeURIComponent(mat.file_url)}&embedded=true`}
+                      className="w-full rounded-lg border border-border bg-muted/10"
+                      style={{ height: '480px', minHeight: '320px' }}
+                      title={mat.title}
+                      allow="fullscreen"
+                    />
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" className="flex-1 gap-2"
+                        onClick={() => window.open(
+                          `https://docs.google.com/viewer?url=${encodeURIComponent(mat.file_url)}`,
+                          '_blank'
+                        )}>
+                        <ExternalLink className="h-3.5 w-3.5" /> Ver en pantalla completa
+                      </Button>
+                      <Button variant="default" size="sm" className="flex-1 gap-2"
+                        onClick={() => window.open(mat.file_url, '_blank')}>
+                        <ExternalLink className="h-3.5 w-3.5" /> Descargar PDF
+                      </Button>
+                    </div>
+                  </>
+                );
+              })()
             ) : mat.description ? (
               <div className="p-4 rounded-xl bg-muted/20 border border-border max-h-96 overflow-y-auto">
                 <RichContent html={mat.description} />

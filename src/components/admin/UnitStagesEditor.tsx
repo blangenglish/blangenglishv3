@@ -244,8 +244,12 @@ function FileUploadZone({
                 {cfg.emoji}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold truncate">{fileName || 'Archivo'}</p>
-                <p className="text-xs text-muted-foreground">{cfg.label} · Subido correctamente ✅</p>
+                <p className="text-sm font-semibold truncate">
+                  {driveId && materialType === 'pdf' ? '📄 PDF de Google Drive' : fileName || 'Archivo'}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {driveId && materialType === 'pdf' ? 'Google Drive · Listo ✅' : `${cfg.label} · Subido correctamente ✅`}
+                </p>
               </div>
               <Button size="sm" variant="outline" onClick={() => window.open(value, '_blank')} className="shrink-0">
                 <ExternalLink className="h-3.5 w-3.5 mr-1" /> Ver
@@ -323,7 +327,7 @@ function FileUploadZone({
         </div>
       )}
 
-      {materialType === 'image' && !uploading && (
+      {(materialType === 'image' || materialType === 'pdf') && !uploading && (
         <div className="space-y-1">
           <p className="text-[11px] text-muted-foreground text-center">— o pega una URL de Google Drive —</p>
           <div className="flex gap-2">
