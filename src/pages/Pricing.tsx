@@ -439,9 +439,9 @@ export default function PricingPage({ isLoggedIn = false, onOpenAuth, onLogout, 
             </motion.div>
             <motion.div variants={fadeUp} className="mt-8 bg-primary/5 border border-primary/20 rounded-2xl p-5 text-center">
               <p className="text-sm text-muted-foreground">
-                📧 Escríbenos a{' '}
-                <a href="mailto:blangenglishlearning@blangenglish.com" className="text-primary font-semibold hover:underline">
-                  blangenglishlearning@blangenglish.com
+                📲 Escríbenos por{' '}
+                <a href="https://wa.me/573236405246" target="_blank" rel="noopener noreferrer" className="text-primary font-semibold hover:underline">
+                  WhatsApp +57 323 640 5246
                 </a>
                 {' '}— respondemos en máximo 24 horas hábiles.
               </p>
@@ -592,10 +592,12 @@ export default function PricingPage({ isLoggedIn = false, onOpenAuth, onLogout, 
                         <p className="font-semibold text-muted-foreground">No hay clases disponibles en este momento</p>
                         <p className="text-sm text-muted-foreground mt-1">Pronto agregaremos nuevos horarios 😊</p>
                         <a
-                          href="mailto:blangenglishlearning@blangenglish.com"
+                          href="https://wa.me/573236405246"
+                          target="_blank"
+                          rel="noopener noreferrer"
                           className="inline-block mt-4 text-blue-600 font-semibold text-sm hover:underline"
                         >
-                          blangenglishlearning@blangenglish.com
+                          WhatsApp +57 323 640 5246
                         </a>
                       </div>
                     ) : (

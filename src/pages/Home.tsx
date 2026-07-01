@@ -600,7 +600,7 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
                   { icon: '🎯', title: 'Temas a la medida', desc: 'Trabaja exactamente lo que necesitas: gramática, conversación, pronunciación, negocios...' },
                   { icon: '💻', title: 'Google Meet', desc: 'Sesiones cómodas por videollamada, desde cualquier lugar del mundo.' },
                   { icon: '🔓', title: 'Sin matrícula obligatoria', desc: 'No necesitas registrarte para reservar un cupo, puedes contratar este servicio cuando lo desees.' },
-                  { icon: 'ℹ️', title: 'Servicio adicional', desc: 'Este servicio no está incluido en el plan mensual. Tiene un costo según las horas que desees. Si quieres agendar más horas o un paquete mensual escríbenos a blangenglishlearning@blangenglish.com' },
+                  { icon: 'ℹ️', title: 'Servicio adicional', desc: 'Este servicio no está incluido en el plan mensual. Tiene un costo según las horas que desees. Si quieres agendar más horas o un paquete mensual escríbenos por WhatsApp al +57 323 640 5246' },
                 ].map((item, i) => (
                   <motion.div
                     key={i}

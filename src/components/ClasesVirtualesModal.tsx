@@ -5,7 +5,7 @@ import { X, Send, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { supabase } from '@/integrations/supabase/client';
+import { openWhatsApp } from '@/lib/whatsapp';
 
 interface ClasesVirtualesModalProps {
   open: boolean;
@@ -138,47 +138,32 @@ export function ClasesVirtualesModal({
   const iaFee = iaPlatform === 'trimestral' ? SPEAKOLOGY_FEE : 0;
   const totalFinal = precio.final + iaFee;
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (!canSubmit) return;
-    setSending(true);
-    setError('');
-    try {
-      await supabase.functions.invoke('send-contact-email', {
-        body: {
-          type: 'clases_mensuales',
-          name: nombre.trim(),
-          email: correo.trim(),
-          subject: 'Solicitud: Arma tu plan mensual',
-          message:
-            `📋 SOLICITUD DE CLASES VIRTUALES PERSONALIZADAS MENSUALES\n\n` +
-            `Nombre: ${nombre.trim()}\n` +
-            `Correo: ${correo.trim()}\n\n` +
-            `📅 PLAN DE CLASES\n` +
-            `Horas por día: ${horasDia} hora${horasDia === 2 ? 's' : ''}\n` +
-            `Clases a la semana: ${diasSemana} día${diasSemana !== 1 ? 's' : ''}\n` +
-            `Días seleccionados: ${diasSel.join(', ')}\n` +
-            `Franja horaria fija: ${franja}\n\n` +
-            `🤖 PLATAFORMA DE PRÁCTICA IA\n` +
-            `${iaPlatform === 'trimestral'
-              ? `Speakology IA — cargo único trimestral de ${formatCOP(SPEAKOLOGY_FEE)} COP (se cobra cada 3 meses, los meses 2 y 3 no se cobra)`
-              : 'Plataforma mensual gratis (uso de ChatGPT) — sin costo adicional'}\n\n` +
-            `💰 PRECIO ESTIMADO\n` +
-            `${precio.unidades} ${precio.label}s al mes\n` +
-            `Precio regular: ${formatCOP(precio.regular)} COP\n` +
-            `Precio final clases: ${formatCOP(precio.final)} COP (${formatUSD(precio.final)})\n` +
-            `${iaFee > 0 ? `+ Activación Speakology IA (única vez cada 3 meses): ${formatCOP(iaFee)} COP\n` : ''}` +
-            `Total a pagar este mes: ${formatCOP(totalFinal)} COP (${formatUSD(totalFinal)})\n` +
-            `Valor por ${precio.label}: ~${formatCOP(precio.valorUnit)} COP\n\n` +
-            `💳 MÉTODO DE PAGO PREFERIDO\n` +
-            `${payMethod === 'bold' ? '💳 Bold / PSE — Pago en COP' : '🌐 PayPal — Pago en USD'}`,
-        },
-      });
-      setSent(true);
-    } catch {
-      setError('Hubo un error al enviar. Por favor intenta de nuevo.');
-    } finally {
-      setSending(false);
-    }
+    const mensaje =
+      `📋 SOLICITUD DE CLASES VIRTUALES PERSONALIZADAS MENSUALES\n\n` +
+      `Nombre: ${nombre.trim()}\n` +
+      `Correo: ${correo.trim()}\n\n` +
+      `📅 PLAN DE CLASES\n` +
+      `Horas por día: ${horasDia} hora${horasDia === 2 ? 's' : ''}\n` +
+      `Clases a la semana: ${diasSemana} día${diasSemana !== 1 ? 's' : ''}\n` +
+      `Días seleccionados: ${diasSel.join(', ')}\n` +
+      `Franja horaria fija: ${franja}\n\n` +
+      `🤖 PLATAFORMA DE PRÁCTICA IA\n` +
+      `${iaPlatform === 'trimestral'
+        ? `Speakology IA — cargo único trimestral de ${formatCOP(SPEAKOLOGY_FEE)} COP`
+        : 'Plataforma mensual gratis (uso de ChatGPT) — sin costo adicional'}\n\n` +
+      `💰 PRECIO ESTIMADO\n` +
+      `${precio.unidades} ${precio.label}s al mes\n` +
+      `Precio regular: ${formatCOP(precio.regular)} COP\n` +
+      `Precio final clases: ${formatCOP(precio.final)} COP (${formatUSD(precio.final)})\n` +
+      `${iaFee > 0 ? `+ Activación Speakology IA (única vez cada 3 meses): ${formatCOP(iaFee)} COP\n` : ''}` +
+      `Total a pagar este mes: ${formatCOP(totalFinal)} COP (${formatUSD(totalFinal)})\n` +
+      `Valor por ${precio.label}: ~${formatCOP(precio.valorUnit)} COP\n\n` +
+      `💳 MÉTODO DE PAGO PREFERIDO\n` +
+      `${payMethod === 'bold' ? '💳 Bold / PSE — Pago en COP' : '🌐 PayPal — Pago en USD'}`;
+    openWhatsApp(mensaje);
+    setSent(true);
   };
 
   return (
@@ -225,7 +210,7 @@ export function ClasesVirtualesModal({
               </div>
               <h4 className="text-xl font-bold mb-3">¡Listo! 🎉</h4>
               <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
-                Hemos recibido tu solicitud. En breve te enviaremos la cotización a tu correo.
+                Se abrió WhatsApp con tu solicitud. Toca <strong>Enviar</strong> en WhatsApp para completarla.
               </p>
               <Button className="rounded-full bg-violet-600 hover:bg-violet-700 text-white px-8" onClick={onClose}>
                 Cerrar
@@ -487,7 +472,7 @@ export function ClasesVirtualesModal({
                 {/* Nota */}
                 <div className="px-5 pb-3">
                   <p className="text-[11px] text-muted-foreground">
-                    📧 Recibirás la confirmación y detalles de pago en tu correo
+                    📲 Te contactaremos por WhatsApp para confirmar y coordinar el pago
                   </p>
                 </div>
               </div>
@@ -538,19 +523,12 @@ export function ClasesVirtualesModal({
               <Button
                 className="w-full rounded-xl font-bold py-6 bg-violet-600 hover:bg-violet-700 text-white disabled:opacity-50"
                 onClick={handleSubmit}
-                disabled={sending || !canSubmit}
+                disabled={!canSubmit}
               >
-                {sending ? (
-                  <span className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Enviando solicitud...
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-2">
-                    <Send className="w-4 h-4" />
-                    Enviar solicitud
-                  </span>
-                )}
+                <span className="flex items-center gap-2">
+                  <Send className="w-4 h-4" />
+                  Enviar por WhatsApp
+                </span>
               </Button>
             </>
           )}

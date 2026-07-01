@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, ChevronDown, ChevronUp, Send, MessageCircle } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { openWhatsApp } from '@/lib/whatsapp';
 import type { AuthModal } from '@/lib/index';
 
 interface FAQPageProps {
@@ -86,7 +86,7 @@ const ALL_FAQS = [
   {
     id: 'q12', category: 'Precios',
     question: '¿Qué métodos de pago aceptan?',
-    answer: 'Aceptamos PayPal (disponible desde cualquier país del mundo) y Bold — PSE (para pagos desde Colombia). El proceso de pago y las instrucciones se coordinan escribiéndonos a blangenglishlearning@blangenglish.com.',
+    answer: 'Aceptamos PayPal (disponible desde cualquier país del mundo) y Bold — PSE (para pagos desde Colombia). El proceso de pago y las instrucciones se coordinan escribiéndonos por WhatsApp al +57 323 640 5246.',
   },
   {
     id: 'q13', category: 'Precios',
@@ -107,12 +107,12 @@ const ALL_FAQS = [
   {
     id: 'q16', category: 'Sesiones',
     question: '¿Cuánto cuesta una sesión en vivo?',
-    answer: 'Cada sesión tiene un costo de $14 USD / $50,000 COP. Para agendar escríbenos a blangenglishlearning@blangenglish.com — allí te informamos los horarios disponibles y coordinamos el pago.',
+    answer: 'Cada sesión tiene un costo de $14 USD / $50,000 COP. Para agendar escríbenos por WhatsApp al +57 323 640 5246 — te informamos los horarios disponibles y coordinamos el pago.',
   },
   {
     id: 'q17', category: 'Sesiones',
     question: '¿Cómo cancelo o reprogramo una sesión?',
-    answer: 'Puedes cancelar o reprogramar una sesión con al menos 24 horas de anticipación escribiéndonos a blangenglishlearning@blangenglish.com. Si no se cancela dentro de ese plazo o no asistes, la sesión se considera realizada y no habrá reembolso.',
+    answer: 'Puedes cancelar o reprogramar una sesión con al menos 24 horas de anticipación escribiéndonos por WhatsApp al +57 323 640 5246. Si no se cancela dentro de ese plazo o no asistes, la sesión se considera realizada y no habrá reembolso.',
   },
   {
     id: 'q18', category: 'Sesiones',
@@ -127,7 +127,7 @@ const ALL_FAQS = [
   {
     id: 'q31', category: 'Sesiones',
     question: '¿Cómo agendo una sesión en vivo?',
-    answer: 'Escríbenos a blangenglishlearning@blangenglish.com. Te informaremos los horarios disponibles publicados por nuestro equipo y coordinaremos el pago. Una vez confirmado, recibirás el enlace de Google Meet para tu sesión.',
+    answer: 'Escríbenos por WhatsApp al +57 323 640 5246. Te informaremos los horarios disponibles y coordinaremos el pago. Una vez confirmado, recibirás el enlace de Google Meet para tu sesión.',
   },
   // 🤖 Práctica con IA
   {
@@ -196,7 +196,6 @@ export default function FAQ({ isLoggedIn, onOpenAuth, onLogout, userName }: FAQP
 
   // Contact form
   const [contactForm, setContactForm] = useState({ name: '', email: '', category: '', subject: '', message: '' });
-  const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [sendError, setSendError] = useState('');
 
@@ -209,22 +208,18 @@ export default function FAQ({ isLoggedIn, onOpenAuth, onLogout, userName }: FAQP
     });
   }, [search, activeCategory]);
 
-  const handleContactSubmit = async (e: React.FormEvent) => {
+  const handleContactSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setSending(true);
-    setSendError('');
-    try {
-      const { error } = await supabase.functions.invoke('send-contact-email', {
-        body: { type: 'faq_contact', ...contactForm },
-      });
-      if (error) throw error;
-      setSent(true);
-      setContactForm({ name: '', email: '', category: '', subject: '', message: '' });
-    } catch {
-      setSendError('Hubo un problema al enviar. Por favor intenta de nuevo.');
-    } finally {
-      setSending(false);
-    }
+    const mensaje =
+      `📩 MENSAJE DE CONTACTO — BLANG\n\n` +
+      `Tipo: ${contactForm.category}\n` +
+      `Asunto: ${contactForm.subject}\n` +
+      `Nombre: ${contactForm.name}\n` +
+      `Correo: ${contactForm.email}\n\n` +
+      `Mensaje:\n${contactForm.message}`;
+    openWhatsApp(mensaje);
+    setSent(true);
+    setContactForm({ name: '', email: '', category: '', subject: '', message: '' });
   };
 
   return (
@@ -405,7 +400,7 @@ export default function FAQ({ isLoggedIn, onOpenAuth, onLogout, userName }: FAQP
                 <div className="text-6xl mb-4">🎉</div>
                 <h3 className="text-2xl font-bold mb-2">¡Mensaje enviado!</h3>
                 <p className="text-muted-foreground mb-6">
-                  Recibimos tu mensaje y te responderemos a la brevedad posible a tu correo. 📧
+                  Se abrió WhatsApp con tu mensaje. Toca <strong>Enviar</strong> para completarlo. 📲
                 </p>
                 <Button variant="outline" className="rounded-full" onClick={() => setSent(false)}>
                   Enviar otro mensaje
@@ -474,25 +469,18 @@ export default function FAQ({ isLoggedIn, onOpenAuth, onLogout, userName }: FAQP
                 )}
 
                 <p className="text-xs text-muted-foreground text-center">
-                  Te responderemos lo más pronto posible a tu correo electrónico 💜
+                  Se abrirá WhatsApp con tu mensaje listo para enviar 📲
                 </p>
 
                 <Button
                   type="submit" size="lg"
                   className="w-full rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-6"
-                  disabled={sending || !contactForm.category}
+                  disabled={!contactForm.category}
                 >
-                  {sending ? (
-                    <span className="flex items-center gap-2">
-                      <motion.span animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }} className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
-                      Enviando...
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-2">
-                      <Send className="w-4 h-4" />
-                      Enviar mensaje
-                    </span>
-                  )}
+                  <span className="flex items-center gap-2">
+                    <Send className="w-4 h-4" />
+                    Enviar por WhatsApp
+                  </span>
                 </Button>
               </form>
             )}

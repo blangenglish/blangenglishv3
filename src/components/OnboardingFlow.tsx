@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
+import { openWhatsApp } from '@/lib/whatsapp';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 const AMOUNT_FULL_USD = 16;
@@ -198,15 +199,7 @@ export function OnboardingFlow({
         console.warn('DB history insert failed (non-fatal)', _dbErr);
       }
 
-      try {
-        const { error: edError } = await supabase.functions.invoke('send-trial-request-2026', {
-          body: { userName: trialName, userEmail: trialEmail, message: msg, requestType: 'trial_request' },
-        });
-        if (edError) console.warn('[Email non-fatal]', edError);
-      } catch (_emErr) {
-        console.warn('[Email non-fatal]', _emErr);
-      }
-
+      openWhatsApp(msg);
       goTo('TRIAL_SENT');
     } catch (err) {
       const msgErr = err instanceof Error ? err.message : String(err);
@@ -229,21 +222,7 @@ export function OnboardingFlow({
         'Método de pago: ' + (payMethod === 'paypal' ? 'PayPal' : 'PSE / Transferencia bancaria') + '\n' +
         'Monto: $' + amount + ' USD';
 
-      try {
-        const { error: edError2 } = await supabase.functions.invoke('send-trial-request-2026', {
-          body: {
-            userName: payName,
-            userEmail: payEmail,
-            message: msg,
-            requestType: 'payment_request',
-            paymentMethod: payMethod,
-          },
-        });
-        if (edError2) console.warn('[Payment email non-fatal]', edError2);
-      } catch (_payEmErr) {
-        console.warn('[Payment email non-fatal]', _payEmErr);
-      }
-
+      openWhatsApp(msg);
       goTo('PAYMENT_SENT');
     } catch (err) {
       const msgErr2 = err instanceof Error ? err.message : String(err);
@@ -635,7 +614,7 @@ function TrialFormView({
       {emailError && (
         <div className="rounded-xl bg-red-50 border border-red-200 p-3">
           <p className="text-xs text-red-700">{emailError}</p>
-          <p className="text-xs text-red-600 mt-1">Si el problema persiste, escríbenos a <strong>blangenglishlearning@blangenglish.com</strong></p>
+          <p className="text-xs text-red-600 mt-1">Si el problema persiste, escríbenos por WhatsApp al <strong>+57 323 640 5246</strong></p>
         </div>
       )}
 
@@ -765,7 +744,7 @@ function PaymentFormView({
       {emailError && (
         <div className="rounded-xl bg-red-50 border border-red-200 p-3">
           <p className="text-xs text-red-700">{emailError}</p>
-          <p className="text-xs text-red-600 mt-1">Si el problema persiste, escríbenos a <strong>blangenglishlearning@blangenglish.com</strong></p>
+          <p className="text-xs text-red-600 mt-1">Si el problema persiste, escríbenos por WhatsApp al <strong>+57 323 640 5246</strong></p>
         </div>
       )}
 
@@ -806,7 +785,7 @@ function PaymentSentView({ onClose }: { onClose: () => void }) {
       </div>
       <div className="rounded-xl bg-blue-50 border border-blue-200 p-3 text-left">
         <p className="text-xs text-blue-700">
-          ⏱ Tu acceso se activa en máximo <strong>24 horas hábiles</strong> tras confirmar tu pago. Si tienes dudas, escríbenos a <strong>blangenglishlearning@blangenglish.com</strong>
+          ⏱ Tu acceso se activa en máximo <strong>24 horas hábiles</strong> tras confirmar tu pago. Si tienes dudas, escríbenos por WhatsApp al <strong>+57 323 640 5246</strong>
         </p>
       </div>
       <Button className="w-full rounded-2xl py-4 font-bold" onClick={onClose}>

@@ -12,6 +12,7 @@ import { IMAGES } from '@/assets/images';
 import { ROUTE_PATHS } from '@/lib/index';
 import type { AuthModal } from '@/lib/index';
 import { getAllProgressForStudent, getUnitProgress, hasMigrated, markMigrated, mergeFromRemote } from '@/lib/localProgress';
+import { openWhatsApp } from '@/lib/whatsapp';
 import { supabase } from '@/integrations/supabase/client';
 import { UnitViewer } from '@/components/UnitViewer';
 import { RenewalAlert } from '@/components/RenewalAlert';
@@ -50,8 +51,8 @@ const LEVEL_COLORS: Record<string, { color: string; badge: string }> = {
 
 const FAQ_QUICK = [
   { q: '¿Cómo cancelo mi suscripción?', a: 'Ve a la pestaña "Pagos" en tu perfil y selecciona "Cancelar suscripción". Tu acceso continuará hasta el final del período pagado.' },
-  { q: '¿Puedo cambiar mi correo?', a: 'Por seguridad el correo no se puede cambiar directamente. Escríbenos a blangenglishlearning@blangenglish.com con tu solicitud.' },
-  { q: '¿Cómo reservo una sesión en vivo?', a: 'Desde la sección "Sesión con Profesor" del menú podrás ver los horarios disponibles y reservar. El costo es de $14 USD / $50,000 COP por sesión. Para un plan mensual personalizado escríbenos a blangenglishlearning@blangenglish.com.' },
+  { q: '¿Puedo cambiar mi correo?', a: 'Por seguridad el correo no se puede cambiar directamente. Escríbenos por WhatsApp al +57 323 640 5246 con tu solicitud.' },
+  { q: '¿Cómo reservo una sesión en vivo?', a: 'Desde la sección "Sesión con Profesor" del menú podrás ver los horarios disponibles y reservar. El costo es de $14 USD / $50,000 COP por sesión. Para un plan mensual personalizado escríbenos por WhatsApp al +57 323 640 5246.' },
   { q: '¿Cómo funciona la práctica con IA?', a: 'Al final de cada unidad encontrarás el paso 5 de práctica con IA, donde podrás conversar y escribir con inteligencia artificial para reforzar lo aprendido.' },
   { q: '¿Qué pasa si tengo un problema técnico?', a: 'Escríbenos usando el formulario de la sección de Preguntas Frecuentes o por nuestros canales de WhatsApp e Instagram.' },
 ];
@@ -569,16 +570,10 @@ function DeleteAccountRequest({
               if (!userId) return;
               setTrialDeleteSending(true);
               try {
-                await supabase.functions.invoke('send-contact-email', {
-                  body: {
-                    type: 'faq_contact',
-                    name,
-                    email,
-                    subject: 'Solicitud de eliminación de cuenta',
-                    category: '🗑️ Eliminar cuenta',
-                    message: `El estudiante solicita la eliminación de su cuenta.\n\nNombre: ${name}\nCorreo: ${email}\nID: ${userId}\n\nMotivo: ${trialDeleteReason || 'No especificado'}`,
-                  },
-                });
+                openWhatsApp(
+                  `🗑️ SOLICITUD DE ELIMINACIÓN DE CUENTA\n\n` +
+                  `Nombre: ${name}\nCorreo: ${email}\nID: ${userId}\n\nMotivo: ${trialDeleteReason || 'No especificado'}`
+                );
               } catch { /* non-fatal */ }
               setTrialDeleteSent(true);
               setTrialDeleteSending(false);
@@ -701,8 +696,8 @@ function PagoSolicitudForm({
         </p>
         <p className="text-xs text-muted-foreground">
           ¿Dudas?{' '}
-          <a href="mailto:blangenglishlearning@blangenglish.com" className="text-primary font-semibold hover:underline">
-            blangenglishlearning@blangenglish.com
+          <a href="https://wa.me/573236405246" target="_blank" rel="noopener noreferrer" className="text-primary font-semibold hover:underline">
+            +57 323 640 5246 (WhatsApp)
           </a>
         </p>
       </div>
@@ -758,9 +753,9 @@ function PagoSolicitudForm({
       </div>
 
       <div className="bg-muted/30 rounded-xl p-3 text-xs text-muted-foreground leading-relaxed">
-        Al enviar, el administrador verificará el pago y activará tu cuenta en máximo 48 horas hábiles. Escríbenos a{' '}
-        <a href="mailto:blangenglishlearning@blangenglish.com" className="text-primary font-semibold">
-          blangenglishlearning@blangenglish.com
+        Al enviar, el administrador verificará el pago y activará tu cuenta en máximo 48 horas hábiles. Escríbenos por{' '}
+        <a href="https://wa.me/573236405246" target="_blank" rel="noopener noreferrer" className="text-primary font-semibold">
+          WhatsApp +57 323 640 5246
         </a>{' '}con cualquier duda.
       </div>
 
@@ -912,8 +907,8 @@ function PlanPickerInline({
         </p>
         <p className="text-xs text-muted-foreground">
           ¿Dudas?{' '}
-          <a href="mailto:blangenglishlearning@blangenglish.com" className="text-primary font-semibold hover:underline">
-            blangenglishlearning@blangenglish.com
+          <a href="https://wa.me/573236405246" target="_blank" rel="noopener noreferrer" className="text-primary font-semibold hover:underline">
+            +57 323 640 5246 (WhatsApp)
           </a>
         </p>
       </div>
@@ -1380,11 +1375,12 @@ function UpdateRequestForm({ studentName, studentEmail }: { studentName: string;
     setFormError('');
     setSending(true);
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke('send-profile-update-request-2026', {
-        body: { studentName, studentEmail, field, newValue: newValue.trim(), message: message.trim() },
-      });
-      if (fnErr) throw fnErr;
-      if (data?.success === false && !data?.skipped) throw new Error('No se pudo enviar');
+      openWhatsApp(
+        `📝 SOLICITUD DE ACTUALIZACIÓN DE PERFIL\n\n` +
+        `Nombre: ${studentName}\nCorreo: ${studentEmail}\n\n` +
+        `Campo a cambiar: ${field}\nNuevo valor: ${newValue.trim()}` +
+        `${message.trim() ? `\n\nMensaje adicional: ${message.trim()}` : ''}`
+      );
       setSent(true);
     } catch (_) {
       setFormError('Hubo un problema al enviar tu solicitud. Intenta de nuevo.');
@@ -1956,20 +1952,16 @@ useEffect(() => {
         // Éxito (data?.success === true o cualquier respuesta sin error)
         setScheduleSlots(prev => prev.filter(s => s.id !== bookingModalSlot.id));
         setBookingSuccess(true);
-        // Fire-and-forget: no awaitar para no bloquear el flujo
-        supabase.functions.invoke('send-session-email', {
-          body: {
-            type: 'slot_booking',
-            studentName,
-            studentEmail,
-            slotDate: bookingModalSlot.date,
-            slotStartTime: bookingModalSlot.start_time,
-            slotEndTime: bookingModalSlot.end_time,
-            teacherName: bookingModalSlot.teacher_name,
-            topic: bookingFormTopic.trim(),
-            paymentMethod: bookingPaymentMethod,
-          },
-        }).catch(() => {});
+        // Fire-and-forget: abrir WhatsApp con los detalles de la reserva
+        openWhatsApp(
+          `📅 RESERVA DE SESIÓN EN VIVO\n\n` +
+          `Estudiante: ${studentName}\nCorreo: ${studentEmail}\n\n` +
+          `Fecha: ${bookingModalSlot.date}\n` +
+          `Horario: ${bookingModalSlot.start_time} – ${bookingModalSlot.end_time}\n` +
+          `Profesor: ${bookingModalSlot.teacher_name}\n` +
+          `Tema: ${bookingFormTopic.trim()}\n` +
+          `Método de pago: ${bookingPaymentMethod}`
+        );
       }
     } catch (_) {
       setBookingError('Error de conexión. Verifica tu internet e intenta de nuevo.');
@@ -2126,19 +2118,15 @@ useEffect(() => {
         weekly_schedule: sessionWeekly ? sessionWeeklySchedule : null,
         objective: sessionObjective || null,
       });
-      // Send email notification to admin
-      await supabase.functions.invoke('send-session-email', {
-        body: {
-          type: 'session_request',
-          studentName: sessionName,
-          studentEmail: sessionEmail,
-          sessions: filledSlots,
-          weekly: sessionWeekly,
-          weeklyHours: sessionWeeklyHours,
-          weeklySchedule: sessionWeeklySchedule,
-          objective: sessionObjective,
-        },
-      });
+      // Notificar al admin por WhatsApp
+      const slotsTexto = filledSlots.map((s, i) => `  Sesión ${i + 1}: ${s.date || '?'} — ${s.topic || 'sin tema'}`).join('\n');
+      openWhatsApp(
+        `🎓 SOLICITUD DE CLASES SEMANALES\n\n` +
+        `Estudiante: ${sessionName}\nCorreo: ${sessionEmail}\n\n` +
+        `Sesiones solicitadas:\n${slotsTexto}` +
+        `${sessionWeekly ? `\n\nPlan semanal: Sí\nHoras semanales: ${sessionWeeklyHours}\nHorario: ${sessionWeeklySchedule}` : ''}` +
+        `${sessionObjective ? `\n\nObjetivo: ${sessionObjective}` : ''}`
+      );
     } catch (_) { /* ignore, still show success */ }
     setSessionLoading(false);
     setSessionSent(true);
@@ -2292,10 +2280,10 @@ useEffect(() => {
                         <p className="text-xs text-amber-700">📌 Los datos bancarios serán enviados a tu correo al confirmar la solicitud.</p>
                       )}
                     </div>
-                    <p className="text-xs font-bold">Envía el comprobante a:</p>
+                    <p className="text-xs font-bold">Envía el comprobante por WhatsApp:</p>
                     <div className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 border border-emerald-100">
-                      <span className="text-xs font-mono flex-1 truncate">blangenglishlearning@blangenglish.com</span>
-                      <button onClick={() => { navigator.clipboard.writeText('blangenglishlearning@blangenglish.com'); setModalCopied(true); setTimeout(()=>setModalCopied(false),2000); }} className="text-primary shrink-0">
+                      <span className="text-xs font-mono flex-1 truncate">+57 323 640 5246</span>
+                      <button onClick={() => { navigator.clipboard.writeText('+573236405246'); setModalCopied(true); setTimeout(()=>setModalCopied(false),2000); }} className="text-primary shrink-0">
                         {modalCopied ? <CheckCircle2 className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
                       </button>
                     </div>
@@ -2418,12 +2406,14 @@ useEffect(() => {
                     </p>
                     <p className="text-amber-700 dark:text-amber-400 text-sm mt-0.5 leading-snug">
                       Recuerda pagar el día <strong>{fechaStr}</strong> un valor de <strong>{precio}</strong>.{' '}
-                      Escríbenos a{' '}
+                      Escríbenos por{' '}
                       <a
-                        href="mailto:blangenglishlearning@blangenglish.com"
+                        href="https://wa.me/573236405246"
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className="underline font-semibold hover:text-amber-900 dark:hover:text-amber-200"
                       >
-                        blangenglishlearning@blangenglish.com
+                        WhatsApp +57 323 640 5246
                       </a>{' '}
                       para enviarte el link de pago.
                     </p>
@@ -3684,7 +3674,7 @@ useEffect(() => {
                               </div>
                             </div>
                           </div>
-                          <p className="mt-4 text-xs text-amber-700">¿Dudas? Escríbenos a <strong>blangenglishlearning@blangenglish.com</strong></p>
+                          <p className="mt-4 text-xs text-amber-700">¿Dudas? Escríbenos por WhatsApp al <strong>+57 323 640 5246</strong></p>
                         </div>
                       );
                     }
