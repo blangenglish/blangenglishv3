@@ -1459,10 +1459,9 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
         // (instantáneo, no requiere red ni puede "quedarse cargando").
         let pm: Record<string, any> = getUnitProgress(studentId, unitId);
 
-        // Respaldo: si no hay nada local para esta unidad y aún no se migró el
-        // historial completo (ver Dashboard), traer solo esta unidad desde Supabase
-        // para no mostrarla como "no iniciada" si en realidad ya estaba completada.
-        if (Object.keys(pm).length === 0 && !hasMigrated(studentId)) {
+        // Respaldo: si no hay nada local para esta unidad, buscar en Supabase
+        // (cubre el caso de dispositivo nuevo o caché borrada).
+        if (Object.keys(pm).length === 0) {
           try {
             const { data: remoteRows } = await Promise.race([
               supabase.from('unit_progress')
@@ -1475,7 +1474,7 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
               pm = getUnitProgress(studentId, unitId);
             }
           } catch (e) {
-            console.error('[UnitViewer] ⚠️ No se pudo respaldar el progreso histórico desde Supabase:', e);
+            console.error('[UnitViewer] ⚠️ No se pudo obtener progreso desde Supabase:', e);
           }
         }
         setProgress(pm);

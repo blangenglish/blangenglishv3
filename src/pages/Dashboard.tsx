@@ -1855,20 +1855,18 @@ useEffect(() => {
       setCurrentUserId(user.id);
       setSessionEmail(user.email || '');
       refreshProfile(user.id);
-      // Migración única: traer a localStorage el progreso que ya existía en Supabase
-      // antes de este cambio, para no "perder" lo que el estudiante ya había completado.
-      if (!hasMigrated(user.id)) {
-        try {
-          const { data: remoteRows } = await supabase
-            .from('unit_progress')
-            .select('unit_id, stage, completed, completed_at, quiz_passed')
-            .eq('student_id', user.id);
-          if (remoteRows) mergeFromRemote(user.id, remoteRows);
-        } catch (e) {
-          console.error('[Dashboard] Error migrando progreso desde Supabase:', e);
-        }
-        markMigrated(user.id);
+      // Sincronizar progreso desde Supabase en cada inicio de sesión
+      // para que el progreso se refleje en todos los dispositivos del estudiante.
+      try {
+        const { data: remoteRows } = await supabase
+          .from('unit_progress')
+          .select('unit_id, stage, completed, completed_at, quiz_passed')
+          .eq('student_id', user.id);
+        if (remoteRows) mergeFromRemote(user.id, remoteRows);
+      } catch (e) {
+        console.error('[Dashboard] Error sincronizando progreso desde Supabase:', e);
       }
+      markMigrated(user.id);
       // Progreso real: leído de localStorage (fuente de verdad), no de Supabase
       const localData = getAllProgressForStudent(user.id).filter(p => p.completed);
       const uniqueUnits = new Set(localData.map(p => p.unitId));
