@@ -12,6 +12,7 @@ import { usePricingPlans, useSiteSettings } from '@/hooks/useSupabaseData';
 import type { DBPricingPlan } from '@/lib/admin';
 import type { AuthModal } from '@/lib/index';
 import { supabase } from '@/integrations/supabase/client';
+import { openWhatsApp } from '@/lib/whatsapp';
 import { ClasesVirtualesModal } from '@/components/ClasesVirtualesModal';
 import { BeneficiosClasesModal } from '@/components/BeneficiosClasesModal';
 
@@ -268,20 +269,17 @@ export default function PricingPage({ isLoggedIn = false, onOpenAuth, onLogout, 
         setPubError(data?.error || 'Ocurrió un error. Intenta de nuevo.');
         return;
       }
-      supabase.functions.invoke('send-session-email', {
-        body: {
-          type: 'slot_booking',
-          studentName: pubForm.name.trim(),
-          studentEmail: pubForm.email.trim(),
-          studentPhone: pubForm.phone.trim(),
-          date: selSlot.date,
-          startTime: selSlot.start_time,
-          endTime: selSlot.end_time,
-          teacherName: selSlot.teacher_name,
-          topic: pubForm.topic.trim(),
-          paymentMethod: pubForm.paymentMethod,
-        },
-      }).catch(() => {});
+      openWhatsApp(
+        `📅 RESERVA DE SESIÓN EN VIVO\n\n` +
+        `Nombre: ${pubForm.name.trim()}\n` +
+        `Correo: ${pubForm.email.trim()}\n` +
+        `Teléfono: ${pubForm.phone.trim() || 'No indicado'}\n\n` +
+        `Fecha: ${selSlot.date}\n` +
+        `Hora: ${selSlot.start_time} - ${selSlot.end_time}\n` +
+        `Profesor: ${selSlot.teacher_name}\n` +
+        `Tema: ${pubForm.topic.trim()}\n` +
+        `Método de pago: ${pubForm.paymentMethod || 'No especificado'}`
+      );
       setSlotsStep('success');
     } catch {
       setPubError('Ocurrió un error. Intenta de nuevo.');
