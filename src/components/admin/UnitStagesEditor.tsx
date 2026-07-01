@@ -21,6 +21,15 @@ import {
 } from '@/lib/stages';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
+function getGoogleDriveId(url: string): string | null {
+  if (!url) return null;
+  const m1 = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (m1) return m1[1];
+  const m2 = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (m2) return m2[1];
+  return null;
+}
+
 function extractYouTubeId(url: string) {
   const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&?/\s]{11})/);
   return m ? m[1] : null;
@@ -154,6 +163,7 @@ function FileUploadZone({
   const [progress, setProgress] = useState(0);
   const [drag, setDrag] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [driveInput, setDriveInput] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const cfg = MATERIAL_TYPE_CONFIG[materialType];
 
@@ -191,7 +201,7 @@ function FileUploadZone({
   };
 
   const handleDelete = async () => {
-    if (value) {
+    if (value && !getGoogleDriveId(value)) {
       const p = value.split('/unit-media/')[1];
       if (p) await supabase.storage.from('unit-media').remove([decodeURIComponent(p)]);
     }
@@ -200,11 +210,16 @@ function FileUploadZone({
 
   // ── Already uploaded ──
   if (value && !uploading) {
+    const driveId = getGoogleDriveId(value);
     return (
       <div className="space-y-2">
         <div className="rounded-lg border border-border bg-muted/20 overflow-hidden">
           {materialType === 'image' && (
-            <img src={value} alt="" className="w-full max-h-52 object-contain" />
+            driveId
+              ? <a href={value} target="_blank" rel="noopener noreferrer">
+                  <img src={`https://drive.google.com/thumbnail?id=${driveId}&sz=w800`} alt="" className="w-full max-h-52 object-contain hover:opacity-90 transition-opacity cursor-pointer" />
+                </a>
+              : <img src={value} alt="" className="w-full max-h-52 object-contain" />
           )}
           {materialType === 'video' && (
             <video src={value} controls className="w-full max-h-52 bg-black" />
@@ -305,6 +320,31 @@ function FileUploadZone({
           <p className="text-[11px] text-muted-foreground mt-2">
             Formatos: {cfg.accept.replace(/\./g, '').toUpperCase()} · Máx. 200 MB
           </p>
+        </div>
+      )}
+
+      {materialType === 'image' && !uploading && (
+        <div className="space-y-1">
+          <p className="text-[11px] text-muted-foreground text-center">— o pega una URL de Google Drive —</p>
+          <div className="flex gap-2">
+            <Input
+              value={driveInput}
+              onChange={e => { setDriveInput(e.target.value); setErr(null); }}
+              placeholder="https://drive.google.com/file/d/..."
+              className="text-xs h-8"
+            />
+            <Button
+              type="button" size="sm"
+              className="h-8 text-xs shrink-0"
+              onClick={() => {
+                const id = getGoogleDriveId(driveInput.trim());
+                if (id) { onChange(driveInput.trim(), null); setDriveInput(''); }
+                else setErr('URL de Google Drive no válida. Asegúrate de compartir el archivo primero.');
+              }}
+            >
+              Usar
+            </Button>
+          </div>
         </div>
       )}
 

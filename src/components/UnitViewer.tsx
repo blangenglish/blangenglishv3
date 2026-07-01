@@ -14,6 +14,16 @@ import {
 import { STAGES, MATERIAL_TYPE_CONFIG, type Stage, type UnitStageMaterial } from '@/lib/stages';
 import { getUnitProgress, setStageCompleted, hasMigrated, mergeFromRemote } from '@/lib/localProgress';
 
+// ─── Google Drive helper ─────────────────────────────────────────────────────
+function getGoogleDriveId(url) {
+  if (!url) return null;
+  const m1 = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (m1) return m1[1];
+  const m2 = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (m2) return m2[1];
+  return null;
+}
+
 // ─── YouTube helpers ──────────────────────────────────────────────────────────
 function extractYouTubeId(url) {
   const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&?/\s]{11})/);
@@ -1192,30 +1202,43 @@ function MaterialItem({ mat, stage }: { mat: any; stage?: string }) {
         )}
         {mat.material_type === 'image' && mat.file_url && (
           <>
-            <img
-              src={mat.file_url}
-              alt={mat.title}
-              onClick={() => setLightboxUrl(mat.file_url)}
-              className="w-full rounded-lg max-h-64 object-contain cursor-zoom-in"
-            />
-            {lightboxUrl && (
-              <div
-                className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
-                onClick={() => setLightboxUrl(null)}
-              >
-                <button
-                  onClick={() => setLightboxUrl(null)}
-                  className="absolute top-4 right-4 text-white bg-black/50 hover:bg-black/80 rounded-full w-9 h-9 flex items-center justify-center text-xl font-bold"
-                >
-                  ✕
-                </button>
+            {getGoogleDriveId(mat.file_url) ? (
+              <a href={mat.file_url} target="_blank" rel="noopener noreferrer" className="block">
                 <img
-                  src={lightboxUrl}
-                  alt="Imagen ampliada"
-                  onClick={e => e.stopPropagation()}
-                  className="max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl"
+                  src={`https://drive.google.com/thumbnail?id=${getGoogleDriveId(mat.file_url)}&sz=w1200`}
+                  alt={mat.title}
+                  className="w-full rounded-lg max-h-64 object-contain cursor-pointer hover:opacity-90 transition-opacity"
                 />
-              </div>
+                <p className="text-[11px] text-muted-foreground text-center mt-1">🔗 Toca para abrir en Google Drive</p>
+              </a>
+            ) : (
+              <>
+                <img
+                  src={mat.file_url}
+                  alt={mat.title}
+                  onClick={() => setLightboxUrl(mat.file_url)}
+                  className="w-full rounded-lg max-h-64 object-contain cursor-zoom-in"
+                />
+                {lightboxUrl && (
+                  <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+                    onClick={() => setLightboxUrl(null)}
+                  >
+                    <button
+                      onClick={() => setLightboxUrl(null)}
+                      className="absolute top-4 right-4 text-white bg-black/50 hover:bg-black/80 rounded-full w-9 h-9 flex items-center justify-center text-xl font-bold"
+                    >
+                      ✕
+                    </button>
+                    <img
+                      src={lightboxUrl}
+                      alt="Imagen ampliada"
+                      onClick={e => e.stopPropagation()}
+                      className="max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl"
+                    />
+                  </div>
+                )}
+              </>
             )}
           </>
         )}
