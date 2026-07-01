@@ -146,7 +146,7 @@ function PlanSelector({ currentUserId, currentEmail, onPlanSaved, onOpenPaypal, 
 }) {
   const [selectedPlan, setSelectedPlan] = useState<'trial' | 'full' | null>(null);
   const trialDays = 7;
-  const [payMethod, setPayMethod] = useState<'pse' | 'paypal'>('pse');
+  const [payMethod, setPayMethod] = useState<'pse' | 'paypal' | 'bancolombia' | 'breb'>('paypal');
   const [saving, setSaving] = useState(false);
   const [step, setStep] = useState<'select' | 'pay'>('select');
 
@@ -216,19 +216,73 @@ function PlanSelector({ currentUserId, currentEmail, onPlanSaved, onOpenPaypal, 
             <svg viewBox="0 0 24 24" className="w-7 h-7 fill-[#003087] shrink-0"><path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.106zm14.146-14.42a3.35 3.35 0 0 0-.607-.541c-.013.076-.026.175-.041.254-.59 3.025-2.566 6.082-8.558 6.082H9.928l-1.182 7.519H12c.46 0 .85-.334.922-.789l.038-.197.733-4.64.047-.257a.932.932 0 0 1 .921-.789h.58c3.76 0 6.701-1.528 7.559-5.95.36-1.85.176-3.395-.578-4.692z"/></svg>
             <div className="text-left">
               <p className="font-bold text-[#003087] text-sm">{saving ? 'Preparando...' : 'Pagar con PayPal 💳'}</p>
-              <p className="text-xs text-muted-foreground">Activación automática al confirmar pago</p>
+              <p className="text-xs text-muted-foreground">Dólares (USD) — activación automática</p>
             </div>
           </button>
 
-          {/* PSE — próximamente */}
+          {/* PSE / Bold */}
           <button
-            className="w-full rounded-2xl border-2 p-4 flex items-center gap-3 border-border/40 bg-muted/20 opacity-60 cursor-not-allowed"
-            disabled
+            className="w-full rounded-2xl border-2 p-4 flex items-center gap-3 mb-3 border-violet-300 bg-violet-50 hover:border-violet-500 transition-all"
+            disabled={saving}
+            onClick={async () => {
+              setSaving(true);
+              const today = new Date(); const monthEnd = new Date(today); monthEnd.setMonth(today.getMonth() + 1);
+              const d = { student_id: currentUserId, plan_slug: 'monthly', plan_name: planLabel, status: 'pending_approval', amount_usd: amountUsd, payment_method: 'pse', approved_by_admin: false, account_enabled: false, current_period_end: monthEnd.toISOString() };
+              const { error: e1 } = await supabase.from('subscriptions').insert(d);
+              if (e1) await supabase.from('subscriptions').update(d).eq('student_id', currentUserId);
+              openWhatsApp(`💳 SOLICITUD DE PAGO — BLANG ENGLISH\n\nPlan: ${planLabel}\nMétodo: Bold / PSE (COP)\n\nPor favor envíame el link de pago. Incluye +$10.000 COP de recargo por transacción.`);
+              setSaving(false);
+              onPlanSaved();
+            }}
           >
-            <span className="text-2xl">🏦</span>
+            <span className="text-2xl">💳</span>
             <div className="text-left">
-              <p className="font-bold text-sm">PSE — Próximamente</p>
-              <p className="text-xs text-muted-foreground">Disponible muy pronto</p>
+              <p className="font-bold text-violet-700 text-sm">{saving ? 'Preparando...' : 'Bold / PSE'}</p>
+              <p className="text-xs text-muted-foreground">Pesos (COP) — +$10.000 recargo transacción</p>
+            </div>
+          </button>
+
+          {/* Bancolombia */}
+          <button
+            className="w-full rounded-2xl border-2 p-4 flex items-center gap-3 mb-3 border-yellow-300 bg-yellow-50 hover:border-yellow-500 transition-all"
+            disabled={saving}
+            onClick={async () => {
+              setSaving(true);
+              const today = new Date(); const monthEnd = new Date(today); monthEnd.setMonth(today.getMonth() + 1);
+              const d = { student_id: currentUserId, plan_slug: 'monthly', plan_name: planLabel, status: 'pending_approval', amount_usd: amountUsd, payment_method: 'bancolombia', approved_by_admin: false, account_enabled: false, current_period_end: monthEnd.toISOString() };
+              const { error: e1 } = await supabase.from('subscriptions').insert(d);
+              if (e1) await supabase.from('subscriptions').update(d).eq('student_id', currentUserId);
+              openWhatsApp(`🟡 SOLICITUD DE PAGO — BLANG ENGLISH\n\nPlan: ${planLabel}\nMétodo: Transferencia Bancolombia (cta. ahorros)\n\nPor favor envíame los datos de la cuenta para realizar la transferencia.`);
+              setSaving(false);
+              onPlanSaved();
+            }}
+          >
+            <span className="text-2xl">🟡</span>
+            <div className="text-left">
+              <p className="font-bold text-yellow-900 text-sm">{saving ? 'Preparando...' : 'Transferencia Bancolombia'}</p>
+              <p className="text-xs text-muted-foreground">Pesos (COP) — desde cta. Bancolombia (ahorros)</p>
+            </div>
+          </button>
+
+          {/* Bre-B */}
+          <button
+            className="w-full rounded-2xl border-2 p-4 flex items-center gap-3 border-teal-300 bg-teal-50 hover:border-teal-500 transition-all"
+            disabled={saving}
+            onClick={async () => {
+              setSaving(true);
+              const today = new Date(); const monthEnd = new Date(today); monthEnd.setMonth(today.getMonth() + 1);
+              const d = { student_id: currentUserId, plan_slug: 'monthly', plan_name: planLabel, status: 'pending_approval', amount_usd: amountUsd, payment_method: 'breb', approved_by_admin: false, account_enabled: false, current_period_end: monthEnd.toISOString() };
+              const { error: e1 } = await supabase.from('subscriptions').insert(d);
+              if (e1) await supabase.from('subscriptions').update(d).eq('student_id', currentUserId);
+              openWhatsApp(`🔑 SOLICITUD DE PAGO — BLANG ENGLISH\n\nPlan: ${planLabel}\nMétodo: Bre-B / Llave (cualquier banco colombiano)\n\nPor favor compárteme la llave Bre-B para realizar el pago.`);
+              setSaving(false);
+              onPlanSaved();
+            }}
+          >
+            <span className="text-2xl">🔑</span>
+            <div className="text-left">
+              <p className="font-bold text-teal-700 text-sm">{saving ? 'Preparando...' : 'Bre-B / Llave'}</p>
+              <p className="text-xs text-muted-foreground">Pesos (COP) — desde cualquier banco colombiano</p>
             </div>
           </button>
         </div>
@@ -263,16 +317,73 @@ function PlanSelector({ currentUserId, currentEmail, onPlanSaved, onOpenPaypal, 
           <svg viewBox="0 0 24 24" className="w-7 h-7 fill-[#003087] shrink-0"><path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.106zm14.146-14.42a3.35 3.35 0 0 0-.607-.541c-.013.076-.026.175-.041.254-.59 3.025-2.566 6.082-8.558 6.082H9.928l-1.182 7.519H12c.46 0 .85-.334.922-.789l.038-.197.733-4.64.047-.257a.932.932 0 0 1 .921-.789h.58c3.76 0 6.701-1.528 7.559-5.95.36-1.85.176-3.395-.578-4.692z"/></svg>
           <div className="text-left">
             <p className="font-bold text-[#003087] text-sm">{saving ? 'Preparando...' : 'Pagar con PayPal'}</p>
-            <p className="text-xs text-muted-foreground">Se abrirá el formulario de pago</p>
+            <p className="text-xs text-muted-foreground">Dólares (USD)</p>
           </div>
         </button>
 
-        {/* PSE — próximamente */}
-        <button disabled className="w-full rounded-2xl border-2 p-4 flex items-center gap-3 border-border/40 bg-muted/20 opacity-50 cursor-not-allowed">
-          <span className="text-2xl">🏦</span>
+        {/* PSE / Bold */}
+        <button
+          className="w-full rounded-2xl border-2 p-4 flex items-center gap-3 border-violet-300 bg-violet-50 hover:border-violet-500 transition-all"
+          disabled={saving}
+          onClick={async () => {
+            setSaving(true);
+            const today = new Date(); const monthEnd = new Date(today); monthEnd.setMonth(today.getMonth() + 1);
+            const d = { student_id: currentUserId, plan_slug: 'monthly', plan_name: 'Plan Mensual', status: 'pending_approval', amount_usd: 15, payment_method: 'pse', approved_by_admin: false, account_enabled: false, current_period_end: monthEnd.toISOString() };
+            const { error: e1 } = await supabase.from('subscriptions').insert(d);
+            if (e1) await supabase.from('subscriptions').update(d).eq('student_id', currentUserId);
+            openWhatsApp('💳 SOLICITUD DE PAGO — BLANG ENGLISH\n\nPlan: Plan Mensual\nMétodo: Bold / PSE (COP)\n\nPor favor envíame el link de pago. Incluye +$10.000 COP de recargo por transacción.');
+            setSaving(false);
+            onPlanSaved();
+          }}
+        >
+          <span className="text-2xl">💳</span>
           <div className="text-left">
-            <p className="font-bold text-sm">PSE — Próximamente</p>
-            <p className="text-xs text-muted-foreground">Disponible muy pronto</p>
+            <p className="font-bold text-violet-700 text-sm">{saving ? 'Preparando...' : 'Bold / PSE'}</p>
+            <p className="text-xs text-muted-foreground">Pesos (COP) — +$10.000 recargo transacción</p>
+          </div>
+        </button>
+
+        {/* Bancolombia */}
+        <button
+          className="w-full rounded-2xl border-2 p-4 flex items-center gap-3 border-yellow-300 bg-yellow-50 hover:border-yellow-500 transition-all"
+          disabled={saving}
+          onClick={async () => {
+            setSaving(true);
+            const today = new Date(); const monthEnd = new Date(today); monthEnd.setMonth(today.getMonth() + 1);
+            const d = { student_id: currentUserId, plan_slug: 'monthly', plan_name: 'Plan Mensual', status: 'pending_approval', amount_usd: 15, payment_method: 'bancolombia', approved_by_admin: false, account_enabled: false, current_period_end: monthEnd.toISOString() };
+            const { error: e1 } = await supabase.from('subscriptions').insert(d);
+            if (e1) await supabase.from('subscriptions').update(d).eq('student_id', currentUserId);
+            openWhatsApp('🟡 SOLICITUD DE PAGO — BLANG ENGLISH\n\nPlan: Plan Mensual\nMétodo: Transferencia Bancolombia (cta. ahorros)\n\nPor favor envíame los datos de la cuenta para realizar la transferencia.');
+            setSaving(false);
+            onPlanSaved();
+          }}
+        >
+          <span className="text-2xl">🟡</span>
+          <div className="text-left">
+            <p className="font-bold text-yellow-900 text-sm">{saving ? 'Preparando...' : 'Transferencia Bancolombia'}</p>
+            <p className="text-xs text-muted-foreground">Pesos (COP) — desde cta. Bancolombia (ahorros)</p>
+          </div>
+        </button>
+
+        {/* Bre-B */}
+        <button
+          className="w-full rounded-2xl border-2 p-4 flex items-center gap-3 border-teal-300 bg-teal-50 hover:border-teal-500 transition-all"
+          disabled={saving}
+          onClick={async () => {
+            setSaving(true);
+            const today = new Date(); const monthEnd = new Date(today); monthEnd.setMonth(today.getMonth() + 1);
+            const d = { student_id: currentUserId, plan_slug: 'monthly', plan_name: 'Plan Mensual', status: 'pending_approval', amount_usd: 15, payment_method: 'breb', approved_by_admin: false, account_enabled: false, current_period_end: monthEnd.toISOString() };
+            const { error: e1 } = await supabase.from('subscriptions').insert(d);
+            if (e1) await supabase.from('subscriptions').update(d).eq('student_id', currentUserId);
+            openWhatsApp('🔑 SOLICITUD DE PAGO — BLANG ENGLISH\n\nPlan: Plan Mensual\nMétodo: Bre-B / Llave (cualquier banco colombiano)\n\nPor favor compárteme la llave Bre-B para realizar el pago.');
+            setSaving(false);
+            onPlanSaved();
+          }}
+        >
+          <span className="text-2xl">🔑</span>
+          <div className="text-left">
+            <p className="font-bold text-teal-700 text-sm">{saving ? 'Preparando...' : 'Bre-B / Llave'}</p>
+            <p className="text-xs text-muted-foreground">Pesos (COP) — desde cualquier banco colombiano</p>
           </div>
         </button>
       </div>

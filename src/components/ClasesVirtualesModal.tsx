@@ -88,7 +88,7 @@ export function ClasesVirtualesModal({
   const [diasSemana, setDiasSemana] = useState<number>(2);
   const [diasSel, setDiasSel] = useState<string[]>([]);
   const [franja, setFranja] = useState('');
-  const [payMethod, setPayMethod] = useState<'bold' | 'paypal' | 'bancolombia'>('bold');
+  const [payMethod, setPayMethod] = useState<'bold' | 'paypal' | 'bancolombia' | 'breb'>('bold');
   const [iaPlatform, setIaPlatform] = useState<'mensual' | 'trimestral'>('mensual');
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
@@ -137,6 +137,8 @@ export function ClasesVirtualesModal({
   const precio = PRECIOS[horasDia][diasSemana as 2 | 3 | 4 | 5];
   const iaFee = iaPlatform === 'trimestral' ? SPEAKOLOGY_FEE : 0;
   const totalFinal = precio.final + iaFee;
+  const PSE_SURCHARGE = 10_000;
+  const effectiveTotal = payMethod === 'bold' ? totalFinal + PSE_SURCHARGE : totalFinal;
 
   const handleSubmit = () => {
     if (!canSubmit) return;
@@ -158,10 +160,11 @@ export function ClasesVirtualesModal({
       `Precio regular: ${formatCOP(precio.regular)} COP\n` +
       `Precio final clases: ${formatCOP(precio.final)} COP (${formatUSD(precio.final)})\n` +
       `${iaFee > 0 ? `+ Activación Speakology IA (única vez cada 3 meses): ${formatCOP(iaFee)} COP\n` : ''}` +
-      `Total a pagar este mes: ${formatCOP(totalFinal)} COP (${formatUSD(totalFinal)})\n` +
+      `Total a pagar este mes: ${formatCOP(effectiveTotal)} COP (${formatUSD(effectiveTotal)})\n` +
+      `${payMethod === 'bold' ? `Incluye recargo transacción Bold/PSE: +${formatCOP(PSE_SURCHARGE)} COP\n` : ''}` +
       `Valor por ${precio.label}: ~${formatCOP(precio.valorUnit)} COP\n\n` +
       `💳 MÉTODO DE PAGO PREFERIDO\n` +
-      `${payMethod === 'bold' ? '💳 Bold / PSE — Pago en COP' : payMethod === 'bancolombia' ? '🟡 Transferencia Bancolombia — Pago en COP' : '🌐 PayPal — Pago en USD'}`;
+      `${payMethod === 'bold' ? '💳 Bold / PSE — Pago en COP (+$10.000 recargo transacción)' : payMethod === 'bancolombia' ? '🟡 Transferencia Bancolombia — Pago en COP (cta. ahorros Bancolombia)' : payMethod === 'breb' ? '🔑 Bre-B / Llave — Pago en COP (cualquier banco colombiano)' : '🌐 PayPal — Pago en USD'}`;
     openWhatsApp(mensaje);
     setSent(true);
   };
@@ -426,18 +429,21 @@ export function ClasesVirtualesModal({
                     {payMethod !== 'paypal' ? (
                       <>
                         <p className="text-3xl font-extrabold text-violet-700 leading-none">
-                          {formatCOP(totalFinal)}
+                          {formatCOP(effectiveTotal)}
                           <span className="text-sm font-bold ml-1">COP / mes</span>
                         </p>
-                        <p className="text-xs text-muted-foreground mt-0.5">{formatUSD(totalFinal)}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{formatUSD(effectiveTotal)}</p>
+                        {payMethod === 'bold' && (
+                          <p className="text-[11px] text-orange-600 font-medium mt-0.5">+{formatCOP(PSE_SURCHARGE)} COP recargo transacción</p>
+                        )}
                       </>
                     ) : (
                       <>
                         <p className="text-3xl font-extrabold text-violet-700 leading-none">
-                          ${(totalFinal / TRM).toFixed(2)}
+                          ${(effectiveTotal / TRM).toFixed(2)}
                           <span className="text-sm font-bold ml-1">USD / mes</span>
                         </p>
-                        <p className="text-xs text-muted-foreground mt-0.5">{formatCOP(totalFinal)} COP</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{formatCOP(effectiveTotal)} COP</p>
                       </>
                     )}
                   </div>
@@ -480,25 +486,7 @@ export function ClasesVirtualesModal({
               {/* ── Selector de método de pago ── */}
               <div className="space-y-2">
                 <Label className="text-sm font-semibold">Método de pago *</Label>
-                <div className="grid grid-cols-3 gap-2">
-                  {/* Bold / PSE */}
-                  <button
-                    type="button"
-                    onClick={() => setPayMethod('bold')}
-                    className={`rounded-xl border-2 p-3 text-left transition-all ${
-                      payMethod === 'bold'
-                        ? 'border-violet-500 bg-violet-50 shadow-sm'
-                        : 'border-border/50 hover:border-violet-300 hover:bg-violet-50/50'
-                    }`}
-                  >
-                    <p className="text-base mb-0.5">💳</p>
-                    <p className="text-sm font-bold leading-tight">Bold / PSE</p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">Pesos (COP)</p>
-                    {payMethod === 'bold' && (
-                      <span className="inline-block mt-1.5 text-[10px] font-bold text-violet-700 bg-violet-100 rounded-full px-2 py-0.5">✓ Seleccionado</span>
-                    )}
-                  </button>
-
+                <div className="grid grid-cols-2 gap-2">
                   {/* PayPal */}
                   <button
                     type="button"
@@ -517,6 +505,25 @@ export function ClasesVirtualesModal({
                     )}
                   </button>
 
+                  {/* Bold / PSE */}
+                  <button
+                    type="button"
+                    onClick={() => setPayMethod('bold')}
+                    className={`rounded-xl border-2 p-3 text-left transition-all ${
+                      payMethod === 'bold'
+                        ? 'border-violet-500 bg-violet-50 shadow-sm'
+                        : 'border-border/50 hover:border-violet-300 hover:bg-violet-50/50'
+                    }`}
+                  >
+                    <p className="text-base mb-0.5">💳</p>
+                    <p className="text-sm font-bold leading-tight">Bold / PSE</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">Pesos (COP)</p>
+                    <p className="text-[10px] text-orange-600 font-medium mt-0.5">+$10.000 recargo transacción</p>
+                    {payMethod === 'bold' && (
+                      <span className="inline-block mt-1 text-[10px] font-bold text-violet-700 bg-violet-100 rounded-full px-2 py-0.5">✓ Seleccionado</span>
+                    )}
+                  </button>
+
                   {/* Bancolombia */}
                   <button
                     type="button"
@@ -530,8 +537,28 @@ export function ClasesVirtualesModal({
                     <p className="text-base mb-0.5">🟡</p>
                     <p className="text-sm font-bold leading-tight">Bancolombia</p>
                     <p className="text-[11px] text-muted-foreground mt-0.5">Pesos (COP)</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Desde cta. Bancolombia (ahorros)</p>
                     {payMethod === 'bancolombia' && (
-                      <span className="inline-block mt-1.5 text-[10px] font-bold text-yellow-800 bg-yellow-100 rounded-full px-2 py-0.5">✓ Seleccionado</span>
+                      <span className="inline-block mt-1 text-[10px] font-bold text-yellow-800 bg-yellow-100 rounded-full px-2 py-0.5">✓ Seleccionado</span>
+                    )}
+                  </button>
+
+                  {/* Bre-B */}
+                  <button
+                    type="button"
+                    onClick={() => setPayMethod('breb')}
+                    className={`rounded-xl border-2 p-3 text-left transition-all ${
+                      payMethod === 'breb'
+                        ? 'border-teal-500 bg-teal-50 shadow-sm'
+                        : 'border-border/50 hover:border-teal-300 hover:bg-teal-50/50'
+                    }`}
+                  >
+                    <p className="text-base mb-0.5">🔑</p>
+                    <p className="text-sm font-bold leading-tight">Bre-B / Llave</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">Pesos (COP)</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Desde cualquier banco colombiano</p>
+                    {payMethod === 'breb' && (
+                      <span className="inline-block mt-1 text-[10px] font-bold text-teal-700 bg-teal-100 rounded-full px-2 py-0.5">✓ Seleccionado</span>
                     )}
                   </button>
                 </div>

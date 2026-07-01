@@ -33,7 +33,7 @@ type FlowState =
   | 'LEVEL_SELECT'         // Seleccionar nivel manualmente
   | 'LEVEL_SAVED';         // Nivel guardado con éxito
 
-type PayMethod = 'paypal' | 'pse' | 'bancolombia';
+type PayMethod = 'paypal' | 'pse' | 'bancolombia' | 'breb';
 
 interface OnboardingFlowProps {
   open: boolean;
@@ -219,7 +219,7 @@ export function OnboardingFlow({
         'Plan seleccionado: ' + planLabel + '\n' +
         'Nombre: ' + payName + '\n' +
         'Correo: ' + payEmail + '\n' +
-        'Método de pago: ' + (payMethod === 'paypal' ? 'PayPal (USD)' : payMethod === 'bancolombia' ? 'Transferencia Bancolombia (COP)' : 'PSE / Bold (COP)') + '\n' +
+        'Método de pago: ' + (payMethod === 'paypal' ? 'PayPal (USD)' : payMethod === 'bancolombia' ? 'Transferencia Bancolombia — cta. ahorros Bancolombia (COP)' : payMethod === 'breb' ? 'Bre-B / Llave — cualquier banco colombiano (COP)' : 'PSE / Bold (COP)') + '\n' +
         'Monto: $' + amount + ' USD';
 
       openWhatsApp(msg);
@@ -704,7 +704,7 @@ function PaymentFormView({
       {/* Selector método de pago */}
       <div>
         <p className="text-xs font-semibold mb-2">¿Cómo prefieres pagar?</p>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
             onClick={() => onMethodChange('paypal')}
@@ -723,11 +723,11 @@ function PaymentFormView({
             onClick={() => onMethodChange('pse')}
             className={`rounded-xl py-3 px-2 text-sm font-bold border-2 transition-all flex flex-col items-center justify-center gap-1 ${
               payMethod === 'pse'
-                ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                ? 'border-violet-500 bg-violet-50 text-violet-700'
                 : 'border-border/40 text-muted-foreground hover:border-border'
             }`}
           >
-            <span className="text-lg">🏦</span>
+            <span className="text-lg">💳</span>
             <span>PSE / Bold</span>
             <span className="text-[10px] font-normal opacity-70">COP</span>
           </button>
@@ -742,6 +742,19 @@ function PaymentFormView({
           >
             <span className="text-lg">🟡</span>
             <span className="text-[11px]">Bancolombia</span>
+            <span className="text-[10px] font-normal opacity-70">COP (ahorros)</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => onMethodChange('breb')}
+            className={`rounded-xl py-3 px-2 text-sm font-bold border-2 transition-all flex flex-col items-center justify-center gap-1 ${
+              payMethod === 'breb'
+                ? 'border-teal-500 bg-teal-50 text-teal-700'
+                : 'border-border/40 text-muted-foreground hover:border-border'
+            }`}
+          >
+            <span className="text-lg">🔑</span>
+            <span className="text-[11px]">Bre-B / Llave</span>
             <span className="text-[10px] font-normal opacity-70">COP</span>
           </button>
         </div>
