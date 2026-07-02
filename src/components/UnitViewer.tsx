@@ -1444,9 +1444,9 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
         return _unitContentCache[unitId];
       };
 
-      // ── Paso 2: contenido (timeout de seguridad: 10 s) ──
+      // ── Paso 2: contenido (timeout de seguridad: 30 s) ──
       const timeoutFallback = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Timeout (>10 s) cargando la unidad')), 10000),
+        setTimeout(() => reject(new Error('Timeout (>30 s) cargando la unidad')), 30000),
       );
       const content = await Promise.race([getContent(), timeoutFallback]);
 
