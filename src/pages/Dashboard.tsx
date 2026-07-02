@@ -1914,29 +1914,35 @@ useEffect(() => {
   const refreshProfile = async (userId: string) => {
     setProfileLoading(true);
     try {
-    const [profRes, subRes, histRes, modRes] = await Promise.all([
-      supabase
-        .from('student_profiles')
-        .select('full_name, english_level, onboarding_step, is_admin_only, birthday, country, city, education_level, education_other, account_enabled, account_status, trial_active, trial_start_date, trial_end_date, created_at')
-        .eq('id', userId)
-        .maybeSingle(),
-      supabase
-        .from('subscriptions')
-        .select('*')
-        .eq('student_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-      supabase
-        .from('payment_history')
-        .select('*')
-        .eq('student_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(20),
-      supabase
-        .from('student_module_access')
-        .select('course_id, unit_id, is_active')
-        .eq('student_id', userId),
+    const profileTimeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('timeout cargando perfil')), 12_000)
+    );
+    const [profRes, subRes, histRes, modRes] = await Promise.race([
+      Promise.all([
+        supabase
+          .from('student_profiles')
+          .select('full_name, english_level, onboarding_step, is_admin_only, birthday, country, city, education_level, education_other, account_enabled, account_status, trial_active, trial_start_date, trial_end_date, created_at')
+          .eq('id', userId)
+          .maybeSingle(),
+        supabase
+          .from('subscriptions')
+          .select('*')
+          .eq('student_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        supabase
+          .from('payment_history')
+          .select('*')
+          .eq('student_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(20),
+        supabase
+          .from('student_module_access')
+          .select('course_id, unit_id, is_active')
+          .eq('student_id', userId),
+      ]),
+      profileTimeout,
     ]);
 
     const prof = profRes.data;
