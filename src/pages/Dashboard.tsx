@@ -726,14 +726,14 @@ function PagoSolicitudForm({
 }) {
   const [nombre, setNombre] = useState(defaultName);
   const [correo, setCorreo] = useState(defaultEmail);
-  const [metodo, setMetodo] = useState<'paypal' | 'bold_pse' | 'bancolombia'>('paypal');
+  const [metodo, setMetodo] = useState<'paypal' | 'bold_pse' | 'bancolombia' | 'breb'>('paypal');
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [formError, setFormError] = useState('');
 
   const canSubmit = nombre.trim() && correo.trim();
 
-  const metodoLabel = metodo === 'paypal' ? 'PayPal (USD)' : metodo === 'bancolombia' ? 'Transferencia Bancolombia (COP)' : 'Bold / PSE (COP)';
+  const metodoLabel = metodo === 'paypal' ? 'PayPal (USD)' : metodo === 'bancolombia' ? 'Transferencia Bancolombia — cta. ahorros (COP)' : metodo === 'breb' ? 'Bre-B / Llave — cualquier banco colombiano (COP)' : 'Bold / PSE (COP) — +$10.000 recargo transacción';
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
@@ -839,28 +839,39 @@ function PagoSolicitudForm({
 
       <div className="space-y-1.5">
         <Label className="text-sm font-semibold">Método de pago *</Label>
-        <div className="grid grid-cols-3 gap-2">
-          {([
-            { id: 'paypal', label: '💳 PayPal', sub: 'USD' },
-            { id: 'bold_pse', label: '🏦 Bold / PSE', sub: 'COP' },
-            { id: 'bancolombia', label: '🟡 Bancolombia', sub: 'COP' },
-          ] as const).map(m => (
-            <button
-              key={m.id}
-              type="button"
-              onClick={() => setMetodo(m.id)}
-              className={`py-3 rounded-xl font-bold text-sm border-2 transition-all flex flex-col items-center gap-0.5 ${
-                metodo === m.id
-                  ? m.id === 'bancolombia'
-                    ? 'border-yellow-400 bg-yellow-50 text-yellow-900 shadow-sm'
-                    : 'border-primary bg-primary/10 text-primary shadow-sm'
-                  : 'border-border/50 text-muted-foreground hover:border-primary/40 hover:text-foreground'
-              }`}
-            >
-              <span>{m.label}</span>
-              <span className="text-[10px] font-normal opacity-70">{m.sub}</span>
-            </button>
-          ))}
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => setMetodo('paypal')}
+            className={`py-3 px-2 rounded-xl font-bold text-sm border-2 transition-all flex flex-col items-center gap-0.5 ${metodo === 'paypal' ? 'border-blue-500 bg-blue-50 text-blue-800 shadow-sm' : 'border-border/50 text-muted-foreground hover:border-blue-300 hover:text-foreground'}`}
+          >
+            <span>🌐 PayPal</span>
+            <span className="text-[10px] font-normal opacity-70">USD</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setMetodo('bold_pse')}
+            className={`py-3 px-2 rounded-xl font-bold text-sm border-2 transition-all flex flex-col items-center gap-0.5 ${metodo === 'bold_pse' ? 'border-violet-500 bg-violet-50 text-violet-800 shadow-sm' : 'border-border/50 text-muted-foreground hover:border-violet-300 hover:text-foreground'}`}
+          >
+            <span>💳 Bold / PSE</span>
+            <span className="text-[10px] font-normal opacity-70">COP +$10.000</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setMetodo('bancolombia')}
+            className={`py-3 px-2 rounded-xl font-bold text-sm border-2 transition-all flex flex-col items-center gap-0.5 ${metodo === 'bancolombia' ? 'border-yellow-400 bg-yellow-50 text-yellow-900 shadow-sm' : 'border-border/50 text-muted-foreground hover:border-yellow-300 hover:text-foreground'}`}
+          >
+            <span>🟡 Bancolombia</span>
+            <span className="text-[10px] font-normal opacity-70">COP (ahorros)</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setMetodo('breb')}
+            className={`py-3 px-2 rounded-xl font-bold text-sm border-2 transition-all flex flex-col items-center gap-0.5 ${metodo === 'breb' ? 'border-teal-500 bg-teal-50 text-teal-800 shadow-sm' : 'border-border/50 text-muted-foreground hover:border-teal-300 hover:text-foreground'}`}
+          >
+            <span>🔑 Bre-B / Llave</span>
+            <span className="text-[10px] font-normal opacity-70">COP</span>
+          </button>
         </div>
       </div>
 
