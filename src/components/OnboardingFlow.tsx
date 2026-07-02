@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { openWhatsApp } from '@/lib/whatsapp';
+import { TermsAcceptBox } from '@/components/TermsAcceptBox';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 const AMOUNT_FULL_USD = 16;
@@ -84,6 +85,7 @@ export function OnboardingFlow({
 
   const [state, setState] = useState<FlowState>(getInit);
   const [payMethod, setPayMethod] = useState<PayMethod>('paypal');
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [trialName, setTrialName] = useState(userName || '');
   const [trialEmail, setTrialEmail] = useState(userEmail || '');
   const [trialMessage, setTrialMessage] = useState('');
@@ -214,13 +216,27 @@ export function OnboardingFlow({
     setLoading(true);
     setEmailError(null);
     try {
-      const msg =
-        '💳 SOLICITUD DE PAGO — BLANG ENGLISH\n\n' +
-        'Plan seleccionado: ' + planLabel + '\n' +
-        'Nombre: ' + payName + '\n' +
-        'Correo: ' + payEmail + '\n' +
-        'Método de pago: ' + (payMethod === 'paypal' ? 'PayPal (USD)' : payMethod === 'bancolombia' ? 'Transferencia Bancolombia — cta. ahorros Bancolombia (COP)' : payMethod === 'breb' ? 'Bre-B / Llave — cualquier banco colombiano (COP)' : 'PSE / Bold (COP)') + '\n' +
-        'Monto: $' + amount + ' USD';
+      const metodoLabel =
+        payMethod === 'paypal'      ? '🌐 PayPal — USD' :
+        payMethod === 'bancolombia' ? '🟡 Transferencia Bancolombia — COP (cta. ahorros)' :
+        payMethod === 'breb'        ? '🔑 Bre-B / Llave — COP (cualquier banco colombiano)' :
+                                      '💳 Bold / PSE — COP (+$10.000 recargo)';
+      const msg = [
+        `💳 *SOLICITUD DE PAGO — BLANG ENGLISH*`,
+        ``,
+        `👤 *DATOS DEL ESTUDIANTE*`,
+        `• Nombre: ${payName}`,
+        `• Correo: ${payEmail}`,
+        ``,
+        `📋 *PLAN SELECCIONADO*`,
+        `• Plan: ${planLabel}`,
+        `• Monto: $${amount} USD`,
+        ``,
+        `💳 *MÉTODO DE PAGO*`,
+        `• ${metodoLabel}`,
+        ``,
+        `✅ _El estudiante aceptó los términos y condiciones._`,
+      ].join('\n');
 
       openWhatsApp(msg);
       goTo('PAYMENT_SENT');
@@ -435,6 +451,8 @@ export function OnboardingFlow({
                 email={payEmail}
                 payMethod={payMethod}
                 loading={loading}
+                termsAccepted={termsAccepted}
+                onTermsChange={setTermsAccepted}
                 onNameChange={setPayName}
                 onEmailChange={setPayEmail}
                 onMethodChange={setPayMethod}
@@ -452,6 +470,8 @@ export function OnboardingFlow({
                 email={payEmail}
                 payMethod={payMethod}
                 loading={loading}
+                termsAccepted={termsAccepted}
+                onTermsChange={setTermsAccepted}
                 onNameChange={setPayName}
                 onEmailChange={setPayEmail}
                 onMethodChange={setPayMethod}
@@ -665,6 +685,7 @@ function TrialSentView({ onClose }: { onClose: () => void }) {
 function PaymentFormView({
   title, subtitle, badge,
   name, email, payMethod, loading, emailError,
+  termsAccepted, onTermsChange,
   onNameChange, onEmailChange, onMethodChange, onSubmit,
 }: {
   title: string;
@@ -675,6 +696,8 @@ function PaymentFormView({
   payMethod: PayMethod;
   loading: boolean;
   emailError?: string | null;
+  termsAccepted: boolean;
+  onTermsChange: (v: boolean) => void;
   onNameChange: (v: string) => void;
   onEmailChange: (v: string) => void;
   onMethodChange: (v: PayMethod) => void;
@@ -760,6 +783,9 @@ function PaymentFormView({
         </div>
       </div>
 
+      {/* Términos y condiciones */}
+      <TermsAcceptBox accepted={termsAccepted} onChange={onTermsChange} />
+
       {/* Nota informativa */}
       <div className="rounded-xl bg-blue-50 border border-blue-200 p-3">
         <p className="text-xs text-blue-700">
@@ -777,7 +803,7 @@ function PaymentFormView({
       <Button
         className="w-full rounded-2xl py-5 font-bold text-base gap-2"
         onClick={onSubmit}
-        disabled={loading || !name.trim() || !email.trim()}
+        disabled={loading || !name.trim() || !email.trim() || !termsAccepted}
       >
         {loading ? (
           <span className="flex items-center gap-2">

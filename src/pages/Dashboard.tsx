@@ -13,6 +13,7 @@ import { ROUTE_PATHS } from '@/lib/index';
 import type { AuthModal } from '@/lib/index';
 import { getAllProgressForStudent, getUnitProgress, hasMigrated, markMigrated, mergeFromRemote } from '@/lib/localProgress';
 import { openWhatsApp } from '@/lib/whatsapp';
+import { TermsAcceptBox } from '@/components/TermsAcceptBox';
 import { supabase } from '@/integrations/supabase/client';
 import { UnitViewer } from '@/components/UnitViewer';
 import { RenewalAlert } from '@/components/RenewalAlert';
@@ -149,6 +150,7 @@ function PlanSelector({ currentUserId, currentEmail, onPlanSaved, onOpenPaypal, 
   const [payMethod, setPayMethod] = useState<'pse' | 'paypal' | 'bancolombia' | 'breb'>('paypal');
   const [saving, setSaving] = useState(false);
   const [step, setStep] = useState<'select' | 'pay'>('select');
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   const handleConfirmPlan = async () => {
     if (!selectedPlan) return;
@@ -184,19 +186,35 @@ function PlanSelector({ currentUserId, currentEmail, onPlanSaved, onOpenPaypal, 
   if (step === 'pay' && selectedPlan === 'full') {
     const amountUsd = 15;
     const planLabel = 'Plan Mensual';
+    const waMsg = (metodo: string) => [
+      `💳 *SOLICITUD DE PAGO — BLANG ENGLISH*`,
+      ``,
+      `📋 *PLAN SELECCIONADO*`,
+      `• Plan: ${planLabel}`,
+      `• Monto: $${amountUsd} USD`,
+      ``,
+      `💳 *MÉTODO DE PAGO*`,
+      `• ${metodo}`,
+      ``,
+      `✅ _El estudiante aceptó los términos y condiciones._`,
+    ].join('\n');
     return (
       <div className="space-y-4">
-        <div className="rounded-2xl border-2 border-primary/20 p-5 bg-background">
-          <button onClick={() => setStep('select')} className="text-xs text-muted-foreground hover:text-foreground mb-3 flex items-center gap-1">
-            ← Volver
-          </button>
-          <h3 className="font-extrabold text-lg mb-1">Elige cómo pagar</h3>
-          <p className="text-sm text-muted-foreground mb-5">{planLabel} — <strong>${amountUsd} USD</strong></p>
+        <div className="rounded-2xl border-2 border-primary/20 p-5 bg-background space-y-4">
+          <div>
+            <button onClick={() => setStep('select')} className="text-xs text-muted-foreground hover:text-foreground mb-3 flex items-center gap-1">
+              ← Volver
+            </button>
+            <h3 className="font-extrabold text-lg mb-1">Elige cómo pagar</h3>
+            <p className="text-sm text-muted-foreground">{planLabel} — <strong>${amountUsd} USD</strong></p>
+          </div>
 
-          {/* PayPal → guarda y abre modal */}
+          <TermsAcceptBox accepted={termsAccepted} onChange={setTermsAccepted} />
+
+          {/* PayPal */}
           <button
-            className="w-full rounded-2xl border-2 p-4 flex items-center gap-3 mb-3 border-[#003087]/30 bg-[#003087]/5 hover:border-[#003087]/60 transition-all"
-            disabled={saving}
+            className="w-full rounded-2xl border-2 p-4 flex items-center gap-3 border-[#003087]/30 bg-[#003087]/5 hover:border-[#003087]/60 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            disabled={saving || !termsAccepted}
             onClick={async () => {
               setSaving(true);
               const { error } = await supabase.functions.invoke('save-onboarding-2026', {
@@ -222,15 +240,15 @@ function PlanSelector({ currentUserId, currentEmail, onPlanSaved, onOpenPaypal, 
 
           {/* PSE / Bold */}
           <button
-            className="w-full rounded-2xl border-2 p-4 flex items-center gap-3 mb-3 border-violet-300 bg-violet-50 hover:border-violet-500 transition-all"
-            disabled={saving}
+            className="w-full rounded-2xl border-2 p-4 flex items-center gap-3 border-violet-300 bg-violet-50 hover:border-violet-500 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            disabled={saving || !termsAccepted}
             onClick={async () => {
               setSaving(true);
               const today = new Date(); const monthEnd = new Date(today); monthEnd.setMonth(today.getMonth() + 1);
               const d = { student_id: currentUserId, plan_slug: 'monthly', plan_name: planLabel, status: 'pending_approval', amount_usd: amountUsd, payment_method: 'pse', approved_by_admin: false, account_enabled: false, current_period_end: monthEnd.toISOString() };
               const { error: e1 } = await supabase.from('subscriptions').insert(d);
               if (e1) await supabase.from('subscriptions').update(d).eq('student_id', currentUserId);
-              openWhatsApp(`💳 SOLICITUD DE PAGO — BLANG ENGLISH\n\nPlan: ${planLabel}\nMétodo: Bold / PSE (COP)\n\nPor favor envíame el link de pago. Incluye +$10.000 COP de recargo por transacción.`);
+              openWhatsApp(waMsg('💳 Bold / PSE — COP (+$10.000 recargo)'));
               setSaving(false);
               onPlanSaved();
             }}
@@ -244,15 +262,15 @@ function PlanSelector({ currentUserId, currentEmail, onPlanSaved, onOpenPaypal, 
 
           {/* Bancolombia */}
           <button
-            className="w-full rounded-2xl border-2 p-4 flex items-center gap-3 mb-3 border-yellow-300 bg-yellow-50 hover:border-yellow-500 transition-all"
-            disabled={saving}
+            className="w-full rounded-2xl border-2 p-4 flex items-center gap-3 border-yellow-300 bg-yellow-50 hover:border-yellow-500 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            disabled={saving || !termsAccepted}
             onClick={async () => {
               setSaving(true);
               const today = new Date(); const monthEnd = new Date(today); monthEnd.setMonth(today.getMonth() + 1);
               const d = { student_id: currentUserId, plan_slug: 'monthly', plan_name: planLabel, status: 'pending_approval', amount_usd: amountUsd, payment_method: 'bancolombia', approved_by_admin: false, account_enabled: false, current_period_end: monthEnd.toISOString() };
               const { error: e1 } = await supabase.from('subscriptions').insert(d);
               if (e1) await supabase.from('subscriptions').update(d).eq('student_id', currentUserId);
-              openWhatsApp(`🟡 SOLICITUD DE PAGO — BLANG ENGLISH\n\nPlan: ${planLabel}\nMétodo: Transferencia Bancolombia (cta. ahorros)\n\nPor favor envíame los datos de la cuenta para realizar la transferencia.`);
+              openWhatsApp(waMsg('🟡 Transferencia Bancolombia — COP (cta. ahorros)'));
               setSaving(false);
               onPlanSaved();
             }}
@@ -266,15 +284,15 @@ function PlanSelector({ currentUserId, currentEmail, onPlanSaved, onOpenPaypal, 
 
           {/* Bre-B */}
           <button
-            className="w-full rounded-2xl border-2 p-4 flex items-center gap-3 border-teal-300 bg-teal-50 hover:border-teal-500 transition-all"
-            disabled={saving}
+            className="w-full rounded-2xl border-2 p-4 flex items-center gap-3 border-teal-300 bg-teal-50 hover:border-teal-500 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            disabled={saving || !termsAccepted}
             onClick={async () => {
               setSaving(true);
               const today = new Date(); const monthEnd = new Date(today); monthEnd.setMonth(today.getMonth() + 1);
               const d = { student_id: currentUserId, plan_slug: 'monthly', plan_name: planLabel, status: 'pending_approval', amount_usd: amountUsd, payment_method: 'breb', approved_by_admin: false, account_enabled: false, current_period_end: monthEnd.toISOString() };
               const { error: e1 } = await supabase.from('subscriptions').insert(d);
               if (e1) await supabase.from('subscriptions').update(d).eq('student_id', currentUserId);
-              openWhatsApp(`🔑 SOLICITUD DE PAGO — BLANG ENGLISH\n\nPlan: ${planLabel}\nMétodo: Bre-B / Llave (cualquier banco colombiano)\n\nPor favor compárteme la llave Bre-B para realizar el pago.`);
+              openWhatsApp(waMsg('🔑 Bre-B / Llave — COP (cualquier banco colombiano)'));
               setSaving(false);
               onPlanSaved();
             }}
@@ -292,6 +310,18 @@ function PlanSelector({ currentUserId, currentEmail, onPlanSaved, onOpenPaypal, 
 
   // ── Modo reactivar: solo PayPal + PSE, precio normal ──
   if (mode === 'reactivate') {
+    const waMsg = (metodo: string) => [
+      `💳 *SOLICITUD DE PAGO — BLANG ENGLISH*`,
+      ``,
+      `📋 *PLAN SELECCIONADO*`,
+      `• Plan: Plan Mensual`,
+      `• Monto: $16 USD`,
+      ``,
+      `💳 *MÉTODO DE PAGO*`,
+      `• ${metodo}`,
+      ``,
+      `✅ _El estudiante aceptó los términos y condiciones._`,
+    ].join('\n');
     return (
       <div className="rounded-2xl border-2 border-primary/20 p-5 bg-background space-y-4">
         <div>
@@ -299,10 +329,12 @@ function PlanSelector({ currentUserId, currentEmail, onPlanSaved, onOpenPaypal, 
           <p className="text-sm text-muted-foreground">Plan Mensual — <strong>$16 USD/mes</strong></p>
         </div>
 
+        <TermsAcceptBox accepted={termsAccepted} onChange={setTermsAccepted} />
+
         {/* PayPal */}
         <button
-          className="w-full rounded-2xl border-2 p-4 flex items-center gap-3 border-[#003087]/30 bg-[#003087]/5 hover:border-[#003087]/60 transition-all"
-          disabled={saving}
+          className="w-full rounded-2xl border-2 p-4 flex items-center gap-3 border-[#003087]/30 bg-[#003087]/5 hover:border-[#003087]/60 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+          disabled={saving || !termsAccepted}
           onClick={async () => {
             setSaving(true);
             const today = new Date(); const monthEnd = new Date(today); monthEnd.setMonth(today.getMonth() + 1);
@@ -323,15 +355,15 @@ function PlanSelector({ currentUserId, currentEmail, onPlanSaved, onOpenPaypal, 
 
         {/* PSE / Bold */}
         <button
-          className="w-full rounded-2xl border-2 p-4 flex items-center gap-3 border-violet-300 bg-violet-50 hover:border-violet-500 transition-all"
-          disabled={saving}
+          className="w-full rounded-2xl border-2 p-4 flex items-center gap-3 border-violet-300 bg-violet-50 hover:border-violet-500 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+          disabled={saving || !termsAccepted}
           onClick={async () => {
             setSaving(true);
             const today = new Date(); const monthEnd = new Date(today); monthEnd.setMonth(today.getMonth() + 1);
             const d = { student_id: currentUserId, plan_slug: 'monthly', plan_name: 'Plan Mensual', status: 'pending_approval', amount_usd: 15, payment_method: 'pse', approved_by_admin: false, account_enabled: false, current_period_end: monthEnd.toISOString() };
             const { error: e1 } = await supabase.from('subscriptions').insert(d);
             if (e1) await supabase.from('subscriptions').update(d).eq('student_id', currentUserId);
-            openWhatsApp('💳 SOLICITUD DE PAGO — BLANG ENGLISH\n\nPlan: Plan Mensual\nMétodo: Bold / PSE (COP)\n\nPor favor envíame el link de pago. Incluye +$10.000 COP de recargo por transacción.');
+            openWhatsApp(waMsg('💳 Bold / PSE — COP (+$10.000 recargo)'));
             setSaving(false);
             onPlanSaved();
           }}
@@ -345,15 +377,15 @@ function PlanSelector({ currentUserId, currentEmail, onPlanSaved, onOpenPaypal, 
 
         {/* Bancolombia */}
         <button
-          className="w-full rounded-2xl border-2 p-4 flex items-center gap-3 border-yellow-300 bg-yellow-50 hover:border-yellow-500 transition-all"
-          disabled={saving}
+          className="w-full rounded-2xl border-2 p-4 flex items-center gap-3 border-yellow-300 bg-yellow-50 hover:border-yellow-500 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+          disabled={saving || !termsAccepted}
           onClick={async () => {
             setSaving(true);
             const today = new Date(); const monthEnd = new Date(today); monthEnd.setMonth(today.getMonth() + 1);
             const d = { student_id: currentUserId, plan_slug: 'monthly', plan_name: 'Plan Mensual', status: 'pending_approval', amount_usd: 15, payment_method: 'bancolombia', approved_by_admin: false, account_enabled: false, current_period_end: monthEnd.toISOString() };
             const { error: e1 } = await supabase.from('subscriptions').insert(d);
             if (e1) await supabase.from('subscriptions').update(d).eq('student_id', currentUserId);
-            openWhatsApp('🟡 SOLICITUD DE PAGO — BLANG ENGLISH\n\nPlan: Plan Mensual\nMétodo: Transferencia Bancolombia (cta. ahorros)\n\nPor favor envíame los datos de la cuenta para realizar la transferencia.');
+            openWhatsApp(waMsg('🟡 Transferencia Bancolombia — COP (cta. ahorros)'));
             setSaving(false);
             onPlanSaved();
           }}
@@ -367,15 +399,15 @@ function PlanSelector({ currentUserId, currentEmail, onPlanSaved, onOpenPaypal, 
 
         {/* Bre-B */}
         <button
-          className="w-full rounded-2xl border-2 p-4 flex items-center gap-3 border-teal-300 bg-teal-50 hover:border-teal-500 transition-all"
-          disabled={saving}
+          className="w-full rounded-2xl border-2 p-4 flex items-center gap-3 border-teal-300 bg-teal-50 hover:border-teal-500 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+          disabled={saving || !termsAccepted}
           onClick={async () => {
             setSaving(true);
             const today = new Date(); const monthEnd = new Date(today); monthEnd.setMonth(today.getMonth() + 1);
             const d = { student_id: currentUserId, plan_slug: 'monthly', plan_name: 'Plan Mensual', status: 'pending_approval', amount_usd: 15, payment_method: 'breb', approved_by_admin: false, account_enabled: false, current_period_end: monthEnd.toISOString() };
             const { error: e1 } = await supabase.from('subscriptions').insert(d);
             if (e1) await supabase.from('subscriptions').update(d).eq('student_id', currentUserId);
-            openWhatsApp('🔑 SOLICITUD DE PAGO — BLANG ENGLISH\n\nPlan: Plan Mensual\nMétodo: Bre-B / Llave (cualquier banco colombiano)\n\nPor favor compárteme la llave Bre-B para realizar el pago.');
+            openWhatsApp(waMsg('🔑 Bre-B / Llave — COP (cualquier banco colombiano)'));
             setSaving(false);
             onPlanSaved();
           }}
@@ -730,10 +762,15 @@ function PagoSolicitudForm({
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [formError, setFormError] = useState('');
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
-  const canSubmit = nombre.trim() && correo.trim();
+  const canSubmit = nombre.trim() && correo.trim() && termsAccepted;
 
-  const metodoLabel = metodo === 'paypal' ? 'PayPal (USD)' : metodo === 'bancolombia' ? 'Transferencia Bancolombia — cta. ahorros (COP)' : metodo === 'breb' ? 'Bre-B / Llave — cualquier banco colombiano (COP)' : 'Bold / PSE (COP) — +$10.000 recargo transacción';
+  const metodoLabel =
+    metodo === 'paypal'      ? '🌐 PayPal — USD' :
+    metodo === 'bancolombia' ? '🟡 Transferencia Bancolombia — COP (cta. ahorros)' :
+    metodo === 'breb'        ? '🔑 Bre-B / Llave — COP (cualquier banco colombiano)' :
+                               '💳 Bold / PSE — COP (+$10.000 recargo)';
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
@@ -742,7 +779,23 @@ function PagoSolicitudForm({
     try {
       // 1. Notificar al admin por WhatsApp (non-fatal)
       try {
-        openWhatsApp(`💳 SOLICITUD DE PAGO — BLANG ENGLISH\n\nPlan: ${planName}\nNombre: ${nombre.trim()}\nCorreo: ${correo.trim()}\nMétodo de pago: ${metodoLabel}`);
+        const waMsg = [
+          `💳 *SOLICITUD DE PAGO — BLANG ENGLISH*`,
+          ``,
+          `👤 *DATOS DEL ESTUDIANTE*`,
+          `• Nombre: ${nombre.trim()}`,
+          `• Correo: ${correo.trim()}`,
+          ``,
+          `📋 *PLAN SELECCIONADO*`,
+          `• Plan: ${planName}`,
+          `• Precio: ${planPrice}`,
+          ``,
+          `💳 *MÉTODO DE PAGO*`,
+          `• ${metodoLabel}`,
+          ``,
+          `✅ _El estudiante aceptó los términos y condiciones._`,
+        ].join('\n');
+        openWhatsApp(waMsg);
       } catch (_) { /* non-fatal */ }
 
       // 2. Actualizar estado en BD
@@ -874,6 +927,8 @@ function PagoSolicitudForm({
           </button>
         </div>
       </div>
+
+      <TermsAcceptBox accepted={termsAccepted} onChange={setTermsAccepted} />
 
       <div className="bg-muted/30 rounded-xl p-3 text-xs text-muted-foreground leading-relaxed">
         Al enviar, el administrador verificará el pago y activará tu cuenta en máximo 48 horas hábiles. Escríbenos por{' '}
