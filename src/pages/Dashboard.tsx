@@ -4660,19 +4660,19 @@ useEffect(() => {
           isReview={!!viewerUnit.isReview}
           studentPlanSlug={subscription?.plan_slug ?? ''}
           onClose={() => {
-            // 1. Cerrar el viewer inmediatamente (sin esperar a Supabase)
             const closingUnit = viewerUnit;
             setViewerUnit(null);
-            // 2. Actualizar el mapa de progreso en segundo plano
+            // Actualizar progreso desde localStorage (fuente de verdad, siempre al día).
+            // Antes se leía desde Supabase, que puede llegar tarde vs. el upsert de fondo.
             if (currentUserId && closingUnit?.id) {
-              supabase.from('unit_progress')
-                .select('unit_id')
-                .eq('unit_id', closingUnit.id)
-                .eq('student_id', currentUserId)
-                .eq('completed', true)
-                .then(({ data }) => {
-                  setUnitProgressMap(prev => ({ ...prev, [closingUnit.id]: data?.length || 0 }));
-                });
+              const prog = getUnitProgress(currentUserId, closingUnit.id);
+              const stagesCompleted = Object.values(prog).filter((s: any) => s?.completed).length;
+              setUnitProgressMap(prev => ({ ...prev, [closingUnit.id]: stagesCompleted }));
+              // Actualizar también el contador global de unidades completadas
+              const allProg = getAllProgressForStudent(currentUserId).filter(p => p.completed);
+              const uniqueUnits = new Set(allProg.map(p => p.unitId));
+              setRealCompletedUnits(uniqueUnits.size);
+              setTotalUnitsCompleted(uniqueUnits.size);
             }
           }}
         />
