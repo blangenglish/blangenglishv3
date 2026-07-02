@@ -630,9 +630,9 @@ export function AuthModals({ open, onClose, onLogin }: AuthModalsProps) {
                   </Button>
                   <p className="text-xs text-center text-muted-foreground">
                     Al registrarte aceptas nuestros{' '}
-                    <a href="#/terminos-de-servicio" className="text-primary hover:underline">Términos</a>{' '}
+                    <a href="#/terms" className="text-primary hover:underline">Términos</a>{' '}
                     y{' '}
-                    <a href="#/politica-de-privacidad" className="text-primary hover:underline">Privacidad</a>
+                    <a href="#/privacy" className="text-primary hover:underline">Privacidad</a>
                   </p>
                 </form>
               )}
