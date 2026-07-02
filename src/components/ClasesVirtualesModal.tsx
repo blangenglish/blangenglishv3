@@ -145,29 +145,42 @@ export function ClasesVirtualesModal({
 
   const handleSubmit = () => {
     if (!canSubmit) return;
-    const mensaje =
-      `📋 SOLICITUD DE CLASES VIRTUALES PERSONALIZADAS MENSUALES\n\n` +
-      `Nombre: ${nombre.trim()}\n` +
-      `Correo: ${correo.trim()}\n\n` +
-      `📅 PLAN DE CLASES\n` +
-      `Horas por día: ${horasDia} hora${horasDia === 2 ? 's' : ''}\n` +
-      `Clases a la semana: ${diasSemana} día${diasSemana !== 1 ? 's' : ''}\n` +
-      `Días seleccionados: ${diasSel.join(', ')}\n` +
-      `Franja horaria fija: ${franja}\n\n` +
-      `🤖 PLATAFORMA DE PRÁCTICA IA\n` +
-      `${iaPlatform === 'trimestral'
-        ? `Speakology IA — cargo único trimestral de ${formatCOP(SPEAKOLOGY_FEE)} COP`
-        : 'Plataforma mensual gratis (uso de ChatGPT) — sin costo adicional'}\n\n` +
-      `💰 PRECIO ESTIMADO\n` +
-      `${precio.unidades} ${precio.label}s al mes\n` +
-      `Precio regular: ${formatCOP(precio.regular)} COP\n` +
-      `Precio final clases: ${formatCOP(precio.final)} COP (${formatUSD(precio.final)})\n` +
-      `${iaFee > 0 ? `+ Activación Speakology IA (única vez cada 3 meses): ${formatCOP(iaFee)} COP\n` : ''}` +
-      `Total a pagar este mes: ${formatCOP(effectiveTotal)} COP (${formatUSD(effectiveTotal)})\n` +
-      `${payMethod === 'bold' ? `Incluye recargo transacción Bold/PSE: +${formatCOP(PSE_SURCHARGE)} COP\n` : ''}` +
-      `Valor por ${precio.label}: ~${formatCOP(precio.valorUnit)} COP\n\n` +
-      `💳 MÉTODO DE PAGO PREFERIDO\n` +
-      `${payMethod === 'bold' ? '💳 Bold / PSE — Pago en COP (+$10.000 recargo transacción)' : payMethod === 'bancolombia' ? '🟡 Transferencia Bancolombia — Pago en COP (cta. ahorros Bancolombia)' : payMethod === 'breb' ? '🔑 Bre-B / Llave — Pago en COP (cualquier banco colombiano)' : '🌐 PayPal — Pago en USD'}`;
+    const metodoLabel =
+      payMethod === 'bold'       ? '💳 Bold / PSE — COP (+$10.000 recargo)' :
+      payMethod === 'bancolombia'? '🟡 Transferencia Bancolombia — COP (cta. ahorros)' :
+      payMethod === 'breb'       ? '🔑 Bre-B / Llave — COP (cualquier banco colombiano)' :
+                                   '🌐 PayPal — USD';
+    const mensaje = [
+      `📋 *SOLICITUD DE CLASES VIRTUALES — BLANG ENGLISH*`,
+      ``,
+      `👤 *DATOS DEL ESTUDIANTE*`,
+      `• Nombre: ${nombre.trim()}`,
+      `• Correo: ${correo.trim()}`,
+      ``,
+      `📅 *PLAN DE CLASES*`,
+      `• Duración por clase: ${horasDia} hora${horasDia === 2 ? 's' : ''}`,
+      `• Días por semana: ${diasSemana}`,
+      `• Días elegidos: ${diasSel.join(', ')}`,
+      `• Horario fijo: ${franja}`,
+      ``,
+      `🤖 *PLATAFORMA DE PRÁCTICA IA*`,
+      iaPlatform === 'trimestral'
+        ? `• Speakology IA — cargo único trimestral: ${formatCOP(SPEAKOLOGY_FEE)} COP`
+        : `• Uso de ChatGPT — sin costo adicional`,
+      ``,
+      `💰 *PRECIO*`,
+      `• Clases al mes: ${precio.unidades} ${precio.label}s`,
+      `• Precio con descuento: ${formatCOP(precio.final)} COP (${formatUSD(precio.final)})`,
+      iaFee > 0 ? `• Activación Speakology IA (c/3 meses): ${formatCOP(iaFee)} COP` : null,
+      payMethod === 'bold' ? `• Recargo transacción Bold/PSE: +${formatCOP(PSE_SURCHARGE)} COP` : null,
+      `• *Total a pagar este mes: ${formatCOP(effectiveTotal)} COP (${formatUSD(effectiveTotal)})*`,
+      `• Valor por ${precio.label}: ~${formatCOP(precio.valorUnit)} COP`,
+      ``,
+      `💳 *MÉTODO DE PAGO*`,
+      `• ${metodoLabel}`,
+      ``,
+      `✅ _El estudiante aceptó los términos y condiciones._`,
+    ].filter(line => line !== null).join('\n');
     openWhatsApp(mensaje);
     setSent(true);
   };
