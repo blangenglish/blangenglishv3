@@ -1698,38 +1698,43 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
           </div>
         ) : allDone && !isReviewing ? (
           /* ── Pantalla "Unidad completada" ── */
-          <div className="flex flex-col items-center justify-center h-full text-center px-6 space-y-5">
+          <div className="flex flex-col items-center text-center px-6 py-8 space-y-5 min-h-full justify-center">
             <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center shadow-lg">
               <Trophy className="w-10 h-10 text-green-600" />
             </div>
             <div>
               <p className="font-extrabold text-2xl text-green-700">¡Unidad completada! 🎉</p>
               <p className="text-muted-foreground text-sm mt-2">
-                Has terminado todas las partes de <strong>{unitTitle}</strong>.<br />
-                Puedes repasar cualquier parte cuando quieras.
+                Has terminado todas las partes de <strong>{unitTitle}</strong>.
               </p>
             </div>
             <Button
-              className="rounded-xl gap-2 font-bold bg-green-600 hover:bg-green-700 text-white"
-              onClick={() => {
-                // Solo vuelve a mostrar el contenido desde el inicio — NO borra el progreso
-                // guardado, la unidad sigue apareciendo como completada en el menú.
-                const firstStage = stagesWithContent[0];
-                setCurrentStageIdx(STAGES.findIndex(x => x.id === firstStage?.id));
-                setShowQuiz(false);
-                setIsReviewing(true);
-              }}
+              size="lg"
+              className="rounded-xl gap-2 font-bold bg-green-600 hover:bg-green-700 text-white w-full max-w-xs"
+              onClick={onClose}
             >
-              <RefreshCw className="w-4 h-4" /> Empezar de nuevo
+              Volver al curso
             </Button>
-            <div className="w-full max-w-sm space-y-2">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Repasar parte</p>
+            <div className="w-full max-w-sm space-y-2 pt-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Repasar una parte</p>
+              <Button
+                variant="outline"
+                className="rounded-xl gap-2 w-full"
+                onClick={() => {
+                  const firstStage = stagesWithContent[0];
+                  setCurrentStageIdx(STAGES.findIndex(x => x.id === firstStage?.id));
+                  setShowQuiz(false);
+                  setIsReviewing(true);
+                }}
+              >
+                <RefreshCw className="w-4 h-4" /> Empezar de nuevo
+              </Button>
               {stagesWithContent.map(s => (
                 <button key={s.id}
                   onClick={() => {
                     setCurrentStageIdx(STAGES.findIndex(x => x.id === s.id));
                     setShowQuiz(false);
-                    setIsReviewing(true); // activa modo repaso → oculta esta pantalla
+                    setIsReviewing(true);
                   }}
                   className="w-full flex items-center gap-3 p-3 rounded-xl border border-green-200 bg-green-50 hover:bg-green-100 transition-colors text-left">
                   <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
@@ -1738,7 +1743,6 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
                 </button>
               ))}
             </div>
-            <Button variant="outline" className="rounded-xl gap-2" onClick={onClose}>Volver al curso</Button>
           </div>
         ) : (
           <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
