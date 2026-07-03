@@ -12,7 +12,9 @@ import { supabase } from '@/integrations/supabase/client';
 const DB_MODULES = ['escritura', 'lectura', 'listening', 'gramatica', 'vocabulario'];
 const STORAGE_BASE = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/english-for-students`;
 
-function storageUrl(path: string) {
+function storageUrl(path: string | null | undefined): string {
+  if (!path) return '';
+  if (path.startsWith('http')) return path;
   return `${STORAGE_BASE}/${path}`;
 }
 

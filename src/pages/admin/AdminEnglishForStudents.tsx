@@ -19,7 +19,11 @@ import {
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 const STORAGE_BASE = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/english-for-students`;
-const storageUrl = (path: string) => `${STORAGE_BASE}/${path}`;
+const storageUrl = (path: string | null | undefined): string => {
+  if (!path) return '';
+  if (path.startsWith('http')) return path; // URL externa — usar directamente
+  return `${STORAGE_BASE}/${path}`;
+};
 
 const MODULES = [
   { id: 'escritura',   label: 'Escritura',   icon: PenLine,    gradient: 'from-violet-500 to-fuchsia-500', softBg: 'from-violet-50 to-fuchsia-50 dark:from-violet-950/30 dark:to-fuchsia-950/30', badge: 'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300', ring: 'ring-violet-200 dark:ring-violet-800', emoji: '✍️', type: 'richtext' },
@@ -138,6 +142,13 @@ export default function AdminEnglishForStudents() {
   const [formImagePreview, setFormImagePreview] = useState<string | null>(null);
   const [formAudioFile, setFormAudioFile] = useState<File | null>(null);
   const [formPdfFile, setFormPdfFile] = useState<File | null>(null);
+  // Modo URL externa
+  const [imageMode, setImageMode] = useState<'file' | 'url'>('file');
+  const [imageUrl, setImageUrl] = useState('');
+  const [audioMode, setAudioMode] = useState<'file' | 'url'>('file');
+  const [audioUrl, setAudioUrl] = useState('');
+  const [pdfMode, setPdfMode] = useState<'file' | 'url'>('file');
+  const [pdfUrl, setPdfUrl] = useState('');
   const [publishing, setPublishing] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -163,6 +174,9 @@ export default function AdminEnglishForStudents() {
     setFormTitle(''); setFormRichText('');
     setFormImageFile(null); setFormImagePreview(null);
     setFormAudioFile(null); setFormPdfFile(null);
+    setImageMode('file'); setImageUrl('');
+    setAudioMode('file'); setAudioUrl('');
+    setPdfMode('file'); setPdfUrl('');
   };
   const openModal = () => { resetForm(); setStep('select'); setSelectedModule(null); setModalOpen(true); };
   const closeModal = () => setModalOpen(false);
@@ -174,8 +188,13 @@ export default function AdminEnglishForStudents() {
 
   const canPublish = () => {
     if (!formTitle.trim() || !selectedModule) return false;
-    if (isRichText) return formRichText.replace(/<[^>]+>/g, '').trim().length > 0 || formImageFile !== null;
-    if (isListening) return formAudioFile !== null;
+    if (isRichText) {
+      const hasImage = imageMode === 'url' ? imageUrl.trim().startsWith('http') : formImageFile !== null;
+      return formRichText.replace(/<[^>]+>/g, '').trim().length > 0 || hasImage;
+    }
+    if (isListening) {
+      return audioMode === 'url' ? audioUrl.trim().startsWith('http') : formAudioFile !== null;
+    }
     return false;
   };
 
@@ -188,9 +207,14 @@ export default function AdminEnglishForStudents() {
       let audio_path: string | null = null;
       let pdf_path: string | null = null;
 
-      if (formImageFile) image_path = await uploadFile(formImageFile, 'images');
-      if (formAudioFile) audio_path = await uploadFile(formAudioFile, 'audio');
-      if (formPdfFile)   pdf_path   = await uploadFile(formPdfFile,   'pdfs');
+      if (imageMode === 'url') image_path = imageUrl.trim() || null;
+      else if (formImageFile)  image_path = await uploadFile(formImageFile, 'images');
+
+      if (audioMode === 'url') audio_path = audioUrl.trim() || null;
+      else if (formAudioFile)  audio_path = await uploadFile(formAudioFile, 'audio');
+
+      if (pdfMode === 'url') pdf_path = pdfUrl.trim() || null;
+      else if (formPdfFile)  pdf_path = await uploadFile(formPdfFile, 'pdfs');
 
       await adminInsert('english_for_students_sections', {
         module_id:   selectedModule,
@@ -312,13 +336,17 @@ export default function AdminEnglishForStudents() {
                       {sec.audio_path && (
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <Music2 className="w-3.5 h-3.5 text-orange-500 shrink-0" />
-                          <span className="truncate">{sec.audio_path.split('/').pop()}</span>
+                          <span className="truncate">
+                            {sec.audio_path.startsWith('http') ? '🔗 URL externa' : sec.audio_path.split('/').pop()}
+                          </span>
                         </div>
                       )}
                       {sec.pdf_path && (
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <FileText className="w-3.5 h-3.5 text-red-500 shrink-0" />
-                          <span className="truncate">{sec.pdf_path.split('/').pop()}</span>
+                          <span className="truncate">
+                            {sec.pdf_path.startsWith('http') ? '🔗 URL externa' : sec.pdf_path.split('/').pop()}
+                          </span>
                         </div>
                       )}
                       <p className="text-[10px] text-muted-foreground/60 pt-0.5">
@@ -408,9 +436,24 @@ export default function AdminEnglishForStudents() {
                         </div>
                         <div className="space-y-1.5">
                           <Label className="text-sm font-semibold">Imagen <span className="text-muted-foreground font-normal">(opcional)</span></Label>
-                          <ImageUploadZone preview={formImagePreview} fileName={formImageFile?.name ?? null}
-                            onFile={(f, p) => { setFormImageFile(f); setFormImagePreview(p); }}
-                            onClear={() => { setFormImageFile(null); setFormImagePreview(null); }} />
+                          <div className="flex gap-2 mb-2">
+                            <button type="button" onClick={() => setImageMode('file')}
+                              className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors ${imageMode === 'file' ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground hover:text-foreground'}`}>
+                              📁 Subir archivo
+                            </button>
+                            <button type="button" onClick={() => setImageMode('url')}
+                              className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors ${imageMode === 'url' ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground hover:text-foreground'}`}>
+                              🔗 URL externa
+                            </button>
+                          </div>
+                          {imageMode === 'file' ? (
+                            <ImageUploadZone preview={formImagePreview} fileName={formImageFile?.name ?? null}
+                              onFile={(f, p) => { setFormImageFile(f); setFormImagePreview(p); }}
+                              onClear={() => { setFormImageFile(null); setFormImagePreview(null); }} />
+                          ) : (
+                            <Input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)}
+                              placeholder="https://drive.google.com/uc?export=view&id=..." className="text-sm" />
+                          )}
                         </div>
                       </>
                     )}
@@ -420,17 +463,47 @@ export default function AdminEnglishForStudents() {
                       <>
                         <div className="space-y-1.5">
                           <Label className="text-sm font-semibold">Archivo de audio <span className="text-destructive">*</span></Label>
-                          <FileUploadZone icon={Music2} label="Subir audio" hint="MP3, WAV, OGG, M4A — máx. 50 MB"
-                            accept="audio/mpeg,audio/wav,audio/ogg,audio/mp4,audio/x-m4a,.mp3,.wav,.ogg,.m4a"
-                            fileName={formAudioFile?.name ?? null} fileSize={formAudioFile ? fmtBytes(formAudioFile.size) : null}
-                            onFile={(f) => setFormAudioFile(f)} onClear={() => setFormAudioFile(null)} accent="text-orange-500" />
+                          <div className="flex gap-2 mb-2">
+                            <button type="button" onClick={() => setAudioMode('file')}
+                              className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors ${audioMode === 'file' ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground hover:text-foreground'}`}>
+                              📁 Subir archivo
+                            </button>
+                            <button type="button" onClick={() => setAudioMode('url')}
+                              className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors ${audioMode === 'url' ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground hover:text-foreground'}`}>
+                              🔗 URL externa
+                            </button>
+                          </div>
+                          {audioMode === 'file' ? (
+                            <FileUploadZone icon={Music2} label="Subir audio" hint="MP3, WAV, OGG, M4A — máx. 50 MB"
+                              accept="audio/mpeg,audio/wav,audio/ogg,audio/mp4,audio/x-m4a,.mp3,.wav,.ogg,.m4a"
+                              fileName={formAudioFile?.name ?? null} fileSize={formAudioFile ? fmtBytes(formAudioFile.size) : null}
+                              onFile={(f) => setFormAudioFile(f)} onClear={() => setFormAudioFile(null)} accent="text-orange-500" />
+                          ) : (
+                            <Input value={audioUrl} onChange={(e) => setAudioUrl(e.target.value)}
+                              placeholder="https://drive.google.com/file/d/.../view" className="text-sm" />
+                          )}
                         </div>
                         <div className="space-y-1.5">
                           <Label className="text-sm font-semibold">PDF Worksheet <span className="text-muted-foreground font-normal">(opcional)</span></Label>
-                          <FileUploadZone icon={FileText} label="Subir PDF" hint="Worksheet en PDF — máx. 20 MB"
-                            accept="application/pdf,.pdf"
-                            fileName={formPdfFile?.name ?? null} fileSize={formPdfFile ? fmtBytes(formPdfFile.size) : null}
-                            onFile={(f) => setFormPdfFile(f)} onClear={() => setFormPdfFile(null)} accent="text-red-500" />
+                          <div className="flex gap-2 mb-2">
+                            <button type="button" onClick={() => setPdfMode('file')}
+                              className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors ${pdfMode === 'file' ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground hover:text-foreground'}`}>
+                              📁 Subir archivo
+                            </button>
+                            <button type="button" onClick={() => setPdfMode('url')}
+                              className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors ${pdfMode === 'url' ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground hover:text-foreground'}`}>
+                              🔗 URL externa
+                            </button>
+                          </div>
+                          {pdfMode === 'file' ? (
+                            <FileUploadZone icon={FileText} label="Subir PDF" hint="Worksheet en PDF — máx. 20 MB"
+                              accept="application/pdf,.pdf"
+                              fileName={formPdfFile?.name ?? null} fileSize={formPdfFile ? fmtBytes(formPdfFile.size) : null}
+                              onFile={(f) => setFormPdfFile(f)} onClear={() => setFormPdfFile(null)} accent="text-red-500" />
+                          ) : (
+                            <Input value={pdfUrl} onChange={(e) => setPdfUrl(e.target.value)}
+                              placeholder="https://drive.google.com/file/d/.../preview" className="text-sm" />
+                          )}
                         </div>
                       </>
                     )}
