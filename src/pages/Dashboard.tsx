@@ -1906,44 +1906,56 @@ useEffect(() => {
   const loadUnitsForCourse = async (courseId: string) => {
     if (courseUnits[courseId]) return; // already loaded
     setLoadingUnits(courseId);
-    const { data } = await supabase.from('units').select('*').eq('course_id', courseId).eq('is_published', true).order('sort_order');
-    const units = (data || []) as DBUnitRow[];
-    setCourseUnits(prev => ({ ...prev, [courseId]: units }));
-    setLoadingUnits(null);
-    // Cargar progreso + total real de partes de cada unidad
-    if (units.length > 0 && currentUserId) {
-      const unitIds = units.map(u => u.id);
+    try {
+      const unitsTimeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('timeout')), 10_000)
+      );
+      const { data } = await Promise.race([
+        supabase.from('units').select('*').eq('course_id', courseId).eq('is_published', true).order('sort_order'),
+        unitsTimeout,
+      ]) as { data: DBUnitRow[] | null };
+      const units = (data || []) as DBUnitRow[];
+      setCourseUnits(prev => ({ ...prev, [courseId]: units }));
 
-      // Materiales + quizzes desde Supabase; progreso completado desde localStorage
-      const [{ data: matStages }, { data: quizStages }] = await Promise.all([
-        supabase.from('unit_stage_materials')
-          .select('unit_id, stage')
-          .in('unit_id', unitIds),
-        supabase.from('unit_stage_quizzes')
-          .select('unit_id, stage')
-          .in('unit_id', unitIds),
-      ]);
-      const progData = unitIds.flatMap(uid => {
-        const stages = getUnitProgress(currentUserId, uid);
-        return Object.values(stages).filter((s: any) => s?.completed).map(() => ({ unit_id: uid }));
-      });
+      // Cargar progreso + total real de partes de cada unidad
+      if (units.length > 0 && currentUserId) {
+        const unitIds = units.map(u => u.id);
 
-      // Total de partes por unidad = stages únicos con material O quiz
-      const stageSetMap: Record<string, Set<string>> = {};
-      [...(matStages || []), ...(quizStages || [])].forEach((r: { unit_id: string; stage: string }) => {
-        if (!stageSetMap[r.unit_id]) stageSetMap[r.unit_id] = new Set();
-        stageSetMap[r.unit_id].add(r.stage);
-      });
-      const newTotalMap: Record<string, number> = {};
-      unitIds.forEach(uid => { newTotalMap[uid] = stageSetMap[uid]?.size || 1; });
-      setUnitStageTotalMap(prev => ({ ...prev, ...newTotalMap }));
+        // Materiales + quizzes desde Supabase; progreso completado desde localStorage
+        const [{ data: matStages }, { data: quizStages }] = await Promise.all([
+          supabase.from('unit_stage_materials')
+            .select('unit_id, stage')
+            .in('unit_id', unitIds),
+          supabase.from('unit_stage_quizzes')
+            .select('unit_id, stage')
+            .in('unit_id', unitIds),
+        ]);
+        const progData = unitIds.flatMap(uid => {
+          const stages = getUnitProgress(currentUserId, uid);
+          return Object.values(stages).filter((s: any) => s?.completed).map(() => ({ unit_id: uid }));
+        });
 
-      // Partes completadas por unidad
-      const newMap: Record<string, number> = {};
-      (progData || []).forEach((p: { unit_id: string }) => {
-        newMap[p.unit_id] = (newMap[p.unit_id] || 0) + 1;
-      });
-      setUnitProgressMap(prev => ({ ...prev, ...newMap }));
+        // Total de partes por unidad = stages únicos con material O quiz
+        const stageSetMap: Record<string, Set<string>> = {};
+        [...(matStages || []), ...(quizStages || [])].forEach((r: { unit_id: string; stage: string }) => {
+          if (!stageSetMap[r.unit_id]) stageSetMap[r.unit_id] = new Set();
+          stageSetMap[r.unit_id].add(r.stage);
+        });
+        const newTotalMap: Record<string, number> = {};
+        unitIds.forEach(uid => { newTotalMap[uid] = stageSetMap[uid]?.size || 1; });
+        setUnitStageTotalMap(prev => ({ ...prev, ...newTotalMap }));
+
+        // Partes completadas por unidad
+        const newMap: Record<string, number> = {};
+        (progData || []).forEach((p: { unit_id: string }) => {
+          newMap[p.unit_id] = (newMap[p.unit_id] || 0) + 1;
+        });
+        setUnitProgressMap(prev => ({ ...prev, ...newMap }));
+      }
+    } catch {
+      setCourseUnits(prev => ({ ...prev, [courseId]: prev[courseId] ?? [] }));
+    } finally {
+      setLoadingUnits(null);
     }
   };
 
