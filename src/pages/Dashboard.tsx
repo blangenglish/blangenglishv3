@@ -2673,6 +2673,161 @@ useEffect(() => {
                     </div>
                   </div>
 
+                  {/* ── Botón instrucciones ── */}
+                  <button
+                    onClick={() => setShowInstrucciones(true)}
+                    className="w-full flex items-center gap-3 rounded-2xl border-2 border-violet-300 bg-violet-50 hover:bg-violet-100 transition-colors px-5 py-4 text-left shadow-sm mb-2"
+                  >
+                    <span className="text-3xl">📖</span>
+                    <div>
+                      <p className="font-extrabold text-violet-700 text-sm">¿Cómo usar la plataforma?</p>
+                      <p className="text-xs text-violet-500 mt-0.5">Instrucciones paso a paso para sacarle el máximo provecho</p>
+                    </div>
+                    <span className="ml-auto text-violet-400 text-lg">›</span>
+                  </button>
+
+                  {/* ── Califica tu experiencia ── */}
+                  <div className="bg-card rounded-2xl border border-border/60 p-5 shadow-sm space-y-4 mb-2">
+                    <h2 className="font-bold text-base flex items-center gap-2">
+                      <Star className="w-4 h-4 text-amber-400 fill-amber-400" /> Califica tu experiencia
+                    </h2>
+
+                    {existingReview === 'loading' ? (
+                      <div className="flex justify-center py-4">
+                        <span className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                      </div>
+                    ) : existingReview !== null ? (
+                      <div className="space-y-3">
+                        <div className="flex gap-1">
+                          {[1,2,3,4,5].map(s => (
+                            <Star key={s} className={`w-6 h-6 ${s <= existingReview.rating ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground/30'}`} />
+                          ))}
+                        </div>
+                        <p className="text-sm bg-muted/50 rounded-xl p-3 text-foreground leading-relaxed">
+                          "{existingReview.comment}"
+                        </p>
+                        <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                          <Check className="w-3.5 h-3.5 text-green-500" /> Tu reseña ya fue enviada. ¡Gracias!
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div>
+                          <p className="text-sm text-muted-foreground mb-2">¿Cómo calificarías tu experiencia?</p>
+                          <div className="flex gap-1.5">
+                            {[1,2,3,4,5].map(s => (
+                              <button
+                                key={s}
+                                onClick={() => setReviewRating(s)}
+                                onMouseEnter={() => setReviewHover(s)}
+                                onMouseLeave={() => setReviewHover(0)}
+                                className="transition-transform hover:scale-110 focus:outline-none"
+                              >
+                                <Star className={`w-8 h-8 transition-colors ${s <= (reviewHover || reviewRating) ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground/30 hover:text-amber-300'}`} />
+                              </button>
+                            ))}
+                          </div>
+                          {reviewRating > 0 && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {['', 'Muy malo 😞', 'Malo 😕', 'Regular 😐', 'Bueno 😊', '¡Excelente! 🌟'][reviewRating]}
+                            </p>
+                          )}
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-sm text-muted-foreground">Deja un comentario (opcional pero muy valioso 💬)</label>
+                          <textarea
+                            value={reviewComment}
+                            onChange={e => setReviewComment(e.target.value)}
+                            placeholder="Cuéntanos tu experiencia aprendiendo inglés con BLANG..."
+                            rows={3}
+                            className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
+                          />
+                        </div>
+                        <Button
+                          onClick={handleSubmitReview}
+                          disabled={reviewSending || !reviewRating || !reviewComment.trim()}
+                          className="rounded-xl px-6 h-9 text-sm"
+                        >
+                          {reviewSending ? (
+                            <span className="flex items-center gap-2">
+                              <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                              Enviando...
+                            </span>
+                          ) : 'Enviar reseña ⭐'}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* ── Modal instrucciones (global, accesible desde cualquier tab) ── */}
+                  <Dialog open={showInstrucciones} onOpenChange={setShowInstrucciones}>
+                    <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl">
+                      <DialogHeader>
+                        <DialogTitle className="text-xl font-extrabold flex items-center gap-2">
+                          📖 Cómo usar la plataforma
+                        </DialogTitle>
+                      </DialogHeader>
+                      <p className="text-sm text-muted-foreground -mt-1 mb-4">
+                        ¡Bienvenido/a a BLANG English! 🎉 Aquí te explicamos paso a paso cómo aprovechar al máximo tu experiencia de aprendizaje.
+                      </p>
+                      <div className="space-y-4 text-sm">
+                        <div className="flex gap-3">
+                          <span className="w-7 h-7 rounded-full bg-violet-100 text-violet-700 font-extrabold flex items-center justify-center shrink-0 text-xs">1</span>
+                          <p><strong>Elige tu nivel:</strong> Despliega la sección de tu nivel y verás todas las unidades disponibles para ti.</p>
+                        </div>
+                        <div className="flex gap-3">
+                          <span className="w-7 h-7 rounded-full bg-violet-100 text-violet-700 font-extrabold flex items-center justify-center shrink-0 text-xs">2</span>
+                          <p><strong>Selecciona una unidad:</strong> Elige la unidad que quieres trabajar. Te recomendamos siempre empezar por la primera e ir en orden.</p>
+                        </div>
+                        <div className="flex gap-3">
+                          <span className="w-7 h-7 rounded-full bg-violet-100 text-violet-700 font-extrabold flex items-center justify-center shrink-0 text-xs">3</span>
+                          <p><strong>Dale en "Comenzar":</strong> Se recomienda apartar <strong>una hora u hora y media</strong> para hacer el trabajo completo de la unidad.</p>
+                        </div>
+                        <div className="flex gap-3">
+                          <span className="w-7 h-7 rounded-full bg-violet-100 text-violet-700 font-extrabold flex items-center justify-center shrink-0 text-xs">4</span>
+                          <p><strong>La unidad tiene 5 partes:</strong> Part 1 Grammar · Part 2 Vocabulary · Part 3 Reading · Part 4 Listening · Part 5 IA Practice.</p>
+                        </div>
+                        <div className="rounded-xl border border-border bg-muted/30 p-3 space-y-2.5">
+                          <p className="font-bold text-xs text-foreground/70 uppercase tracking-wide">Detalle de cada parte</p>
+                          <div>
+                            <p className="font-bold">📘 Part 1 – Grammar</p>
+                            <p className="text-muted-foreground text-xs mt-0.5">Encontrarás un PDF con la explicación de gramática — estúdialo, toma notas. Luego un video y una imagen resumen (ambos los puedes guardar). Al final un quiz: necesitas más del 60% para avanzar.</p>
+                          </div>
+                          <div>
+                            <p className="font-bold">📝 Part 2 – Vocabulary</p>
+                            <p className="text-muted-foreground text-xs mt-0.5">Lista de vocabulario con botón para escuchar la pronunciación — repite en voz alta varias veces. En algunos habrá un link a Flashcards (necesitas crear cuenta), en otros una imagen resumen. Al final el quiz.</p>
+                          </div>
+                          <div>
+                            <p className="font-bold">📖 Part 3 – Reading</p>
+                            <p className="text-muted-foreground text-xs mt-0.5">Una lectura corta (va creciendo en nivel). Puedes señalar cualquier palabra que no entiendas y la página te la traduce. Al final el quiz sobre la lectura.</p>
+                          </div>
+                          <div>
+                            <p className="font-bold">🎧 Part 4 – Listening</p>
+                            <p className="text-muted-foreground text-xs mt-0.5">Escucha el audio las veces que necesites, toma nota, y luego responde el quiz.</p>
+                          </div>
+                          <div>
+                            <p className="font-bold">🤖 Part 5 – IA Practice</p>
+                            <p className="text-muted-foreground text-xs mt-0.5">
+                              Según tu plan: <strong>Plan mensual</strong> — copia y pega los prompts en ChatGPT (necesitas crear cuenta ahí). <strong>Plan trimestral</strong> — ingresa a Speakology y haz la unidad asignada.
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex gap-3">
+                          <span className="w-7 h-7 rounded-full bg-green-100 text-green-700 font-extrabold flex items-center justify-center shrink-0 text-xs">✓</span>
+                          <p><strong>Marcar como completado:</strong> Una vez termines la Part 5, dale en "Marcar como completado". Espera unos momentos mientras la página guarda la información — luego la unidad aparecerá como completada ✅</p>
+                        </div>
+                        <div className="flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
+                          <span className="text-xl shrink-0">💡</span>
+                          <p className="text-xs text-amber-800"><strong>Consejo:</strong> Si la página se queda cargando, cierra sesión y vuelve a ingresar. A veces por el tiempo de inactividad se puede caer la conexión, pero no es frecuente.</p>
+                        </div>
+                        <p className="text-center text-xs text-muted-foreground pt-1">
+                          ¡Estamos muy felices de que estés aquí aprendiendo! 💜<br/>
+                          Cada unidad que completas es un paso más hacia tu meta. ¡Tú puedes!
+                        </p>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+
                   {/* ── Banner: sin suscripción o cancelada → ir a pagos ── */}
                   {/* No mostrar si: cargando | plan de pago cancelado dentro del período (activo_cancelado) | pago pendiente */}
                   {!profileLoading && (!subscription || subscription.status === 'cancelled') &&
@@ -3141,19 +3296,6 @@ useEffect(() => {
                     <p className="text-muted-foreground text-sm">Tu información personal y configuración.</p>
                   </div>
 
-                  {/* Botón instrucciones */}
-                  <button
-                    onClick={() => setShowInstrucciones(true)}
-                    className="w-full flex items-center gap-3 rounded-2xl border-2 border-violet-300 bg-violet-50 hover:bg-violet-100 transition-colors px-5 py-4 text-left shadow-sm"
-                  >
-                    <span className="text-3xl">📖</span>
-                    <div>
-                      <p className="font-extrabold text-violet-700 text-sm">¿Cómo usar la plataforma?</p>
-                      <p className="text-xs text-violet-500 mt-0.5">Instrucciones paso a paso para sacarle el máximo provecho</p>
-                    </div>
-                    <span className="ml-auto text-violet-400 text-lg">›</span>
-                  </button>
-
                   {/* Profile summary card */}
                   {profileLoading ? (
                     <div className="bg-gradient-to-br from-primary/5 to-background rounded-2xl border border-primary/20 p-5 shadow-sm animate-pulse">
@@ -3395,167 +3537,6 @@ useEffect(() => {
                       </Button>
                     </form>
                   </div>
-
-                  {/* ─── RESEÑA ─── */}
-                  <div className="bg-card rounded-2xl border border-border/60 p-5 shadow-sm space-y-4">
-                    <h2 className="font-bold text-base flex items-center gap-2">
-                      <Star className="w-4 h-4 text-amber-400 fill-amber-400" /> Califica tu experiencia
-                    </h2>
-
-                    {existingReview === 'loading' ? (
-                      <div className="flex justify-center py-4">
-                        <span className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                      </div>
-                    ) : existingReview !== null ? (
-                      <div className="space-y-3">
-                        <div className="flex gap-1">
-                          {[1,2,3,4,5].map(s => (
-                            <Star key={s} className={`w-6 h-6 ${s <= existingReview.rating ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground/30'}`} />
-                          ))}
-                        </div>
-                        <p className="text-sm bg-muted/50 rounded-xl p-3 text-foreground leading-relaxed">
-                          "{existingReview.comment}"
-                        </p>
-                        <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                          <Check className="w-3.5 h-3.5 text-green-500" /> Tu reseña ya fue enviada. ¡Gracias!
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        {/* Selector de estrellas */}
-                        <div>
-                          <p className="text-sm text-muted-foreground mb-2">¿Cómo calificarías tu experiencia?</p>
-                          <div className="flex gap-1.5">
-                            {[1,2,3,4,5].map(s => (
-                              <button
-                                key={s}
-                                onClick={() => setReviewRating(s)}
-                                onMouseEnter={() => setReviewHover(s)}
-                                onMouseLeave={() => setReviewHover(0)}
-                                className="transition-transform hover:scale-110 focus:outline-none"
-                              >
-                                <Star className={`w-8 h-8 transition-colors ${s <= (reviewHover || reviewRating) ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground/30 hover:text-amber-300'}`} />
-                              </button>
-                            ))}
-                          </div>
-                          {reviewRating > 0 && (
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {['', 'Muy malo 😞', 'Malo 😕', 'Regular 😐', 'Bueno 😊', '¡Excelente! 🌟'][reviewRating]}
-                            </p>
-                          )}
-                        </div>
-
-                        {/* Comentario */}
-                        <div className="space-y-1.5">
-                          <label className="text-sm text-muted-foreground">Deja un comentario (opcional pero muy valioso 💬)</label>
-                          <textarea
-                            value={reviewComment}
-                            onChange={e => setReviewComment(e.target.value)}
-                            placeholder="Cuéntanos tu experiencia aprendiendo inglés con BLANG..."
-                            rows={3}
-                            className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
-                          />
-                        </div>
-
-                        <Button
-                          onClick={handleSubmitReview}
-                          disabled={reviewSending || !reviewRating || !reviewComment.trim()}
-                          className="rounded-xl px-6 h-9 text-sm"
-                        >
-                          {reviewSending ? (
-                            <span className="flex items-center gap-2">
-                              <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                              Enviando...
-                            </span>
-                          ) : 'Enviar reseña ⭐'}
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* ─── Modal instrucciones ─── */}
-                  <Dialog open={showInstrucciones} onOpenChange={setShowInstrucciones}>
-                    <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl">
-                      <DialogHeader>
-                        <DialogTitle className="text-xl font-extrabold flex items-center gap-2">
-                          📖 Cómo usar la plataforma
-                        </DialogTitle>
-                      </DialogHeader>
-
-                      <p className="text-sm text-muted-foreground -mt-1 mb-4">
-                        ¡Bienvenido/a a BLANG English! 🎉 Aquí te explicamos paso a paso cómo aprovechar al máximo tu experiencia de aprendizaje.
-                      </p>
-
-                      <div className="space-y-4 text-sm">
-
-                        <div className="flex gap-3">
-                          <span className="w-7 h-7 rounded-full bg-violet-100 text-violet-700 font-extrabold flex items-center justify-center shrink-0 text-xs">1</span>
-                          <p><strong>Elige tu nivel:</strong> Despliega la sección de tu nivel y verás todas las unidades disponibles para ti.</p>
-                        </div>
-
-                        <div className="flex gap-3">
-                          <span className="w-7 h-7 rounded-full bg-violet-100 text-violet-700 font-extrabold flex items-center justify-center shrink-0 text-xs">2</span>
-                          <p><strong>Selecciona una unidad:</strong> Elige la unidad que quieres trabajar. Te recomendamos siempre empezar por la primera e ir en orden.</p>
-                        </div>
-
-                        <div className="flex gap-3">
-                          <span className="w-7 h-7 rounded-full bg-violet-100 text-violet-700 font-extrabold flex items-center justify-center shrink-0 text-xs">3</span>
-                          <p><strong>Dale en "Comenzar":</strong> Se recomienda apartar <strong>una hora u hora y media</strong> para hacer el trabajo completo de la unidad.</p>
-                        </div>
-
-                        <div className="flex gap-3">
-                          <span className="w-7 h-7 rounded-full bg-violet-100 text-violet-700 font-extrabold flex items-center justify-center shrink-0 text-xs">4</span>
-                          <p><strong>La unidad tiene 5 partes:</strong> Part 1 Grammar · Part 2 Vocabulary · Part 3 Reading · Part 4 Listening · Part 5 IA Practice.</p>
-                        </div>
-
-                        <div className="rounded-xl border border-border bg-muted/30 p-3 space-y-2.5">
-                          <p className="font-bold text-xs text-foreground/70 uppercase tracking-wide">Detalle de cada parte</p>
-
-                          <div>
-                            <p className="font-bold">📘 Part 1 – Grammar</p>
-                            <p className="text-muted-foreground text-xs mt-0.5">Encontrarás un PDF con la explicación de gramática — estúdialo, toma notas. Luego un video y una imagen resumen (ambos los puedes guardar). Al final un quiz: necesitas más del 60% para avanzar.</p>
-                          </div>
-
-                          <div>
-                            <p className="font-bold">📝 Part 2 – Vocabulary</p>
-                            <p className="text-muted-foreground text-xs mt-0.5">Lista de vocabulario con botón para escuchar la pronunciación — repite en voz alta varias veces. En algunos habrá un link a Flashcards (necesitas crear cuenta), en otros una imagen resumen. Al final el quiz.</p>
-                          </div>
-
-                          <div>
-                            <p className="font-bold">📖 Part 3 – Reading</p>
-                            <p className="text-muted-foreground text-xs mt-0.5">Una lectura corta (va creciendo en nivel). Puedes señalar cualquier palabra que no entiendas y la página te la traduce. Al final el quiz sobre la lectura.</p>
-                          </div>
-
-                          <div>
-                            <p className="font-bold">🎧 Part 4 – Listening</p>
-                            <p className="text-muted-foreground text-xs mt-0.5">Escucha el audio las veces que necesites, toma nota, y luego responde el quiz.</p>
-                          </div>
-
-                          <div>
-                            <p className="font-bold">🤖 Part 5 – IA Practice</p>
-                            <p className="text-muted-foreground text-xs mt-0.5">
-                              Según tu plan: <strong>Plan mensual</strong> — copia y pega los prompts en ChatGPT (necesitas crear cuenta ahí). <strong>Plan trimestral</strong> — ingresa a Speakology y haz la unidad asignada.
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex gap-3">
-                          <span className="w-7 h-7 rounded-full bg-green-100 text-green-700 font-extrabold flex items-center justify-center shrink-0 text-xs">✓</span>
-                          <p><strong>Marcar como completado:</strong> Una vez termines la Part 5, dale en "Marcar como completado". Espera unos momentos mientras la página guarda la información — luego la unidad aparecerá como completada ✅</p>
-                        </div>
-
-                        <div className="flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
-                          <span className="text-xl shrink-0">💡</span>
-                          <p className="text-xs text-amber-800"><strong>Consejo:</strong> Si la página se queda cargando, cierra sesión y vuelve a ingresar. A veces por el tiempo de inactividad se puede caer la conexión, pero no es frecuente.</p>
-                        </div>
-
-                        <p className="text-center text-xs text-muted-foreground pt-1">
-                          ¡Estamos muy felices de que estés aquí aprendiendo! 💜<br/>
-                          Cada unidad que completas es un paso más hacia tu meta. ¡Tú puedes!
-                        </p>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
 
                 </motion.div>
               )}
@@ -4262,20 +4243,6 @@ useEffect(() => {
                     </div>
                   )}
 
-                  {/* Solicitar eliminar cuenta — visible también desde el plan activo */}
-                  <DeleteAccountRequest
-                    name={profileForm.name || userName || ''}
-                    email={currentEmail || ''}
-                    userId={currentUserId}
-                    trialView={trialView}
-                    setTrialView={setTrialView}
-                    trialDeleteReason={trialDeleteReason}
-                    setTrialDeleteReason={setTrialDeleteReason}
-                    trialDeleteSent={trialDeleteSent}
-                    setTrialDeleteSent={setTrialDeleteSent}
-                    trialDeleteSending={trialDeleteSending}
-                    setTrialDeleteSending={setTrialDeleteSending}
-                  />
                 </div>
               )}
                 </motion.div>
