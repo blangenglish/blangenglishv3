@@ -1640,7 +1640,15 @@ export default function Dashboard({ isLoggedIn = false, onOpenAuth, onLogout, us
   const [showConfirmPw, setShowConfirmPw] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
   const [profileSaveError, setProfileSaveError] = useState('');
-  const [profileLoading, setProfileLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState<boolean>(() => {
+    // Si ya hay un caché de perfil en sessionStorage, no mostrar spinner desde el inicio
+    try {
+      for (let i = 0; i < sessionStorage.length; i++) {
+        if (sessionStorage.key(i)?.startsWith('blang_pcache_v1_')) return false;
+      }
+    } catch {}
+    return true;
+  });
   const [pwSaved, setPwSaved] = useState(false);
   const [pwError, setPwError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -1716,9 +1724,27 @@ const [showPaypalModal, setShowPaypalModal] = useState(false);
   const [onboardingInitialStep, setOnboardingInitialStep] = useState<string>('welcome');
   const [currentUserId, setCurrentUserId] = useState(userIdProp);
 
-  // Real courses & units from Supabase
-  const [dbCourses, setDbCourses] = useState<DBCourseRow[]>([]);
-  const [coursesLoading, setCoursesLoading] = useState(true);
+  // Real courses & units from Supabase — inicializados desde caché para evitar spinner en recarga
+  const [dbCourses, setDbCourses] = useState<DBCourseRow[]>(() => {
+    try {
+      const raw = localStorage.getItem('blang_courses_v1');
+      if (raw) {
+        const { data, ts } = JSON.parse(raw);
+        if (data && Date.now() - ts < 3_600_000) return data as DBCourseRow[];
+      }
+    } catch {}
+    return [];
+  });
+  const [coursesLoading, setCoursesLoading] = useState<boolean>(() => {
+    try {
+      const raw = localStorage.getItem('blang_courses_v1');
+      if (raw) {
+        const { data, ts } = JSON.parse(raw);
+        if (data && Date.now() - ts < 3_600_000) return false;
+      }
+    } catch {}
+    return true;
+  });
   const [expandedCourse, setExpandedCourse] = useState<string | null>(null);
   const [courseUnits, setCourseUnits] = useState<Record<string, DBUnitRow[]>>({});
 const [loadingUnits, setLoadingUnits] = useState<string | null>(null);
