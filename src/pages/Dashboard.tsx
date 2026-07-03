@@ -1819,13 +1819,28 @@ useEffect(() => {
   }, []);
 
   useEffect(() => {
-    // Timeout de seguridad: si la consulta de cursos tarda más de 8s, liberar el spinner igual
+    // Mostrar cursos cacheados inmediatamente (sin spinner) si existen
+    const COURSES_CACHE_KEY = 'blang_courses_v1';
+    try {
+      const raw = localStorage.getItem(COURSES_CACHE_KEY);
+      if (raw) {
+        const { data: cachedData, ts } = JSON.parse(raw);
+        if (cachedData && Date.now() - ts < 3_600_000) { // caché válido 1 hora
+          setDbCourses(cachedData);
+          setCoursesLoading(false);
+        }
+      }
+    } catch {}
+
+    // Refrescar desde Supabase en segundo plano
     const safetyTimer = setTimeout(() => setCoursesLoading(false), 8000);
-    // Load published courses from DB
     supabase.from('courses').select('*').eq('is_published', true).order('sort_order').then(({ data, error }) => {
       clearTimeout(safetyTimer);
       if (error) console.error('[Dashboard] courses error:', error);
-      if (data) setDbCourses(data as DBCourseRow[]);
+      if (data) {
+        setDbCourses(data as DBCourseRow[]);
+        try { localStorage.setItem(COURSES_CACHE_KEY, JSON.stringify({ data, ts: Date.now() })); } catch {}
+      }
       setCoursesLoading(false);
     });
     return () => clearTimeout(safetyTimer);
@@ -1913,8 +1928,53 @@ useEffect(() => {
   };
 
   // ── refreshProfile: carga perfil + suscripción + historial usando cliente directo ──
+  const PROFILE_CACHE_PREFIX = 'blang_pcache_v1_';
+
+  const applyProfileData = (prof: any, sub: any, hist: any, grantedIds: string[], revokedIds: string[], grantedUnitIds: string[], cidsWithUnitGrants: string[]) => {
+    if (prof) {
+      const dbName = (prof as { full_name?: string }).full_name || '';
+      const displayFullName = dbName || userName || '';
+      setProfileForm({
+        name: displayFullName,
+        country: (prof as { country?: string }).country || '',
+        city: (prof as { city?: string }).city || '',
+        birthday: (prof as { birthday?: string }).birthday || '',
+      });
+      setStudentProfile(prof as typeof studentProfile);
+      setTeacherForm((tf: typeof teacherForm) => ({ ...tf, name: displayFullName }));
+      setSessionName(displayFullName);
+    }
+    if (hist) setPaymentHistory(hist as PaymentHistoryRow[]);
+    setSubscription(sub ? (sub as typeof subscription) : null);
+    if (sub) {
+      const method = (sub as { payment_method?: string }).payment_method;
+      const dueAt  = (sub as { renewal_due_at?: string }).renewal_due_at;
+      if ((method === 'pse' || method === 'paypal') && dueAt) {
+        const ms = new Date(dueAt).getTime() - Date.now();
+        if (ms > 0 && ms <= 24 * 60 * 60 * 1000) setShowRenewalAlert(true);
+      }
+    }
+    setGrantedModuleIds(grantedIds);
+    setRevokedModuleIds(revokedIds);
+    setGrantedUnitIds(grantedUnitIds);
+    setCourseIdsWithUnitGrants(cidsWithUnitGrants);
+  };
+
   const refreshProfile = async (userId: string) => {
-    setProfileLoading(true);
+    // Mostrar caché inmediatamente (sin spinner) si existe en sessionStorage
+    let hasCachedData = false;
+    try {
+      const raw = sessionStorage.getItem(PROFILE_CACHE_PREFIX + userId);
+      if (raw) {
+        const c = JSON.parse(raw);
+        applyProfileData(c.prof, c.sub, c.hist, c.grantedIds || [], c.revokedIds || [], c.grantedUnitIds || [], c.cidsWithUnitGrants || []);
+        setProfileLoading(false);
+        hasCachedData = true;
+      }
+    } catch {}
+
+    // Siempre refrescar desde Supabase (spinner solo si no hay caché)
+    if (!hasCachedData) setProfileLoading(true);
     try {
     const profileTimeout = new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error('timeout cargando perfil')), 12_000)
@@ -1952,26 +2012,12 @@ useEffect(() => {
     const hist = histRes.data;
     const mods = modRes.data;
 
-    // Debug: log errores de BD para detectar problemas de RLS o columnas faltantes
     if (profRes.error) console.error('[refreshProfile] student_profiles error:', profRes.error);
     if (subRes.error)  console.error('[refreshProfile] subscriptions error:', subRes.error);
     if (histRes.error) console.error('[refreshProfile] payment_history error:', histRes.error);
 
-    if (prof) {
-      // Perfil cargado desde BD -- siempre prioridad al nombre en BD
-      const dbName = (prof as { full_name?: string }).full_name || '';
-      const displayFullName = dbName || userName || '';
-      setProfileForm({
-        name: displayFullName,
-        country: (prof as { country?: string }).country || '',
-        city: (prof as { city?: string }).city || '',
-        birthday: (prof as { birthday?: string }).birthday || '',
-      });
-      setStudentProfile(prof as typeof studentProfile);
-      setTeacherForm((tf: typeof teacherForm) => ({ ...tf, name: displayFullName }));
-      setSessionName(displayFullName);
-    } else if (!profRes.error) {
-      // prof es null pero sin error -- perfil no existe, crearlo
+    if (!prof && !profRes.error) {
+      // Perfil no existe — crearlo
       const newName = userName || '';
       await supabase.from('student_profiles').upsert({
         id: userId,
@@ -1982,42 +2028,24 @@ useEffect(() => {
       setProfileForm(p => ({ ...p, name: newName }));
       setSessionName(newName);
       setTeacherForm(tf => ({ ...tf, name: newName }));
-    } else {
-      // Error de BD -- usar nombre del auth
+    } else if (profRes.error) {
       setProfileForm(p => ({ ...p, name: p.name || userName || '' }));
     }
 
-    if (hist) setPaymentHistory(hist as PaymentHistoryRow[]);
-
-    setSubscription(sub ? (sub as typeof subscription) : null);
-    if (sub) {
-      const method = (sub as { payment_method?: string }).payment_method;
-      const dueAt  = (sub as { renewal_due_at?: string }).renewal_due_at;
-      if ((method === 'pse' || method === 'paypal') && dueAt) {
-        const ms = new Date(dueAt).getTime() - Date.now();
-        if (ms > 0 && ms <= 24 * 60 * 60 * 1000) setShowRenewalAlert(true);
-      }
-    }
-
     const allMods = ((mods ?? []) as { course_id?: string; unit_id?: string; is_active?: boolean }[]);
-    // granted: solo is_active === true EXPLÍCITAMENTE (admin concedió acceso)
-    const grantedIds = allMods
-      .filter(m => m.is_active === true)
-      .map(m => m.unit_id || m.course_id || '')
-      .filter(Boolean);
-    // revoked: is_active === false EXPLÍCITAMENTE (admin revocó acceso)
-    const revokedIds = allMods
-      .filter(m => m.is_active === false)
-      .map(m => m.unit_id || m.course_id || '')
-      .filter(Boolean);
-    setGrantedModuleIds(grantedIds);
-    setRevokedModuleIds(revokedIds);
-
-    // Separar grants de unidades individuales (unit_id no null)
+    const grantedIds = allMods.filter(m => m.is_active === true).map(m => m.unit_id || m.course_id || '').filter(Boolean);
+    const revokedIds = allMods.filter(m => m.is_active === false).map(m => m.unit_id || m.course_id || '').filter(Boolean);
     const unitOnlyGranted = allMods.filter(m => m.is_active === true && !!m.unit_id);
-    setGrantedUnitIds(unitOnlyGranted.map(m => m.unit_id as string));
+    const grantedUnitIds = unitOnlyGranted.map(m => m.unit_id as string);
     const cidsWithUnitGrants = [...new Set(unitOnlyGranted.map(m => m.course_id as string).filter(Boolean))];
-    setCourseIdsWithUnitGrants(cidsWithUnitGrants);
+
+    applyProfileData(prof, sub, hist, grantedIds, revokedIds, grantedUnitIds, cidsWithUnitGrants);
+
+    // Guardar en sessionStorage para recarga instantánea
+    try {
+      sessionStorage.setItem(PROFILE_CACHE_PREFIX + userId, JSON.stringify({ prof, sub, hist, grantedIds, revokedIds, grantedUnitIds, cidsWithUnitGrants }));
+    } catch {}
+
     } catch (err) {
       console.error('[refreshProfile] error inesperado:', err);
     } finally {
