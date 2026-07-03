@@ -5,6 +5,7 @@ import { useNavigate, Navigate } from 'react-router-dom';
 import { usePricingPlans } from '@/hooks/useSupabaseData';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
@@ -1631,6 +1632,7 @@ function UpdateRequestForm({ studentName, studentEmail }: { studentName: string;
 export default function Dashboard({ isLoggedIn = false, onOpenAuth, onLogout, userName, userId: userIdProp = '' }: DashboardProps) {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabId>('cursos');
+  const [showInstrucciones, setShowInstrucciones] = useState(false);
   const [profileForm, setProfileForm] = useState({ name: '', country: '', city: '', birthday: '' });
   const [pwForm, setPwForm] = useState({ current: '', newPw: '', confirm: '' });
   const [showPw, setShowPw] = useState(false);
@@ -3111,6 +3113,19 @@ useEffect(() => {
                     <p className="text-muted-foreground text-sm">Tu información personal y configuración.</p>
                   </div>
 
+                  {/* Botón instrucciones */}
+                  <button
+                    onClick={() => setShowInstrucciones(true)}
+                    className="w-full flex items-center gap-3 rounded-2xl border-2 border-violet-300 bg-violet-50 hover:bg-violet-100 transition-colors px-5 py-4 text-left shadow-sm"
+                  >
+                    <span className="text-3xl">📖</span>
+                    <div>
+                      <p className="font-extrabold text-violet-700 text-sm">¿Cómo usar la plataforma?</p>
+                      <p className="text-xs text-violet-500 mt-0.5">Instrucciones paso a paso para sacarle el máximo provecho</p>
+                    </div>
+                    <span className="ml-auto text-violet-400 text-lg">›</span>
+                  </button>
+
                   {/* Profile summary card */}
                   {profileLoading ? (
                     <div className="bg-gradient-to-br from-primary/5 to-background rounded-2xl border border-primary/20 p-5 shadow-sm animate-pulse">
@@ -3429,6 +3444,90 @@ useEffect(() => {
                       </div>
                     )}
                   </div>
+
+                  {/* ─── Modal instrucciones ─── */}
+                  <Dialog open={showInstrucciones} onOpenChange={setShowInstrucciones}>
+                    <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl">
+                      <DialogHeader>
+                        <DialogTitle className="text-xl font-extrabold flex items-center gap-2">
+                          📖 Cómo usar la plataforma
+                        </DialogTitle>
+                      </DialogHeader>
+
+                      <p className="text-sm text-muted-foreground -mt-1 mb-4">
+                        ¡Bienvenido/a a BLANG English! 🎉 Aquí te explicamos paso a paso cómo aprovechar al máximo tu experiencia de aprendizaje.
+                      </p>
+
+                      <div className="space-y-4 text-sm">
+
+                        <div className="flex gap-3">
+                          <span className="w-7 h-7 rounded-full bg-violet-100 text-violet-700 font-extrabold flex items-center justify-center shrink-0 text-xs">1</span>
+                          <p><strong>Elige tu nivel:</strong> Despliega la sección de tu nivel y verás todas las unidades disponibles para ti.</p>
+                        </div>
+
+                        <div className="flex gap-3">
+                          <span className="w-7 h-7 rounded-full bg-violet-100 text-violet-700 font-extrabold flex items-center justify-center shrink-0 text-xs">2</span>
+                          <p><strong>Selecciona una unidad:</strong> Elige la unidad que quieres trabajar. Te recomendamos siempre empezar por la primera e ir en orden.</p>
+                        </div>
+
+                        <div className="flex gap-3">
+                          <span className="w-7 h-7 rounded-full bg-violet-100 text-violet-700 font-extrabold flex items-center justify-center shrink-0 text-xs">3</span>
+                          <p><strong>Dale en "Comenzar":</strong> Se recomienda apartar <strong>una hora u hora y media</strong> para hacer el trabajo completo de la unidad.</p>
+                        </div>
+
+                        <div className="flex gap-3">
+                          <span className="w-7 h-7 rounded-full bg-violet-100 text-violet-700 font-extrabold flex items-center justify-center shrink-0 text-xs">4</span>
+                          <p><strong>La unidad tiene 5 partes:</strong> Part 1 Grammar · Part 2 Vocabulary · Part 3 Reading · Part 4 Listening · Part 5 IA Practice.</p>
+                        </div>
+
+                        <div className="rounded-xl border border-border bg-muted/30 p-3 space-y-2.5">
+                          <p className="font-bold text-xs text-foreground/70 uppercase tracking-wide">Detalle de cada parte</p>
+
+                          <div>
+                            <p className="font-bold">📘 Part 1 – Grammar</p>
+                            <p className="text-muted-foreground text-xs mt-0.5">Encontrarás un PDF con la explicación de gramática — estúdialo, toma notas. Luego un video y una imagen resumen (ambos los puedes guardar). Al final un quiz: necesitas más del 60% para avanzar.</p>
+                          </div>
+
+                          <div>
+                            <p className="font-bold">📝 Part 2 – Vocabulary</p>
+                            <p className="text-muted-foreground text-xs mt-0.5">Lista de vocabulario con botón para escuchar la pronunciación — repite en voz alta varias veces. En algunos habrá un link a Flashcards (necesitas crear cuenta), en otros una imagen resumen. Al final el quiz.</p>
+                          </div>
+
+                          <div>
+                            <p className="font-bold">📖 Part 3 – Reading</p>
+                            <p className="text-muted-foreground text-xs mt-0.5">Una lectura corta (va creciendo en nivel). Puedes señalar cualquier palabra que no entiendas y la página te la traduce. Al final el quiz sobre la lectura.</p>
+                          </div>
+
+                          <div>
+                            <p className="font-bold">🎧 Part 4 – Listening</p>
+                            <p className="text-muted-foreground text-xs mt-0.5">Escucha el audio las veces que necesites, toma nota, y luego responde el quiz.</p>
+                          </div>
+
+                          <div>
+                            <p className="font-bold">🤖 Part 5 – IA Practice</p>
+                            <p className="text-muted-foreground text-xs mt-0.5">
+                              Según tu plan: <strong>Plan mensual</strong> — copia y pega los prompts en ChatGPT (necesitas crear cuenta ahí). <strong>Plan trimestral</strong> — ingresa a Speakology y haz la unidad asignada.
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-3">
+                          <span className="w-7 h-7 rounded-full bg-green-100 text-green-700 font-extrabold flex items-center justify-center shrink-0 text-xs">✓</span>
+                          <p><strong>Marcar como completado:</strong> Una vez termines la Part 5, dale en "Marcar como completado". Espera unos momentos mientras la página guarda la información — luego la unidad aparecerá como completada ✅</p>
+                        </div>
+
+                        <div className="flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
+                          <span className="text-xl shrink-0">💡</span>
+                          <p className="text-xs text-amber-800"><strong>Consejo:</strong> Si la página se queda cargando, cierra sesión y vuelve a ingresar. A veces por el tiempo de inactividad se puede caer la conexión, pero no es frecuente.</p>
+                        </div>
+
+                        <p className="text-center text-xs text-muted-foreground pt-1">
+                          ¡Estamos muy felices de que estés aquí aprendiendo! 💜<br/>
+                          Cada unidad que completas es un paso más hacia tu meta. ¡Tú puedes!
+                        </p>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
 
                 </motion.div>
               )}
