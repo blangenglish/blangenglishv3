@@ -737,13 +737,13 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
                       "{r.comment}"
                     </p>
 
-                    {/* Autor */}
+                    {/* Autor anónimo */}
                     <div className="flex items-center gap-2.5 pt-1 border-t border-border/40">
                       <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-extrabold text-sm shrink-0">
-                        {r.full_name ? r.full_name.charAt(0).toUpperCase() : '?'}
+                        ✦
                       </div>
                       <span className="text-sm font-semibold text-foreground/80 leading-tight">
-                        {r.full_name || 'Estudiante'}
+                        Estudiante BLANG
                       </span>
                     </div>
                   </motion.div>
