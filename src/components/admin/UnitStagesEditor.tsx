@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { adminInsert, adminDeleteByFilter, adminReplace } from '@/lib/adminWrite';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
@@ -13,7 +14,7 @@ import {
   ChevronUp, ChevronDown, Eye, EyeOff, Loader2,
   CheckCircle2, RefreshCw, ExternalLink, Bold, Italic,
   Underline, List, AlignCenter, AlignLeft as AlignL, Type,
-  HelpCircle, GripVertical, Check, PenLine,
+  HelpCircle, GripVertical, Check, PenLine, Code2,
 } from 'lucide-react';
 import {
   STAGES, MATERIAL_TYPE_CONFIG,
@@ -55,6 +56,7 @@ const TYPE_ICONS: Record<StageMaterialType, React.ReactNode> = {
   image:  <ImageIcon className="h-4 w-4 text-purple-500" />,
   url:    <Link2 className="h-4 w-4 text-cyan-500" />,
   text:   <AlignLeft className="h-4 w-4 text-gray-500" />,
+  html:   <Code2 className="h-4 w-4 text-violet-500" />,
 };
 
 // ─── Rich Text Toolbar ────────────────────────────────────────────────────────
@@ -512,6 +514,38 @@ function MaterialCard({
           </div>
         )}
 
+        {/* Código HTML embebido (solo para tipo html) */}
+        {material.material_type === 'html' && (
+          <div>
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5 block">
+              Código HTML embebido
+            </label>
+            <p className="text-xs text-muted-foreground mb-1.5">
+              Pega aquí el código &lt;iframe&gt; o de "insertar" que te da otra página (Canva, YouTube, Spotify, Google Forms, etc.).
+            </p>
+            <Textarea
+              value={material.embed_html || ''}
+              onChange={e => onUpdate({ embed_html: e.target.value })}
+              placeholder='<iframe src="https://..." width="100%" height="400"></iframe>'
+              className="text-xs font-mono min-h-[100px]"
+            />
+            {material.embed_html?.trim() && (
+              <div className="mt-2 space-y-1">
+                <p className="text-[11px] text-muted-foreground">Vista previa:</p>
+                <div className="rounded-xl border border-border overflow-hidden bg-muted/20">
+                  <iframe
+                    srcDoc={material.embed_html}
+                    className="w-full"
+                    style={{ height: '320px', border: 0 }}
+                    sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+                    title="Vista previa del embed"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Contenido de texto (solo para tipo text) */}
         {material.material_type === 'text' && (
           <div>
@@ -545,7 +579,7 @@ function MaterialCard({
 
 // ─── Add material picker ──────────────────────────────────────────────────────
 function AddMaterialPicker({ onAdd }: { onAdd: (type: StageMaterialType) => void }) {
-  const types: StageMaterialType[] = ['audio', 'video', 'pdf', 'word', 'ppt', 'image', 'url', 'text'];
+  const types: StageMaterialType[] = ['audio', 'video', 'pdf', 'word', 'ppt', 'image', 'url', 'text', 'html'];
   return (
     <div className="border-2 border-dashed border-primary/30 rounded-2xl p-4 bg-primary/3">
       <p className="text-xs font-semibold text-center text-muted-foreground mb-3 uppercase tracking-wide">
@@ -2042,6 +2076,7 @@ function StagePanel({
       file_url: null,
       file_name: null,
       external_url: null,
+      embed_html: null,
       sort_order: materials.filter(m => (m.plan_type ?? 'mensual') === 'mensual').length,
       is_published: true,
       created_at: new Date().toISOString(),
@@ -2295,6 +2330,7 @@ export function UnitStagesEditor({ unitId, unitTitle, unitLevel, onClose }: Unit
             description: m.description,
             file_url: m.file_url, file_name: m.file_name,
             external_url: m.external_url,
+            embed_html: m.embed_html ?? null,
             sort_order: idx, is_published: m.is_published,
           });
         });

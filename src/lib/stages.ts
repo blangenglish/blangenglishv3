@@ -1,6 +1,6 @@
 // ─── Stage Material types ─────────────────────────────────────────────────────
 export type Stage = 'grammar' | 'vocabulary' | 'reading' | 'listening' | 'ai_practice';
-export type StageMaterialType = 'audio' | 'video' | 'pdf' | 'word' | 'ppt' | 'image' | 'url' | 'text';
+export type StageMaterialType = 'audio' | 'video' | 'pdf' | 'word' | 'ppt' | 'image' | 'url' | 'text' | 'html';
 
 export interface UnitStageMaterial {
   id: string;
@@ -14,6 +14,7 @@ export interface UnitStageMaterial {
   file_url: string | null;
   file_name: string | null;
   external_url: string | null;
+  embed_html?: string | null;
   sort_order: number;
   is_published: boolean;
   created_at: string;
@@ -37,4 +38,5 @@ export const MATERIAL_TYPE_CONFIG: Record<StageMaterialType, { label: string; em
   image:  { label: 'Imagen',          emoji: '🖼️', accept: '.jpg,.jpeg,.png,.gif,.webp', isFile: true },
   url:    { label: 'URL / Enlace',    emoji: '🔗', accept: '',                            isFile: false },
   text:   { label: 'Texto / Nota',    emoji: '✏️', accept: '',                            isFile: false },
+  html:   { label: 'HTML',            emoji: '💻', accept: '',                            isFile: false },
 };
