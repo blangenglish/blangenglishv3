@@ -224,7 +224,7 @@ export default function AdminEnglishForStudents() {
         module_id:   selectedModule,
         title:       formTitle.trim(),
         rich_text:   isRichText ? formRichText : null,
-        embed_html:  isRichText ? (formEmbedHtml.trim() || null) : null,
+        embed_html:  formEmbedHtml.trim() || null,
         image_path,
         audio_path,
         pdf_path,
@@ -539,6 +539,31 @@ export default function AdminEnglishForStudents() {
                           ) : (
                             <Input value={pdfUrl} onChange={(e) => setPdfUrl(e.target.value)}
                               placeholder="https://drive.google.com/file/d/.../preview" className="text-sm" />
+                          )}
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-sm font-semibold flex items-center gap-1.5">
+                            <Code2 className="w-3.5 h-3.5" /> Código HTML embebido <span className="text-muted-foreground font-normal">(opcional)</span>
+                          </Label>
+                          <p className="text-xs text-muted-foreground">
+                            Pega aquí el código &lt;iframe&gt; o de "insertar" que te da otra página (Canva, YouTube, Google Forms, etc.) y se mostrará dentro de esta sección.
+                          </p>
+                          <Textarea value={formEmbedHtml} onChange={(e) => setFormEmbedHtml(e.target.value)}
+                            placeholder='<iframe src="https://..." width="100%" height="400"></iframe>'
+                            className="text-xs font-mono min-h-[100px]" />
+                          {formEmbedHtml.trim() && (
+                            <div className="space-y-1">
+                              <p className="text-xs text-muted-foreground">Vista previa:</p>
+                              <div className="rounded-xl border border-border overflow-hidden bg-muted/20">
+                                <iframe
+                                  srcDoc={formEmbedHtml}
+                                  className="w-full"
+                                  style={{ height: '320px', border: 0 }}
+                                  sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+                                  title="Vista previa del embed"
+                                />
+                              </div>
+                            </div>
                           )}
                         </div>
                       </>
