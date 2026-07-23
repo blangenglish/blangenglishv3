@@ -89,6 +89,10 @@ function TopicEditModal({
           if (data.phrasal_verbs) setPhrasalVerbs(data.phrasal_verbs);
         }
         setLoading(false);
+      })
+      .catch((err) => {
+        console.error('mundo_real_overrides load error', err);
+        setLoading(false);
       });
   }, [topic.id]);
 

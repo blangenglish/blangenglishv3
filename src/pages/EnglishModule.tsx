@@ -58,6 +58,10 @@ export default function EnglishModule({ isLoggedIn, onOpenAuth, onLogout, userNa
       .then(({ data, error }) => {
         if (!error && data) setSections(data as Section[]);
         setLoading(false);
+      })
+      .catch((err) => {
+        console.error('english_for_students_sections load error', err);
+        setLoading(false);
       });
   }, [moduleSlug, isDBModule]);
 

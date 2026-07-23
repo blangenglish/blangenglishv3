@@ -458,9 +458,6 @@ export default function AdminStudents() {
           approved_by_admin: draft.account_enabled && draft.sub_status === 'active',
           updated_at: new Date().toISOString(),
         };
-        await adminUpdate('subscriptions', subUpdate, '').then ? 
-          adminUpdate('subscriptions', subUpdate, student.id) :
-          adminUpdate('subscriptions', subUpdate, student.id);
         try { await adminUpdate('subscriptions', subUpdate, student.id); } catch(e) { console.error('sub update error', e); }
       } else if (draft.account_enabled && draft.sub_status === 'active') {
         const farFuture = new Date();
@@ -477,10 +474,11 @@ export default function AdminStudents() {
 
       // ── 3. Si se deshabilitó, revocar acceso a módulos ──
       if (!draft.account_enabled) {
-        await supabase
+        const { error: moduleAccessError } = await supabase
           .from('student_module_access')
           .update({ is_active: false })
           .eq('student_id', student.id);
+        if (moduleAccessError) console.error('module access revoke error', moduleAccessError);
       }
 
       // ── 4. Limpiar draft y recargar lista ──
@@ -681,7 +679,7 @@ export default function AdminStudents() {
     });
     if (error) {
       // Direct fallback via RLS
-      await supabase.from('student_profiles').update({
+      const { error: fallbackError } = await supabase.from('student_profiles').update({
         full_name: editForm.full_name,
         current_level: editForm.current_level,
         english_level: editForm.english_level || null,
@@ -690,6 +688,11 @@ export default function AdminStudents() {
         birthday: editForm.birthday || null,
         updated_at: new Date().toISOString(),
       }).eq('id', editingId);
+      if (fallbackError) {
+        setSaving(false);
+        showMsg('error', `❌ Error al guardar: ${fallbackError.message}`);
+        return;
+      }
     }
     setSaving(false);
     setEditingId(null);

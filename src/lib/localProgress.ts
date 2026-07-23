@@ -78,8 +78,8 @@ export function getAllProgressForStudent(
   if (!studentId) return [];
   const prefix = `${PREFIX}::${studentId}::`;
   const result: Array<{ unitId: string; stage: string; completed: boolean; completed_at: string }> = [];
-  try {
-    for (let i = 0; i < localStorage.length; i++) {
+  for (let i = 0; i < localStorage.length; i++) {
+    try {
       const key = localStorage.key(i);
       if (!key || !key.startsWith(prefix)) continue;
       const unitId = key.slice(prefix.length);
@@ -89,9 +89,10 @@ export function getAllProgressForStudent(
       Object.entries(stages).forEach(([stage, p]) => {
         result.push({ unitId, stage, completed: !!p.completed, completed_at: p.completed_at });
       });
+    } catch {
+      // ignorar error de esta clave puntual, seguir con las demás
+      continue;
     }
-  } catch {
-    // ignorar errores de parseo/acceso
   }
   return result;
 }

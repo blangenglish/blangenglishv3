@@ -43,13 +43,17 @@ export function useAdmin(): UseAdminReturn {
       return;
     }
 
-    // Verificación 2: por tabla admin_users
+    // Verificación 2: por tabla admin_users (con timeout para no quedar cargando eternamente)
     try {
-      const { data } = await supabase
+      const queryPromise = supabase
         .from('admin_users')
         .select('id')
         .eq('id', sessionUser.id)
         .maybeSingle();
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('admin_users query timeout')), 12000)
+      );
+      const { data } = await Promise.race([queryPromise, timeoutPromise]);
       if (mountedRef.current) {
         setIsAdmin(!!data);
         setLoading(false);
