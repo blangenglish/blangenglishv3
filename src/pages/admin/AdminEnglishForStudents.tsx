@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
@@ -14,7 +15,7 @@ import { adminInsert, adminDelete, adminSelect } from '@/lib/adminWrite';
 import {
   PenLine, BookOpen, Headphones, BookMarked, Library,
   Plus, X, ChevronRight, Sparkles, Trash2,
-  ImageIcon, Music2, FileText, Upload, Globe, Loader2,
+  ImageIcon, Music2, FileText, Upload, Globe, Loader2, Code2,
 } from 'lucide-react';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
@@ -44,6 +45,7 @@ interface DBSection {
   image_path: string | null;
   audio_path: string | null;
   pdf_path: string | null;
+  embed_html: string | null;
   is_published: boolean;
   sort_order: number;
   created_at: string;
@@ -138,6 +140,7 @@ export default function AdminEnglishForStudents() {
   const [selectedModule, setSelectedModule] = useState<ModuleId | null>(null);
   const [formTitle, setFormTitle] = useState('');
   const [formRichText, setFormRichText] = useState('');
+  const [formEmbedHtml, setFormEmbedHtml] = useState('');
   const [formImageFile, setFormImageFile] = useState<File | null>(null);
   const [formImagePreview, setFormImagePreview] = useState<string | null>(null);
   const [formAudioFile, setFormAudioFile] = useState<File | null>(null);
@@ -171,7 +174,7 @@ export default function AdminEnglishForStudents() {
 
   // ── Helpers del modal ─────────────────────────────────────────────────────
   const resetForm = () => {
-    setFormTitle(''); setFormRichText('');
+    setFormTitle(''); setFormRichText(''); setFormEmbedHtml('');
     setFormImageFile(null); setFormImagePreview(null);
     setFormAudioFile(null); setFormPdfFile(null);
     setImageMode('file'); setImageUrl('');
@@ -190,7 +193,8 @@ export default function AdminEnglishForStudents() {
     if (!formTitle.trim() || !selectedModule) return false;
     if (isRichText) {
       const hasImage = imageMode === 'url' ? imageUrl.trim().startsWith('http') : formImageFile !== null;
-      return formRichText.replace(/<[^>]+>/g, '').trim().length > 0 || hasImage;
+      const hasEmbed = formEmbedHtml.trim().length > 0;
+      return formRichText.replace(/<[^>]+>/g, '').trim().length > 0 || hasImage || hasEmbed;
     }
     if (isListening) {
       return audioMode === 'url' ? audioUrl.trim().startsWith('http') : formAudioFile !== null;
@@ -220,6 +224,7 @@ export default function AdminEnglishForStudents() {
         module_id:   selectedModule,
         title:       formTitle.trim(),
         rich_text:   isRichText ? formRichText : null,
+        embed_html:  isRichText ? (formEmbedHtml.trim() || null) : null,
         image_path,
         audio_path,
         pdf_path,
@@ -349,6 +354,12 @@ export default function AdminEnglishForStudents() {
                           </span>
                         </div>
                       )}
+                      {sec.embed_html && (
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Code2 className="w-3.5 h-3.5 text-violet-500 shrink-0" />
+                          <span className="truncate">Contenido embebido (HTML)</span>
+                        </div>
+                      )}
                       <p className="text-[10px] text-muted-foreground/60 pt-0.5">
                         {new Date(sec.created_at).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' })}
                       </p>
@@ -453,6 +464,31 @@ export default function AdminEnglishForStudents() {
                           ) : (
                             <Input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)}
                               placeholder="https://drive.google.com/uc?export=view&id=..." className="text-sm" />
+                          )}
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-sm font-semibold flex items-center gap-1.5">
+                            <Code2 className="w-3.5 h-3.5" /> Código HTML embebido <span className="text-muted-foreground font-normal">(opcional)</span>
+                          </Label>
+                          <p className="text-xs text-muted-foreground">
+                            Pega aquí el código &lt;iframe&gt; o de "insertar" que te da otra página (Canva, YouTube, Google Forms, etc.) y se mostrará dentro de esta sección.
+                          </p>
+                          <Textarea value={formEmbedHtml} onChange={(e) => setFormEmbedHtml(e.target.value)}
+                            placeholder='<iframe src="https://..." width="100%" height="400"></iframe>'
+                            className="text-xs font-mono min-h-[100px]" />
+                          {formEmbedHtml.trim() && (
+                            <div className="space-y-1">
+                              <p className="text-xs text-muted-foreground">Vista previa:</p>
+                              <div className="rounded-xl border border-border overflow-hidden bg-muted/20">
+                                <iframe
+                                  srcDoc={formEmbedHtml}
+                                  className="w-full"
+                                  style={{ height: '320px', border: 0 }}
+                                  sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+                                  title="Vista previa del embed"
+                                />
+                              </div>
+                            </div>
                           )}
                         </div>
                       </>

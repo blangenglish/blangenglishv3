@@ -26,6 +26,7 @@ interface Section {
   image_path: string | null;
   audio_path: string | null;
   pdf_path: string | null;
+  embed_html: string | null;
   sort_order: number;
 }
 
@@ -211,6 +212,19 @@ export default function EnglishModule({ isLoggedIn, onOpenAuth, onLogout, userNa
                           alt={section.title}
                           className="w-full object-cover"
                           onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                        />
+                      </div>
+                    )}
+
+                    {/* Contenido HTML embebido */}
+                    {section.embed_html && (
+                      <div className="rounded-xl overflow-hidden border border-border/40">
+                        <iframe
+                          srcDoc={section.embed_html}
+                          className="w-full"
+                          style={{ height: '480px', border: 0 }}
+                          sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+                          title={`${section.title} - contenido embebido`}
                         />
                       </div>
                     )}
