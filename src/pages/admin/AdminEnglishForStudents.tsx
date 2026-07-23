@@ -197,7 +197,10 @@ export default function AdminEnglishForStudents() {
       return formRichText.replace(/<[^>]+>/g, '').trim().length > 0 || hasImage || hasEmbed;
     }
     if (isListening) {
-      return audioMode === 'url' ? audioUrl.trim().startsWith('http') : formAudioFile !== null;
+      const hasAudio = audioMode === 'url' ? audioUrl.trim().startsWith('http') : formAudioFile !== null;
+      const hasPdf = pdfMode === 'url' ? pdfUrl.trim().startsWith('http') : formPdfFile !== null;
+      const hasEmbed = formEmbedHtml.trim().length > 0;
+      return hasAudio || hasPdf || hasEmbed;
     }
     return false;
   };
@@ -498,7 +501,7 @@ export default function AdminEnglishForStudents() {
                     {isListening && (
                       <>
                         <div className="space-y-1.5">
-                          <Label className="text-sm font-semibold">Archivo de audio <span className="text-destructive">*</span></Label>
+                          <Label className="text-sm font-semibold">Archivo de audio <span className="text-muted-foreground font-normal">(opcional)</span></Label>
                           <div className="flex gap-2 mb-2">
                             <button type="button" onClick={() => setAudioMode('file')}
                               className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors ${audioMode === 'file' ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground hover:text-foreground'}`}>
