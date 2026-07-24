@@ -4,15 +4,16 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { ChevronRight, Star, Lock, Sparkles } from 'lucide-react';
 import { ROUTE_PATHS } from '@/lib/index';
 import type { AuthModal } from '@/lib/index';
-import { IMAGES } from '@/assets/images';
 import { supabase } from '@/integrations/supabase/client';
 import { MODULES } from '@/components/EnglishForYou';
 import { MUNDO_REAL_TOPICS } from '@/pages/MundoRealData';
 import { ClasesVirtualesModal } from '@/components/ClasesVirtualesModal';
+import LevelQuiz from '@/components/LevelQuiz';
+import { useSiteSettings } from '@/hooks/useSupabaseData';
 
 const staggerContainer = {
   hidden: { opacity: 0 },
@@ -27,33 +28,137 @@ const fadeInUp = {
   visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 35 } },
 };
 
+const stagger = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.12, delayChildren: 0.1 } },
+};
+const fadeUp = {
+  hidden: { opacity: 0, y: 28 },
+  visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 260, damping: 28 } },
+};
+const fadeLeft = {
+  hidden: { opacity: 0, x: -30 },
+  visible: { opacity: 1, x: 0, transition: { type: 'spring', stiffness: 260, damping: 28 } },
+};
+const fadeRight = {
+  hidden: { opacity: 0, x: 30 },
+  visible: { opacity: 1, x: 0, transition: { type: 'spring', stiffness: 260, damping: 28 } },
+};
+
 interface HomeProps {
   onOpenAuth?: (modal: AuthModal) => void;
   isLoggedIn?: boolean;
 }
 
-const COURSES = [
-  { id: 'c1', emoji: '🌱', title: 'Inglés desde Cero', level: 'A1 — Principiante', color: 'from-green-400/20 to-emerald-400/20 border-green-200', badge: 'bg-green-100 text-green-700', desc: 'Saludos, números, colores, familia y primeras conversaciones.' },
-  { id: 'c2', emoji: '📗', title: 'Inglés Elemental', level: 'A2 — Elemental', color: 'from-teal-400/20 to-cyan-400/20 border-teal-200', badge: 'bg-teal-100 text-teal-700', desc: 'Amplía tu vocabulario y construye frases completas con confianza.' },
-  { id: 'c3', emoji: '📘', title: 'Inglés Intermedio', level: 'B1 — Intermedio', color: 'from-blue-400/20 to-indigo-400/20 border-blue-200', badge: 'bg-blue-100 text-blue-700', desc: 'Conversaciones sobre el mundo, viajes y situaciones cotidianas.' },
-  { id: 'c4', emoji: '📙', title: 'Intermedio Avanzado', level: 'B2 — Interm. Avanzado', color: 'from-purple-400/20 to-violet-400/20 border-purple-200', badge: 'bg-purple-100 text-purple-700', desc: 'Phrasal verbs, modismos y conversaciones fluidas.' },
-  { id: 'c5', emoji: '🏆', title: 'Inglés Avanzado', level: 'C1 — Avanzado', color: 'from-amber-400/20 to-yellow-400/20 border-amber-200', badge: 'bg-amber-100 text-amber-700', desc: 'Debates, textos académicos y fluidez total.' },
+const STEPS = [
+  {
+    number: '01',
+    emoji: '📚',
+    title: 'Gramática',
+    color: 'from-purple-500 to-violet-600',
+    bg: 'from-purple-50 to-violet-50 border-purple-200',
+    tag: 'bg-purple-100 text-purple-700',
+    desc: 'Aprendes las reglas del idioma de forma clara y en español. Sin tecnicismos complicados, con ejemplos reales del día a día.',
+    details: [
+      'Explicaciones 100% en español',
+      'Reglas con ejemplos cotidianos',
+      'Ejercicios de aplicación inmediata',
+      'Comparación con el español para entender mejor',
+    ],
+  },
+  {
+    number: '02',
+    emoji: '📖',
+    title: 'Vocabulario',
+    color: 'from-blue-500 to-indigo-600',
+    bg: 'from-blue-50 to-indigo-50 border-blue-200',
+    tag: 'bg-blue-100 text-blue-700',
+    desc: 'Palabras y frases reales, organizadas por temas de tu vida: familia, trabajo, viajes, emociones. Aprendes lo que vas a usar.',
+    details: [
+      'Palabras agrupadas por temas prácticos',
+      'Frases completas, no solo palabras sueltas',
+      'Flashcards y repetición espaciada',
+      'Pronunciación incluida en cada palabra',
+    ],
+  },
+  {
+    number: '03',
+    emoji: '📰',
+    title: 'Lectura',
+    color: 'from-teal-500 to-cyan-600',
+    bg: 'from-teal-50 to-cyan-50 border-teal-200',
+    tag: 'bg-teal-100 text-teal-700',
+    desc: 'Textos cortos y graduales: noticias, historias, diálogos. Lees para entender el contexto real del idioma y ampliar vocabulario naturalmente.',
+    details: [
+      'Textos adaptados a tu nivel',
+      'Comprensión lectora con preguntas guía',
+      'Vocabulario nuevo resaltado con traducción',
+      'Temas interesantes: cultura, viajes, tecnología',
+    ],
+  },
+  {
+    number: '04',
+    emoji: '🎧',
+    title: 'Escucha',
+    color: 'from-pink-500 to-rose-600',
+    bg: 'from-pink-50 to-rose-50 border-pink-200',
+    tag: 'bg-pink-100 text-pink-700',
+    desc: 'Audio con hablantes nativos en situaciones reales. Entrenas tu oído para entender inglés natural, no solo el "inglés de academia".',
+    details: [
+      'Audios con acento americano y británico',
+      'Velocidad ajustable para practicar',
+      'Transcripciones para comparar',
+      'Diálogos de la vida real: aeropuerto, restaurante, trabajo',
+    ],
+  },
+  {
+    number: '05',
+    emoji: '🤖',
+    title: 'Práctica con IA',
+    color: 'from-amber-500 to-orange-600',
+    bg: 'from-amber-50 to-orange-50 border-amber-200',
+    tag: 'bg-amber-100 text-amber-700',
+    desc: 'Practicas escritura y conversación con inteligencia artificial (ChatGPT). Correcciones instantáneas, sin vergüenza, a tu propio ritmo.',
+    details: [
+      'Conversaciones escritas con IA',
+      'Corrección automática de gramática y estilo',
+      'Practica oral: pronunciación y fluidez',
+      'Disponible 24/7, sin horarios fijos',
+    ],
+  },
 ];
 
-const METHODOLOGY_STEPS = [
-  { emoji: '✏️', title: 'Gramática', color: 'from-violet-500 to-purple-600' },
-  { emoji: '📖', title: 'Vocabulario', color: 'from-blue-500 to-cyan-500' },
-  { emoji: '📚', title: 'Lectura', color: 'from-teal-500 to-green-500' },
-  { emoji: '🎧', title: 'Escucha', color: 'from-orange-500 to-amber-500' },
-  { emoji: '🤖', title: 'Práctica con IA', color: 'from-pink-500 to-rose-500' },
+const UNITS = [
+  { emoji: '📅', title: 'Una unidad por semana', desc: 'O cada 4 días si quieres avanzar más rápido. Tú decides el ritmo.' },
+  { emoji: '🔁', title: 'Ciclo completo en cada unidad', desc: 'Cada unidad recorre los 5 pasos: gramática → vocabulario → lectura → escucha → IA.' },
+  { emoji: '🎯', title: 'Progresivo y acumulativo', desc: 'Lo que aprendes en una unidad lo refuerzas en la siguiente. Nada se queda atrás.' },
+  { emoji: '🌍', title: 'A1–A2 en español', desc: 'Los niveles iniciales usan el español como apoyo. A partir de B1, todo es 100% en inglés.' },
+];
+
+const LEVELS = [
+  { level: 'A1', title: 'Desde Cero', emoji: '🌱', units: 27, desc: 'Saludos, números, colores, familia y primeras frases.', lang: '🇪🇸 Explicaciones en español', color: 'bg-green-100 text-green-700 border-green-200', langColor: 'bg-green-50 text-green-600' },
+  { level: 'A2', title: 'Elemental', emoji: '📗', units: 5, desc: 'Frases completas, presente y pasado simple.', lang: '🇪🇸 Explicaciones en español', color: 'bg-teal-100 text-teal-700 border-teal-200', langColor: 'bg-teal-50 text-teal-600' },
+  { level: 'B1', title: 'Intermedio', emoji: '📘', units: 10, desc: 'Conversaciones fluidas sobre el mundo y viajes.', lang: '🇺🇸 100% en inglés', color: 'bg-blue-100 text-blue-700 border-blue-200', langColor: 'bg-blue-50 text-blue-600' },
+  { level: 'B2', title: 'Interm. Avanzado', emoji: '📙', units: 13, desc: 'Phrasal verbs, modismos y expresión avanzada.', lang: '🇺🇸 100% en inglés', color: 'bg-purple-100 text-purple-700 border-purple-200', langColor: 'bg-purple-50 text-purple-600' },
+  { level: 'C1', title: 'Avanzado', emoji: '🏆', units: 15, desc: 'Debates, textos académicos y fluidez total.', lang: '🇺🇸 100% en inglés', color: 'bg-amber-100 text-amber-700 border-amber-200', langColor: 'bg-amber-50 text-amber-600' },
+];
+
+const FAQ = [
+  { q: '¿Cuánto cuesta después de los días gratis?', a: 'Solo $16 USD ó $60,000 COP al mes. Sin contratos ni compromisos.' },
+  { q: '¿Cómo puedo pagar?', a: 'Aceptamos transferencia bancaria o pago por PayPal. Escríbenos y te indicamos el método más conveniente para ti.' },
+  { q: '¿Puedo cancelar cuando quiera?', a: '¡Claro! No hay contratos ni compromisos. Cancelas cuando quieras desde tu perfil, sin cargos ocultos.' },
+  { q: '¿Las sesiones en vivo son incluidas?', a: 'Las sesiones 1 a 1 no están incluidas en el plan mensual de cursos — arma tu propio plan de clases en vivo eligiendo días, horas y horario, desde $37,500 COP por clase.' },
+  { q: '¿Hay compromiso al empezar?', a: 'No. Los días de prueba son completamente gratis y sin ningún compromiso. Cancelas cuando quieras.' },
 ];
 
 export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
-  const [ctaEmail, setCtaEmail] = useState('');
   const navigate = useNavigate();
   const [showClasesModal, setShowClasesModal] = useState(false);
+  const [quizOpen, setQuizOpen] = useState(false);
   const [reviews, setReviews] = useState<{ full_name: string; rating: number; comment: string }[]>([]);
   const [moduleContent, setModuleContent] = useState<Record<string, { id: string; title: string; rich_text: string; sort_order: number }[]>>({});
+  const { data: settings } = useSiteSettings();
+  const trialDays = settings?.trial_days ?? '7';
 
   useEffect(() => {
     supabase
@@ -113,313 +218,271 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
       {/* PAGE BG */}
       <div className="fixed inset-0 -z-10 bg-gradient-to-br from-purple-50 via-violet-50/60 to-background pointer-events-none" />
 
-      {/* ── PRICING HERO — FIRST SECTION ── */}
-      <section id="pricing-hero" className="relative min-h-screen flex items-center overflow-hidden py-12 sm:py-16">
-        {/* Background gradients */}
-        <div className="absolute inset-0 bg-gradient-to-br from-violet-900 via-purple-800 to-primary" />
-        <div className="absolute top-0 left-0 w-[400px] sm:w-[700px] h-[400px] sm:h-[700px] bg-pink-500/20 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 right-0 w-[300px] sm:w-[600px] h-[300px] sm:h-[600px] bg-amber-400/15 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary/20 via-transparent to-transparent" />
+      {/* ── ARMA TU PLAN (Clases 1 a 1) — PRIMER BLOQUE ── */}
+      <section id="sesiones-vivo" className="py-14 sm:py-24 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-violet-50 via-purple-50 to-indigo-50" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-primary/8 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-72 h-72 bg-violet-300/15 rounded-full blur-3xl" />
 
-        <div className="container mx-auto px-4 relative z-10 w-full">
+        <div className="container mx-auto px-4 relative z-10">
           <motion.div
-            className="max-w-7xl mx-auto"
+            className="max-w-6xl mx-auto"
             initial="hidden" animate="visible" variants={staggerContainer}
           >
-
-            {/* ── TÍTULO PRINCIPAL ── */}
-            <motion.div variants={staggerItem} className="text-center mb-4 px-2">
-              <span className="inline-flex items-center gap-2 bg-green-400/20 text-green-300 text-xs sm:text-sm font-bold px-4 py-2 rounded-full border border-green-400/30 backdrop-blur mb-4 sm:mb-6">
-                💡 Empieza gratis · 7 días sin costo
+            {/* Badge + título */}
+            <motion.div variants={fadeInUp} className="text-center mb-10 sm:mb-14">
+              <span className="inline-flex items-center gap-2 bg-primary/10 text-primary text-xs sm:text-sm font-bold px-4 sm:px-5 py-2 rounded-full mb-4 sm:mb-5 border border-primary/20">
+                🎥 Clases en vivo
               </span>
-              <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-white leading-none tracking-tight">
-                Aprende{' '}
-                <span className="text-amber-400">inglés</span>
-              </h1>
-              {/* Precio — mobile friendly */}
-              {/* Precio — una sola línea en móvil */}
-              <div className="mt-3 flex flex-col items-center gap-1">
-                <p className="text-lg sm:text-2xl md:text-3xl font-extrabold text-white/80 whitespace-nowrap">
-                  por solo{' '}
-                  <span className="text-white text-3xl sm:text-4xl md:text-5xl font-black">$16</span>
-                  <span className="text-white/60 text-base sm:text-xl font-bold"> USD/mes</span>
-                  {' '}<span className="bg-amber-400 text-black text-xs sm:text-sm font-extrabold px-3 py-1 rounded-full align-middle whitespace-nowrap">o $60,000 COP</span>
-                </p>
-              </div>
-              <p className="text-white/60 text-xs sm:text-base mt-2">
-                Sin compromisos · <strong className="text-white">Cancela cuando quieras</strong>
+              <h2 className="text-3xl sm:text-5xl md:text-6xl font-black text-foreground leading-tight mb-3 sm:mb-4">
+                Clases{' '}
+                <span className="text-primary">1 a 1</span>
+                {' '}con<br className="hidden md:block" />{' '}nuestros profes
+              </h2>
+              <p className="text-base sm:text-xl text-muted-foreground max-w-xl mx-auto">
+                Practica con un profe en vivo, a tu horario y a tu ritmo
               </p>
             </motion.div>
 
-            {/* ── CUATRO TARJETAS DE PLANES ── */}
-            <motion.div variants={staggerItem} className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mt-6 sm:mt-10">
+            {/* Cards de beneficios + CTA */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 items-start">
 
-              {[
-                {
-                  emoji: '🎁',
-                  title: 'Prueba gratis',
-                  desc: 'Accede por 7 días a las 5 primeras lecciones del A1',
-                  price: null,
-                  bg: 'bg-gradient-to-br from-green-500 via-emerald-500 to-green-600',
-                  border: 'border-green-300/40',
-                  btn: 'bg-white text-green-700 hover:bg-green-50',
-                },
-                {
-                  emoji: '🚀',
-                  title: 'Plan Mensual',
-                  desc: 'Acceso completo a todos los cursos. Desde A1 hasta C1',
-                  price: '$16 USD/mes',
-                  priceSub: 'o $60,000 COP al mes',
-                  bg: 'bg-gradient-to-br from-slate-400 via-gray-300 to-slate-500',
-                  border: 'border-slate-200/50',
-                  textColor: 'text-slate-900',
-                  btn: 'bg-slate-900 text-white hover:bg-slate-800',
-                },
-                {
-                  emoji: '💎',
-                  title: 'Plan Trimestral',
-                  desc: 'Acceso completo a todos los cursos + IA para practicar (Speakology)',
-                  price: '$68 USD / 3 meses',
-                  priceSub: 'o $250,000 COP por 3 meses',
-                  bg: 'bg-gradient-to-br from-amber-400 via-yellow-500 to-amber-600',
-                  border: 'border-amber-200/50',
-                  textColor: 'text-amber-950',
-                  btn: 'bg-amber-950 text-white hover:bg-amber-900',
-                },
-                {
-                  emoji: '🎥',
-                  title: 'Clases en Vivo',
-                  desc: 'Plataforma gratis + sesiones en vivo según el horario que escojas',
-                  price: 'Desde $37,500 COP/clase',
-                  priceSub: 'Arma tu plan mensual y ahorra en cada clase',
-                  bg: 'bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-700',
-                  border: 'border-violet-300/40',
-                  btn: 'bg-white text-violet-700 hover:bg-violet-50',
-                },
-              ].map((card, i) => (
-                <div key={i} className={`relative ${card.bg} border ${card.border} rounded-3xl p-6 flex flex-col gap-4 shadow-2xl overflow-hidden`}>
-                  <div className="absolute -top-8 -right-8 w-40 h-40 bg-white/15 rounded-full blur-2xl pointer-events-none" />
-                  <div className="relative z-10 flex flex-col gap-4 h-full">
-                    <div className="flex items-center gap-3">
-                      <span className="text-4xl flex-shrink-0">{card.emoji}</span>
-                      <h2 className={`text-xl font-black leading-tight ${card.textColor || 'text-white'}`}>{card.title}</h2>
+              {/* Columna izquierda: beneficios */}
+              <motion.div variants={staggerItem} className="flex flex-col gap-4 sm:gap-5">
+                {[
+                  { icon: '🗓️', title: 'Tú eliges el horario', desc: 'Elige los días y el horario fijo de tus clases al armar tu plan mensual.' },
+                  { icon: '🎯', title: 'Temas a la medida', desc: 'Trabaja exactamente lo que necesitas: gramática, conversación, pronunciación, negocios...' },
+                  { icon: '💻', title: 'Google Meet', desc: 'Sesiones cómodas por videollamada, desde cualquier lugar del mundo.' },
+                  { icon: '🔓', title: 'Sin matrícula obligatoria', desc: 'No necesitas estar matriculado en un curso para tomar clases en vivo.' },
+                  { icon: 'ℹ️', title: 'Servicio adicional', desc: 'Este servicio es adicional a los cursos. Escríbenos por WhatsApp al +57 323 640 5246 para armar tu plan de clases en vivo.' },
+                ].map((item, i) => (
+                  <motion.div
+                    key={i}
+                    variants={staggerItem}
+                    className="flex items-start gap-4 sm:gap-5 bg-white/80 backdrop-blur border border-border/50 rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow"
+                  >
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-2xl sm:text-3xl flex-shrink-0">
+                      {item.icon}
                     </div>
-                    {card.price && (
+                    <div>
+                      <p className="font-extrabold text-sm sm:text-base text-foreground mb-1">{item.title}</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                    </div>
+                  </motion.div>
+                ))}
+              </motion.div>
+
+              {/* Columna derecha: tarjeta precio + CTA */}
+              <motion.div variants={staggerItem} className="flex flex-col gap-4 sm:gap-6">
+                {/* Tarjeta precio destacada */}
+                <div className="relative bg-gradient-to-br from-primary via-violet-600 to-purple-700 rounded-3xl p-5 sm:p-8 text-white shadow-2xl shadow-primary/30 overflow-hidden">
+                  <div className="absolute -top-6 -right-6 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
+                  <div className="absolute -bottom-6 -left-6 w-24 h-24 bg-white/10 rounded-full blur-xl" />
+                  <div className="relative z-10">
+                    <div className="flex items-center gap-3 mb-4 sm:mb-6">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white/20 flex items-center justify-center text-xl sm:text-2xl">👨‍🏫</div>
                       <div>
-                        <p className={`text-2xl font-black leading-none ${card.textColor || 'text-white'}`}>{card.price}</p>
-                        <p className={`text-xs font-semibold mt-1 ${card.textColor ? card.textColor + '/70' : 'text-white/70'}`}>{card.priceSub}</p>
+                        <p className="font-extrabold text-base sm:text-lg">Clase individual</p>
+                        <p className="text-white/70 text-xs sm:text-sm">Con profesor nativo / bilingüe</p>
                       </div>
-                    )}
-                    <div className={`h-px ${card.textColor ? 'bg-black/15' : 'bg-white/15'}`} />
-                    <p className={`text-sm font-medium flex-1 ${card.textColor || 'text-white/90'}`}>{card.desc}</p>
-                    <button
-                      onClick={() => navigate(ROUTE_PATHS.PRICING)}
-                      className={`w-full ${card.btn} active:scale-[0.98] font-extrabold text-base py-4 rounded-2xl transition-all shadow-xl`}
+                    </div>
+                    <div className="flex items-end gap-2 mb-2">
+                      <span className="text-5xl sm:text-7xl font-black leading-none">Desde $37,500</span>
+                    </div>
+                    <p className="text-white/70 text-xs sm:text-sm mb-4 sm:mb-6">COP por clase · Según tu plan mensual</p>
+                    <ul className="space-y-2 sm:space-y-2.5 mb-6 sm:mb-8">
+                      {[
+                        '✓  Corrección en tiempo real',
+                        '✓  Feedback personalizado',
+                        '✓  Cancela con 24h de anticipación',
+                      ].map((f, i) => (
+                        <li key={i} className="text-white/90 font-medium text-xs sm:text-sm">{f}</li>
+                      ))}
+                    </ul>
+                    <Button
+                      size="lg"
+                      className="w-full bg-white text-primary hover:bg-white/90 font-extrabold text-base sm:text-lg py-5 sm:py-6 rounded-2xl shadow-xl transition-all active:scale-[0.98]"
+                      onClick={() => setShowClasesModal(true)}
                     >
-                      Más información
-                    </button>
+                      📅 Arma tu plan mensual
+                    </Button>
                   </div>
                 </div>
-              ))}
 
-            </motion.div>
-
-            {/* ── FOOTER INFO ── */}
-            <motion.div variants={staggerItem} className="mt-5 sm:mt-8 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
-              <div className="bg-white/10 backdrop-blur border border-white/20 rounded-2xl px-4 sm:px-6 py-3 w-full sm:flex-1">
-                <p className="text-white/85 text-xs sm:text-sm text-center leading-relaxed">
-                  ✅ Empieza gratis. Después continúa por <strong className="text-amber-300">$16 USD</strong> o <strong className="text-amber-300">$60,000 COP</strong> al mes.
-                </p>
-              </div>
-              <div className="flex items-center gap-3 sm:gap-4 text-white/60 flex-wrap justify-center">
-                <span className="flex items-center gap-1.5 text-xs sm:text-sm"><span className="text-base sm:text-lg">🅿️</span> PayPal</span>
-                <span className="text-white/25">·</span>
-                <span className="flex items-center gap-1.5 text-xs sm:text-sm"><span className="text-base sm:text-lg">🏦</span> PSE</span>
-                <span className="text-white/25">·</span>
-                <span className="flex items-center gap-1.5 text-xs sm:text-sm"><span className="text-base sm:text-lg">💳</span> Tarjeta</span>
-              </div>
-            </motion.div>
-
+                {/* Nota de confianza */}
+                <div className="flex items-center gap-3 sm:gap-4 bg-white/80 backdrop-blur border border-border/50 rounded-2xl p-3 sm:p-4 shadow-sm">
+                  <span className="text-2xl sm:text-3xl">⭐</span>
+                  <div>
+                    <p className="font-extrabold text-xs sm:text-sm text-foreground">Profesores verificados</p>
+                    <p className="text-xs text-muted-foreground">Bilingües con experiencia comprobada en enseñanza de inglés</p>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
           </motion.div>
         </div>
       </section>
 
-      {/* ── HERO ── */}
-      <section id="hero" className="relative py-14 sm:py-20 md:py-28 overflow-hidden">
+      {/* ── CTA COMPACTO DE REGISTRO ── */}
+      <section id="hero" className="relative py-14 sm:py-20 overflow-hidden">
         <div className="absolute top-10 left-10 w-72 h-72 bg-violet-400/10 rounded-full blur-3xl" />
         <div className="absolute bottom-10 right-10 w-96 h-96 bg-pink-400/8 rounded-full blur-3xl" />
 
         <div className="container mx-auto px-4 relative z-10">
           <motion.div
-            className="max-w-7xl mx-auto"
-            initial="hidden" animate="visible" variants={staggerContainer}
+            className="max-w-3xl mx-auto text-center"
+            initial="hidden" whileInView="visible" viewport={{ once: true }} variants={staggerContainer}
           >
-            {/* Badge */}
-            <motion.div variants={staggerItem} className="text-center mb-8 sm:mb-10">
+            <motion.div variants={staggerItem} className="mb-6">
               <span className="inline-flex items-center gap-2 bg-primary/10 text-primary text-xs sm:text-sm font-semibold px-4 sm:px-5 py-2 sm:py-2.5 rounded-full border border-primary/20">
                 🎉 ¡7 días de prueba completamente gratis!
               </span>
             </motion.div>
 
-            {/* TWO-COLUMN: headline+flags LEFT — 3 steps RIGHT */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-start">
+            <motion.div variants={staggerItem}>
+              <h1 className="text-3xl sm:text-5xl md:text-6xl font-black leading-[1.05] tracking-tight">
+                <span className="italic text-foreground/70">&quot;Speak Up and</span><br />
+                <span className="text-primary">Stand Out</span><br />
+                <span className="italic text-foreground/70">with </span>
+                <span className="bg-gradient-to-r from-primary to-violet-500 bg-clip-text text-transparent">BLANG&quot;</span>
+              </h1>
+              <p className="text-base sm:text-lg text-muted-foreground font-medium mt-4 sm:mt-5">Aprende inglés desde ya 🌎</p>
+            </motion.div>
 
-              {/* LEFT — headline + flags */}
-              <motion.div variants={staggerItem} className="flex flex-col gap-6 sm:gap-8">
-                <div>
-                  <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black leading-[1.05] tracking-tight">
-                    <span className="italic text-foreground/70">&quot;Speak Up and</span><br />
-                    <span className="text-primary">Stand Out</span><br />
-                    <span className="italic text-foreground/70">with </span>
-                    <span className="bg-gradient-to-r from-primary to-violet-500 bg-clip-text text-transparent">BLANG&quot;</span>
-                  </h1>
-                  <p className="text-base sm:text-lg text-muted-foreground font-medium mt-4 sm:mt-5">Aprende inglés desde ya 🌎</p>
-                </div>
+            <motion.div variants={staggerItem} className="mt-8">
+              <button
+                onClick={() => onOpenAuth?.('register')}
+                className="w-full sm:w-auto sm:px-14 bg-gradient-to-r from-primary to-violet-600 hover:opacity-90 text-white font-extrabold text-base sm:text-lg py-4 rounded-2xl transition-opacity shadow-lg shadow-primary/30"
+              >
+                ¡Crear mi cuenta gratis! 🚀
+              </button>
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
 
-                {/* Diseñado para todos */}
-                <div className="bg-gradient-to-br from-violet-50 to-indigo-50 border border-violet-200/70 rounded-2xl p-4 sm:p-5 shadow-sm">
-                  <p className="text-xs font-black text-violet-600 uppercase tracking-widest mb-3">✨ Diseñado para todo aquel que quiera aprender inglés desde su propia comodidad y tiempo</p>
-                  <ul className="space-y-2.5">
-                    {[
-                      { icon: '📚', strong: 'Metodología intuitiva por unidades:', rest: ' todo el contenido está listo, solo estudia a tu ritmo y desde donde estés' },
-                      { icon: '🎥', strong: 'Clases en vivo:', rest: ' servicio adicional disponible cuando lo desees, no incluido en el plan mensual' },
-                      { icon: '🤖', strong: 'Práctica real con IA:', rest: ' usa prompts ya creados en ChatGPT para practicar escritura y speaking' },
-                    ].map((item, i) => (
-                      <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground leading-relaxed">
-                        <span className="shrink-0 mt-0.5">{item.icon}</span>
-                        <span><strong className="text-foreground">{item.strong}</strong>{item.rest}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <p className="text-sm text-muted-foreground">🌟 ¡Sé parte de los primeros estudiantes de BLANG!</p>
-              </motion.div>
-
-              {/* RIGHT — 3 steps */}
-              <motion.div variants={staggerItem} className="flex flex-col gap-3 sm:gap-4">
-                <div className="mb-1">
-                  <span className="inline-block bg-primary/10 text-primary text-xs font-extrabold px-4 py-1.5 rounded-full uppercase tracking-widest">🎯 Empieza en 3 pasos</span>
-                </div>
-                {[
-                  { num: '01', emoji: '👤', title: 'Crea tu cuenta', desc: 'Regístrate gratis en segundos. Empieza con 7 días de prueba o activa tu plan mensual en minutos.', color: 'from-violet-500 to-purple-600', bg: 'from-violet-50 to-purple-50', border: 'border-violet-200/60' },
-                  { num: '02', emoji: '📋', title: 'Elige tu nivel', desc: 'De A1 principiante a C1 avanzado. Empieza desde donde realmente estás.', color: 'from-blue-500 to-cyan-500', bg: 'from-blue-50 to-cyan-50', border: 'border-blue-200/60' },
-                  { num: '03', emoji: '🎓', title: '¡A aprender!', desc: 'Estudia una unidad por semana o avanza a tu propio ritmo, sin límites.', color: 'from-emerald-500 to-teal-500', bg: 'from-emerald-50 to-teal-50', border: 'border-emerald-200/60' },
-                ].map((step) => (
-                  <div key={step.num} className={`flex items-start gap-3 sm:gap-4 bg-gradient-to-br ${step.bg} border ${step.border} rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow`}>
-                    <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-br ${step.color} flex items-center justify-center flex-shrink-0 shadow-md`}>
-                      <span className="text-white font-black text-base sm:text-lg">{step.num}</span>
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-lg sm:text-xl">{step.emoji}</span>
-                        <h3 className="font-bold text-sm sm:text-base text-foreground">{step.title}</h3>
-                      </div>
-                      <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">{step.desc}</p>
-                    </div>
-                  </div>
-                ))}
-                <button
-                  onClick={() => onOpenAuth?.('register')}
-                  className="mt-2 w-full bg-gradient-to-r from-primary to-violet-600 hover:opacity-90 text-white font-extrabold text-base sm:text-lg py-4 rounded-2xl transition-opacity shadow-lg shadow-primary/30"
+      {/* ── CÓMO FUNCIONA (4 pilares) ── */}
+      <section className="py-16 bg-white/60">
+        <div className="container mx-auto px-4">
+          <motion.div
+            className="max-w-5xl mx-auto"
+            initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger}
+          >
+            <motion.div variants={fadeUp} className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-extrabold mb-3">¿Cómo funciona?</h2>
+              <p className="text-muted-foreground text-lg max-w-xl mx-auto">El aprendizaje está organizado en <strong className="text-foreground">unidades semanales</strong> con un ciclo completo de 5 pasos</p>
+            </motion.div>
+            <motion.div variants={stagger} className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              {UNITS.map((u, i) => (
+                <motion.div key={i} variants={fadeUp}
+                  className="bg-gradient-to-br from-purple-50 to-violet-50 border border-purple-100 rounded-2xl p-6 hover:shadow-md transition-shadow"
                 >
-                  ¡Crear mi cuenta gratis! 🚀
-                </button>
-              </motion.div>
+                  <div className="text-3xl mb-3">{u.emoji}</div>
+                  <h3 className="font-bold mb-2">{u.title}</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{u.desc}</p>
+                </motion.div>
+              ))}
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ── 5 PASOS ── */}
+      <section className="py-20">
+        <div className="container mx-auto px-4">
+          <motion.div
+            className="max-w-5xl mx-auto"
+            initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger}
+          >
+            <motion.div variants={fadeUp} className="text-center mb-14">
+              <span className="inline-block bg-primary/10 text-primary text-sm font-semibold px-4 py-1.5 rounded-full mb-3">
+                El ciclo completo
+              </span>
+              <h2 className="text-3xl md:text-4xl font-extrabold mb-3">Los 5 pasos de cada unidad</h2>
+              <p className="text-muted-foreground text-lg max-w-xl mx-auto">
+                Cada unidad recorre este ciclo completo. Así el aprendizaje se vuelve natural y sólido.
+              </p>
+            </motion.div>
+
+            <div className="space-y-8">
+              {STEPS.map((step, i) => (
+                <motion.div
+                  key={step.number}
+                  variants={i % 2 === 0 ? fadeLeft : fadeRight}
+                  className={`flex flex-col ${i % 2 === 0 ? 'md:flex-row' : 'md:flex-row-reverse'} gap-6 items-center`}
+                >
+                  {/* Icon side */}
+                  <div className={`flex-shrink-0 w-full md:w-64 rounded-3xl bg-gradient-to-br ${step.bg} border-2 p-8 flex flex-col items-center text-center shadow-sm`}>
+                    <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${step.color} flex items-center justify-center text-3xl mb-3 shadow-lg`}>
+                      {step.emoji}
+                    </div>
+                    <span className={`text-xs font-bold px-3 py-1 rounded-full ${step.tag} mb-2`}>Paso {step.number}</span>
+                    <h3 className="text-2xl font-extrabold">{step.title}</h3>
+                  </div>
+
+                  {/* Content side */}
+                  <div className="flex-1 bg-background/80 border border-border/40 rounded-3xl p-7 shadow-sm">
+                    <p className="text-base text-muted-foreground leading-relaxed mb-5">{step.desc}</p>
+                    <ul className="grid sm:grid-cols-2 gap-2">
+                      {step.details.map((d, j) => (
+                        <li key={j} className="flex items-start gap-2">
+                          <span className="mt-1 w-4 h-4 rounded-full bg-primary/15 flex items-center justify-center flex-shrink-0">
+                            <span className="w-1.5 h-1.5 rounded-full bg-primary block" />
+                          </span>
+                          <span className="text-sm text-foreground/80">{d}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </motion.div>
+              ))}
             </div>
           </motion.div>
         </div>
       </section>
 
-      {/* ── COURSES + METHODOLOGY combined ── */}
-      <section id="cursos" className="py-14 sm:py-24">
+      {/* ── NIVELES ── */}
+      <section className="py-16 bg-purple-50/60">
         <div className="container mx-auto px-4">
-          {/* Section header */}
           <motion.div
-            className="text-center mb-8 sm:mb-10"
-            initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-100px' }} variants={fadeInUp}
+            className="max-w-5xl mx-auto"
+            initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger}
           >
-            <span className="inline-block bg-primary/10 text-primary text-sm font-semibold px-4 py-1.5 rounded-full mb-4">
-              📚 Nuestros Cursos
-            </span>
-            <h2 className="text-2xl sm:text-4xl md:text-5xl font-bold mb-3">Nuestros Cursos</h2>
-            <p className="text-muted-foreground text-base sm:text-lg max-w-xl mx-auto">
-              5 niveles estructurados. Avanza a tu ritmo, <span className="font-semibold text-foreground">una unidad por semana</span>.
-            </p>
-          </motion.div>
+            <motion.div variants={fadeUp} className="text-center mb-10">
+              <h2 className="text-3xl md:text-4xl font-extrabold mb-3">5 cursos, del A1 al C1</h2>
+              <p className="text-muted-foreground text-lg">Empieza desde donde estás y avanza a tu ritmo. Cada curso aplica la misma metodología intuitiva.</p>
+            </motion.div>
 
-          {/* Methodology strip */}
-          <motion.div
-            initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeInUp}
-            className="max-w-5xl mx-auto mb-10 sm:mb-14 bg-gradient-to-br from-primary/8 via-violet-50 to-purple-50 border-2 border-primary/25 rounded-3xl px-4 sm:px-10 py-6 sm:py-10 shadow-lg"
-          >
-            <div className="text-center mb-6 sm:mb-8">
-              <span className="inline-block bg-primary/15 text-primary text-sm font-extrabold px-4 py-1.5 rounded-full mb-3">🧠 Nuestra metodología</span>
-              <p className="text-xl sm:text-2xl sm:text-3xl font-extrabold text-foreground">Metodología intuitiva</p>
-              <p className="text-base sm:text-lg sm:text-xl font-bold text-primary mt-1">Ciclo de 5 pasos por cada unidad</p>
-              <p className="text-sm sm:text-base text-muted-foreground mt-2 max-w-xl mx-auto">Cada unidad sigue el mismo ciclo probado para que aprendas de forma natural y sin memorizar reglas</p>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-              {METHODOLOGY_STEPS.map((step, i) => (
-                <div key={i} className="flex flex-col items-center gap-2 sm:gap-3 bg-background/60 rounded-2xl p-3 sm:p-4 border border-border/30 shadow-sm">
-                  <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br ${step.color} flex items-center justify-center text-2xl sm:text-3xl shadow-md`}>
-                    {step.emoji}
-                  </div>
-                  <span className="text-xs sm:text-sm font-extrabold text-center leading-tight text-foreground">{step.title}</span>
-                  <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">Paso {i + 1}</span>
-                </div>
+            {/* Language transition note */}
+            <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-8">
+              <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-full px-5 py-2">
+                <span className="text-lg">🇪🇸</span>
+                <span className="text-sm font-semibold text-green-700">A1 y A2 — Español como apoyo</span>
+              </div>
+              <span className="text-muted-foreground font-bold text-lg hidden sm:block">→</span>
+              <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-full px-5 py-2">
+                <span className="text-lg">🇺🇸</span>
+                <span className="text-sm font-semibold text-blue-700">B1 a C1 — 100% en inglés</span>
+              </div>
+            </motion.div>
+
+            <motion.div variants={stagger} className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
+              {LEVELS.map((lv) => (
+                <motion.div key={lv.level} variants={fadeUp}
+                  className={`rounded-2xl border-2 p-5 bg-background/80 hover:shadow-md transition-shadow flex flex-col cursor-pointer ${lv.color}`}
+                  onClick={() => onOpenAuth?.('register')}
+                >
+                  <div className="text-3xl mb-2">{lv.emoji}</div>
+                  <span className="text-xs font-bold uppercase tracking-wide">{lv.level}</span>
+                  <h3 className="font-bold text-base mt-0.5 mb-1">{lv.title}</h3>
+                  <p className="text-xs text-muted-foreground leading-snug mb-3 flex-1">{lv.desc}</p>
+                  <span className="text-xs font-semibold block mb-2">{lv.units} unidades</span>
+                  <span className={`text-xs font-semibold px-2 py-1 rounded-full ${lv.langColor} inline-block`}>
+                    {lv.lang}
+                  </span>
+                </motion.div>
               ))}
-            </div>
-          </motion.div>
-
-          {/* Course cards */}
-          <motion.div
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-5 max-w-7xl mx-auto"
-            initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-100px' }} variants={staggerContainer}
-          >
-            {COURSES.map((course) => (
-              <motion.div
-                key={course.id} variants={staggerItem}
-                whileHover={{ y: -4, transition: { duration: 0.2 } }}
-                className={`bg-gradient-to-br ${course.color} rounded-3xl p-5 sm:p-6 border hover:shadow-lg transition-all cursor-pointer flex flex-col`}
-                onClick={() => onOpenAuth?.('register')}
-              >
-                <p className="text-3xl sm:text-4xl mb-3">{course.emoji}</p>
-                <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${course.badge} mb-3 inline-block`}>
-                  {course.level}
-                </span>
-                <h3 className="text-sm sm:text-base font-bold mb-2">{course.title}</h3>
-                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed flex-1">{course.desc}</p>
-              </motion.div>
-            ))}
-          </motion.div>
-
-          {/* Language note */}
-          <motion.div
-            initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeInUp}
-            className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-8"
-          >
-            <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-full px-4 py-2 text-sm font-medium text-green-700">
-              🇪🇸 A1 y A2 — Explicaciones en español
-            </div>
-            <span className="text-muted-foreground font-bold hidden sm:block">→</span>
-            <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-full px-4 py-2 text-sm font-medium text-blue-700">
-              🇺🇸 B1 a C1 — 100% en inglés
-            </div>
-          </motion.div>
-
-          {/* Saber más */}
-          <motion.div
-            initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeInUp}
-            className="text-center mt-6"
-          >
-            <button
-              onClick={() => navigate(ROUTE_PATHS.METHODOLOGY)}
-              className="inline-flex items-center gap-2 text-primary font-semibold hover:underline text-sm sm:text-base group"
-            >
-              Saber más sobre nuestra metodología
-              <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </button>
+            </motion.div>
           </motion.div>
         </div>
       </section>
@@ -564,125 +627,125 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
         </div>
       </section>
 
-      {/* ── CLASES 1 A 1 ── */}
-      <section id="sesiones-vivo" className="py-14 sm:py-24 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-violet-50 via-purple-50 to-indigo-50" />
-        <div className="absolute top-0 right-0 w-96 h-96 bg-primary/8 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-72 h-72 bg-violet-300/15 rounded-full blur-3xl" />
-
-        <div className="container mx-auto px-4 relative z-10">
+      {/* ── NIVEL TEST ── */}
+      <section className="py-16 bg-gradient-to-br from-violet-50 to-purple-50/60">
+        <div className="container mx-auto px-4">
           <motion.div
-            className="max-w-6xl mx-auto"
-            initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-80px' }} variants={staggerContainer}
+            className="max-w-3xl mx-auto"
+            initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger}
           >
-            {/* Badge + título */}
-            <motion.div variants={fadeInUp} className="text-center mb-10 sm:mb-14">
-              <span className="inline-flex items-center gap-2 bg-primary/10 text-primary text-xs sm:text-sm font-bold px-4 sm:px-5 py-2 rounded-full mb-4 sm:mb-5 border border-primary/20">
-                🎥 Clases en vivo
-              </span>
-              <h2 className="text-3xl sm:text-5xl md:text-6xl font-black text-foreground leading-tight mb-3 sm:mb-4">
-                Clases{' '}
-                <span className="text-primary">1 a 1</span>
-                {' '}con<br className="hidden md:block" />{' '}nuestros profes
-              </h2>
-              <p className="text-base sm:text-xl text-muted-foreground max-w-xl mx-auto">
-                Practica con un profe en vivo, a tu horario y a tu ritmo
-              </p>
+            <motion.div variants={fadeUp}
+              className="rounded-3xl bg-gradient-to-br from-violet-600 via-purple-600 to-primary p-1 shadow-xl shadow-purple-200"
+            >
+              <div className="rounded-[22px] bg-background/95 backdrop-blur px-8 py-10 text-center">
+                <div className="text-5xl mb-4">🎯</div>
+                <h2 className="text-2xl md:text-3xl font-extrabold mb-3">
+                  Conoce tu nivel de inglés
+                </h2>
+                <p className="text-muted-foreground text-base mb-2 max-w-xl mx-auto">
+                  ¿En qué nivel estás? Descúbrelo con nuestro test de 30 preguntas que evalúa
+                  vocabulario, gramática, lectura y comprensión auditiva.
+                </p>
+                <p className="text-sm text-muted-foreground mb-7">
+                  ~10 minutos &nbsp;·&nbsp; Gratuito &nbsp;·&nbsp; Sin registro &nbsp;·&nbsp; Resultado inmediato
+                </p>
+
+                {/* Level scale decorative */}
+                <div className="flex gap-2 justify-center mb-8">
+                  {[
+                    { lv: 'A1', emoji: '🌱', from: 'from-green-400', to: 'to-emerald-500' },
+                    { lv: 'A2', emoji: '📗', from: 'from-teal-400', to: 'to-cyan-500' },
+                    { lv: 'B1', emoji: '📘', from: 'from-blue-400', to: 'to-indigo-500' },
+                    { lv: 'B2', emoji: '📙', from: 'from-purple-400', to: 'to-violet-500' },
+                    { lv: 'C1', emoji: '🏆', from: 'from-amber-400', to: 'to-orange-500' },
+                  ].map(({ lv, emoji, from, to }) => (
+                    <div key={lv} className={`flex-1 max-w-[80px] rounded-2xl bg-gradient-to-br ${from} ${to} py-3 text-center shadow-sm`}>
+                      <p className="text-lg">{emoji}</p>
+                      <p className="text-white font-black text-sm mt-0.5">{lv}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <Button
+                  size="lg"
+                  className="bg-gradient-to-r from-violet-600 to-primary hover:opacity-90 text-white rounded-full px-10 py-6 font-extrabold text-base shadow-lg shadow-primary/30 gap-2"
+                  onClick={() => setQuizOpen(true)}
+                >
+                  🚀 Comenzar test de nivel
+                </Button>
+              </div>
             </motion.div>
-
-            {/* Cards de beneficios + CTA */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 items-start">
-
-              {/* Columna izquierda: beneficios */}
-              <motion.div variants={staggerItem} className="flex flex-col gap-4 sm:gap-5">
-                {[
-                  { icon: '🗓️', title: 'Tú eliges el horario', desc: 'Elige los días y el horario fijo de tus clases al armar tu plan mensual.' },
-                  { icon: '🎯', title: 'Temas a la medida', desc: 'Trabaja exactamente lo que necesitas: gramática, conversación, pronunciación, negocios...' },
-                  { icon: '💻', title: 'Google Meet', desc: 'Sesiones cómodas por videollamada, desde cualquier lugar del mundo.' },
-                  { icon: '🔓', title: 'Sin matrícula obligatoria', desc: 'No necesitas estar matriculado en un curso para tomar clases en vivo.' },
-                  { icon: 'ℹ️', title: 'Servicio adicional', desc: 'Este servicio es adicional a los cursos. Escríbenos por WhatsApp al +57 323 640 5246 para armar tu plan de clases en vivo.' },
-                ].map((item, i) => (
-                  <motion.div
-                    key={i}
-                    variants={staggerItem}
-                    className="flex items-start gap-4 sm:gap-5 bg-white/80 backdrop-blur border border-border/50 rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow"
-                  >
-                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-2xl sm:text-3xl flex-shrink-0">
-                      {item.icon}
-                    </div>
-                    <div>
-                      <p className="font-extrabold text-sm sm:text-base text-foreground mb-1">{item.title}</p>
-                      <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
-                    </div>
-                  </motion.div>
-                ))}
-              </motion.div>
-
-              {/* Columna derecha: tarjeta precio + CTA */}
-              <motion.div variants={staggerItem} className="flex flex-col gap-4 sm:gap-6">
-                {/* Tarjeta precio destacada */}
-                <div className="relative bg-gradient-to-br from-primary via-violet-600 to-purple-700 rounded-3xl p-5 sm:p-8 text-white shadow-2xl shadow-primary/30 overflow-hidden">
-                  <div className="absolute -top-6 -right-6 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
-                  <div className="absolute -bottom-6 -left-6 w-24 h-24 bg-white/10 rounded-full blur-xl" />
-                  <div className="relative z-10">
-                    <div className="flex items-center gap-3 mb-4 sm:mb-6">
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white/20 flex items-center justify-center text-xl sm:text-2xl">👨‍🏫</div>
-                      <div>
-                        <p className="font-extrabold text-base sm:text-lg">Clase individual</p>
-                        <p className="text-white/70 text-xs sm:text-sm">Con profesor nativo / bilingüe</p>
-                      </div>
-                    </div>
-                    <div className="flex items-end gap-2 mb-2">
-                      <span className="text-5xl sm:text-7xl font-black leading-none">Desde $37,500</span>
-                    </div>
-                    <p className="text-white/70 text-xs sm:text-sm mb-4 sm:mb-6">COP por clase · Según tu plan mensual</p>
-                    <ul className="space-y-2 sm:space-y-2.5 mb-6 sm:mb-8">
-                      {[
-                        '✓  Corrección en tiempo real',
-                        '✓  Feedback personalizado',
-                        '✓  Cancela con 24h de anticipación',
-                      ].map((f, i) => (
-                        <li key={i} className="text-white/90 font-medium text-xs sm:text-sm">{f}</li>
-                      ))}
-                    </ul>
-                    <Button
-                      size="lg"
-                      className="w-full bg-white text-primary hover:bg-white/90 font-extrabold text-base sm:text-lg py-5 sm:py-6 rounded-2xl shadow-xl transition-all active:scale-[0.98]"
-                      onClick={() => setShowClasesModal(true)}
-                    >
-                      📅 Arma tu plan mensual
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Nota de confianza */}
-                <div className="flex items-center gap-3 sm:gap-4 bg-white/80 backdrop-blur border border-border/50 rounded-2xl p-3 sm:p-4 shadow-sm">
-                  <span className="text-2xl sm:text-3xl">⭐</span>
-                  <div>
-                    <p className="font-extrabold text-xs sm:text-sm text-foreground">Profesores verificados</p>
-                    <p className="text-xs text-muted-foreground">Bilingües con experiencia comprobada en enseñanza de inglés</p>
-                  </div>
-                </div>
-              </motion.div>
-            </div>
           </motion.div>
         </div>
       </section>
 
-      {/* ── PRICING REMINDER ── */}
-      <section id="pricing" className="py-10 sm:py-12">
+      {/* ── CÓMO FUNCIONA EL PAGO ── */}
+      <section className="py-16 bg-purple-50/50">
         <div className="container mx-auto px-4">
-          <motion.div
-            className="text-center"
-            initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeInUp}
+          <motion.div className="max-w-3xl mx-auto"
+            initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger}
           >
-            <button
-              onClick={() => navigate(ROUTE_PATHS.PRICING)}
-              className="inline-flex items-center gap-2 text-primary font-bold hover:underline text-base sm:text-lg group"
-            >
-              Ver información completa sobre precios
-              <ChevronRight className="w-4 sm:w-5 h-4 sm:h-5 group-hover:translate-x-1 transition-transform" />
-            </button>
+            <motion.div variants={fadeUp} className="text-center mb-10">
+              <span className="inline-block bg-primary/10 text-primary text-sm font-semibold px-4 py-1.5 rounded-full mb-3">
+                💳 Pagos
+              </span>
+              <h2 className="text-3xl font-bold">¿Cómo funciona el pago?</h2>
+              <p className="text-muted-foreground mt-2 text-sm">Proceso simple, sin sorpresas</p>
+            </motion.div>
+            <motion.div variants={stagger} className="grid md:grid-cols-3 gap-5">
+              {[
+                { icon: '📝', step: '1', title: 'Regístrate gratis', desc: `Comienza con ${trialDays} días de acceso completo sin pagar nada.` },
+                { icon: '💬', step: '2', title: 'Contáctanos', desc: 'Al terminar tu prueba, escríbenos y te indicamos cómo realizar el pago.' },
+                { icon: '🚀', step: '3', title: 'Activa tu plan', desc: 'Confirmado el pago, activamos tu cuenta en máximo 24 horas hábiles.' },
+              ].map(({ icon, step, title, desc }) => (
+                <motion.div key={step} variants={fadeUp} className="bg-background border border-border/40 rounded-2xl p-6 shadow-sm text-center hover:shadow-md transition-shadow">
+                  <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center mx-auto mb-3">{step}</div>
+                  <div className="text-3xl mb-2">{icon}</div>
+                  <h3 className="font-bold text-base mb-2">{title}</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{desc}</p>
+                </motion.div>
+              ))}
+            </motion.div>
+            <motion.div variants={fadeUp} className="mt-8 bg-primary/5 border border-primary/20 rounded-2xl p-5 text-center">
+              <p className="text-sm text-muted-foreground">
+                📲 Escríbenos por{' '}
+                <a href="https://wa.me/573236405246" target="_blank" rel="noopener noreferrer" className="text-primary font-semibold hover:underline">
+                  WhatsApp +57 323 640 5246
+                </a>
+                {' '}— respondemos en máximo 24 horas hábiles.
+              </p>
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ── FAQ ── */}
+      <section className="py-16 bg-purple-50/50">
+        <div className="container mx-auto px-4">
+          <motion.div className="max-w-2xl mx-auto"
+            initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger}
+          >
+            <motion.div variants={fadeUp} className="text-center mb-10">
+              <h2 className="text-3xl font-bold">Preguntas frecuentes</h2>
+            </motion.div>
+            <motion.div variants={fadeUp}>
+              <Accordion type="single" collapsible className="space-y-3">
+                {FAQ.map((item, i) => (
+                  <AccordionItem
+                    key={i}
+                    value={`faq-${i}`}
+                    className="bg-background border border-border/50 rounded-2xl px-6 shadow-sm"
+                  >
+                    <AccordionTrigger className="text-base font-semibold hover:no-underline py-5 text-left">
+                      {item.q}
+                    </AccordionTrigger>
+                    <AccordionContent className="text-muted-foreground leading-relaxed pb-5">
+                      {item.a}
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            </motion.div>
           </motion.div>
         </div>
       </section>
@@ -747,9 +810,50 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
         </section>
       )}
 
+      {/* ── CTA FINAL ── */}
+      <section className="py-20 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary via-purple-600 to-pink-500" />
+        <div className="absolute top-0 left-0 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 right-0 w-80 h-80 bg-white/10 rounded-full blur-3xl" />
+        <div className="container mx-auto px-4 relative z-10 text-center">
+          <motion.div
+            initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger}
+            className="max-w-2xl mx-auto"
+          >
+            <motion.p variants={fadeUp} className="text-5xl mb-4">🚀</motion.p>
+            <motion.h2 variants={fadeUp} className="text-4xl md:text-5xl font-extrabold text-white mb-4 leading-tight">
+              ¡Empieza gratis hoy!
+            </motion.h2>
+            <motion.p variants={fadeUp} className="text-lg text-white/80 mb-8">
+              {trialDays} días gratis. Luego solo $16 USD o $60,000 COP al mes 🎊
+            </motion.p>
+            <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button size="lg"
+                className="bg-white text-primary hover:bg-white/90 rounded-full font-bold px-10 py-6 text-lg"
+                onClick={() => onOpenAuth?.('register')}
+              >
+                Registrarse gratis 🎉
+              </Button>
+              <Button size="lg" variant="outline"
+                className="border-white/40 text-white hover:bg-white/10 rounded-full px-10 py-6 text-lg"
+                onClick={() => onOpenAuth?.('login')}
+              >
+                Ya tengo cuenta
+              </Button>
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
       <ClasesVirtualesModal
         open={showClasesModal}
         onClose={() => setShowClasesModal(false)}
+      />
+
+      <LevelQuiz
+        open={quizOpen}
+        onClose={() => setQuizOpen(false)}
+        onRegister={() => onOpenAuth?.('register')}
       />
 
     </Layout>

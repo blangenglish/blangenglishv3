@@ -4,7 +4,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { Toaster as Sonner } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { HashRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { ROUTE_PATHS } from '@/lib/index';
 import { ADMIN_ROUTES } from '@/lib/admin';
 import type { AuthModal } from '@/lib/index';
@@ -14,8 +14,6 @@ import Lessons from '@/pages/Lessons';
 import LiveClasses from '@/pages/LiveClasses';
 // Progress page removed
 import Dashboard from '@/pages/Dashboard';
-import PricingPage from '@/pages/Pricing';
-import Methodology from '@/pages/Methodology';
 import FAQ from '@/pages/FAQ';
 import Terms from '@/pages/Terms';
 import Privacy from '@/pages/Privacy';
@@ -190,8 +188,8 @@ function AppRoutes() {
         <Route path={ROUTE_PATHS.LESSONS} element={<Lessons {...sharedProps} />} />
         <Route path={ROUTE_PATHS.LIVE_CLASSES} element={<LiveClasses {...sharedProps} />} />
         <Route path={ROUTE_PATHS.DASHBOARD} element={<Dashboard {...sharedProps} />} />
-        <Route path={ROUTE_PATHS.PRICING} element={<PricingPage {...sharedProps} />} />
-        <Route path={ROUTE_PATHS.METHODOLOGY} element={<Methodology {...sharedProps} />} />
+        <Route path={ROUTE_PATHS.PRICING} element={<Navigate to={ROUTE_PATHS.HOME} replace />} />
+        <Route path={ROUTE_PATHS.METHODOLOGY} element={<Navigate to={ROUTE_PATHS.HOME} replace />} />
         <Route path={ROUTE_PATHS.FAQ} element={<FAQ {...sharedProps} />} />
         <Route path={ROUTE_PATHS.TERMS} element={<Terms {...sharedProps} />} />
         <Route path={ROUTE_PATHS.PRIVACY} element={<Privacy {...sharedProps} />} />
