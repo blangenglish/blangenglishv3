@@ -9,6 +9,7 @@ import { ROUTE_PATHS } from '@/lib/index';
 import { ADMIN_ROUTES } from '@/lib/admin';
 import type { AuthModal } from '@/lib/index';
 import { supabase } from '@/integrations/supabase/client';
+import { LanguageProvider } from '@/lib/language';
 import Home from '@/pages/Home';
 import EnglishProgram from '@/pages/EnglishProgram';
 import SpanishProgram from '@/pages/Spanish';
@@ -232,9 +233,11 @@ const App = () => {
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <HashRouter>
-          <AppRoutes />
-        </HashRouter>
+        <LanguageProvider>
+          <HashRouter>
+            <AppRoutes />
+          </HashRouter>
+        </LanguageProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

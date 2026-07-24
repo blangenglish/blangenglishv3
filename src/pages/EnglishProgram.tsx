@@ -13,6 +13,8 @@ import { MODULES } from '@/components/EnglishForYou';
 import { MUNDO_REAL_TOPICS } from '@/pages/MundoRealData';
 import { ClasesVirtualesModal } from '@/components/ClasesVirtualesModal';
 import LevelQuiz from '@/components/LevelQuiz';
+import { useLanguage } from '@/lib/language';
+import { translations } from '@/lib/translations';
 
 const staggerContainer = {
   hidden: { opacity: 0 },
@@ -49,105 +51,22 @@ interface EnglishProgramProps {
   isLoggedIn?: boolean;
 }
 
-const STEPS = [
-  {
-    number: '01',
-    emoji: '📚',
-    title: 'Gramática',
-    color: 'from-purple-500 to-violet-600',
-    bg: 'from-purple-50 to-violet-50 border-purple-200',
-    tag: 'bg-purple-100 text-purple-700',
-    desc: 'Aprendes las reglas del idioma de forma clara y en español. Sin tecnicismos complicados, con ejemplos reales del día a día.',
-    details: [
-      'Explicaciones 100% en español',
-      'Reglas con ejemplos cotidianos',
-      'Ejercicios de aplicación inmediata',
-      'Comparación con el español para entender mejor',
-    ],
-  },
-  {
-    number: '02',
-    emoji: '📖',
-    title: 'Vocabulario',
-    color: 'from-blue-500 to-indigo-600',
-    bg: 'from-blue-50 to-indigo-50 border-blue-200',
-    tag: 'bg-blue-100 text-blue-700',
-    desc: 'Palabras y frases reales, organizadas por temas de tu vida: familia, trabajo, viajes, emociones. Aprendes lo que vas a usar.',
-    details: [
-      'Palabras agrupadas por temas prácticos',
-      'Frases completas, no solo palabras sueltas',
-      'Flashcards y repetición espaciada',
-      'Pronunciación incluida en cada palabra',
-    ],
-  },
-  {
-    number: '03',
-    emoji: '📰',
-    title: 'Lectura',
-    color: 'from-teal-500 to-cyan-600',
-    bg: 'from-teal-50 to-cyan-50 border-teal-200',
-    tag: 'bg-teal-100 text-teal-700',
-    desc: 'Textos cortos y graduales: noticias, historias, diálogos. Lees para entender el contexto real del idioma y ampliar vocabulario naturalmente.',
-    details: [
-      'Textos adaptados a tu nivel',
-      'Comprensión lectora con preguntas guía',
-      'Vocabulario nuevo resaltado con traducción',
-      'Temas interesantes: cultura, viajes, tecnología',
-    ],
-  },
-  {
-    number: '04',
-    emoji: '🎧',
-    title: 'Escucha',
-    color: 'from-pink-500 to-rose-600',
-    bg: 'from-pink-50 to-rose-50 border-pink-200',
-    tag: 'bg-pink-100 text-pink-700',
-    desc: 'Audio con hablantes nativos en situaciones reales. Entrenas tu oído para entender inglés natural, no solo el "inglés de academia".',
-    details: [
-      'Audios con acento americano y británico',
-      'Velocidad ajustable para practicar',
-      'Transcripciones para comparar',
-      'Diálogos de la vida real: aeropuerto, restaurante, trabajo',
-    ],
-  },
-  {
-    number: '05',
-    emoji: '🤖',
-    title: 'Práctica con IA',
-    color: 'from-amber-500 to-orange-600',
-    bg: 'from-amber-50 to-orange-50 border-amber-200',
-    tag: 'bg-amber-100 text-amber-700',
-    desc: 'Practicas escritura y conversación con inteligencia artificial (ChatGPT). Correcciones instantáneas, sin vergüenza, a tu propio ritmo.',
-    details: [
-      'Conversaciones escritas con IA',
-      'Corrección automática de gramática y estilo',
-      'Practica oral: pronunciación y fluidez',
-      'Disponible 24/7, sin horarios fijos',
-    ],
-  },
+const STEPS_STYLE = [
+  { number: '01', emoji: '📚', color: 'from-purple-500 to-violet-600', bg: 'from-purple-50 to-violet-50 border-purple-200', tag: 'bg-purple-100 text-purple-700' },
+  { number: '02', emoji: '📖', color: 'from-blue-500 to-indigo-600', bg: 'from-blue-50 to-indigo-50 border-blue-200', tag: 'bg-blue-100 text-blue-700' },
+  { number: '03', emoji: '📰', color: 'from-teal-500 to-cyan-600', bg: 'from-teal-50 to-cyan-50 border-teal-200', tag: 'bg-teal-100 text-teal-700' },
+  { number: '04', emoji: '🎧', color: 'from-pink-500 to-rose-600', bg: 'from-pink-50 to-rose-50 border-pink-200', tag: 'bg-pink-100 text-pink-700' },
+  { number: '05', emoji: '🤖', color: 'from-amber-500 to-orange-600', bg: 'from-amber-50 to-orange-50 border-amber-200', tag: 'bg-amber-100 text-amber-700' },
 ];
 
-const UNITS = [
-  { emoji: '📅', title: 'Una unidad por semana', desc: 'O cada 4 días si quieres avanzar más rápido. Tú decides el ritmo.' },
-  { emoji: '🔁', title: 'Ciclo completo en cada unidad', desc: 'Cada unidad recorre los 5 pasos: gramática → vocabulario → lectura → escucha → IA.' },
-  { emoji: '🎯', title: 'Progresivo y acumulativo', desc: 'Lo que aprendes en una unidad lo refuerzas en la siguiente. Nada se queda atrás.' },
-  { emoji: '🌍', title: 'A1–A2 en español', desc: 'Los niveles iniciales usan el español como apoyo. A partir de B1, todo es 100% en inglés.' },
-];
+const UNITS_STYLE = [{ emoji: '📅' }, { emoji: '🔁' }, { emoji: '🎯' }, { emoji: '🌍' }];
 
-const LEVELS = [
-  { level: 'A1', title: 'Desde Cero', emoji: '🌱', units: 27, desc: 'Saludos, números, colores, familia y primeras frases.', lang: '🇪🇸 Explicaciones en español', color: 'bg-green-100 text-green-700 border-green-200', langColor: 'bg-green-50 text-green-600' },
-  { level: 'A2', title: 'Elemental', emoji: '📗', units: 5, desc: 'Frases completas, presente y pasado simple.', lang: '🇪🇸 Explicaciones en español', color: 'bg-teal-100 text-teal-700 border-teal-200', langColor: 'bg-teal-50 text-teal-600' },
-  { level: 'B1', title: 'Intermedio', emoji: '📘', units: 10, desc: 'Conversaciones fluidas sobre el mundo y viajes.', lang: '🇺🇸 100% en inglés', color: 'bg-blue-100 text-blue-700 border-blue-200', langColor: 'bg-blue-50 text-blue-600' },
-  { level: 'B2', title: 'Interm. Avanzado', emoji: '📙', units: 13, desc: 'Phrasal verbs, modismos y expresión avanzada.', lang: '🇺🇸 100% en inglés', color: 'bg-purple-100 text-purple-700 border-purple-200', langColor: 'bg-purple-50 text-purple-600' },
-  { level: 'C1', title: 'Avanzado', emoji: '🏆', units: 15, desc: 'Debates, textos académicos y fluidez total.', lang: '🇺🇸 100% en inglés', color: 'bg-amber-100 text-amber-700 border-amber-200', langColor: 'bg-amber-50 text-amber-600' },
-];
-
-const FAQ = [
-  { q: '¿Cuánto cuesta el plan?', a: 'Tu primer mes tiene 50% de descuento. Luego solo $16 USD ó $60,000 COP al mes. Sin contratos ni compromisos.' },
-  { q: '¿Cómo puedo pagar?', a: 'Aceptamos transferencia bancaria o pago por PayPal. Escríbenos y te indicamos el método más conveniente para ti.' },
-  { q: '¿Puedo cancelar cuando quiera?', a: '¡Claro! No hay contratos ni compromisos. Cancelas cuando quieras desde tu perfil, sin cargos ocultos.' },
-  { q: '¿Las sesiones en vivo son incluidas?', a: 'Las sesiones 1 a 1 no están incluidas en el plan mensual de cursos — arma tu propio plan de clases en vivo eligiendo días, horas y horario, desde $37,500 COP por clase.' },
-  { q: '¿Hay compromiso al empezar?', a: 'No. Sin contratos ni compromisos, y tu primer mes tiene 50% de descuento. Cancelas cuando quieras.' },
+const LEVELS_STYLE = [
+  { level: 'A1', emoji: '🌱', units: 27, color: 'bg-green-100 text-green-700 border-green-200', langColor: 'bg-green-50 text-green-600' },
+  { level: 'A2', emoji: '📗', units: 5, color: 'bg-teal-100 text-teal-700 border-teal-200', langColor: 'bg-teal-50 text-teal-600' },
+  { level: 'B1', emoji: '📘', units: 10, color: 'bg-blue-100 text-blue-700 border-blue-200', langColor: 'bg-blue-50 text-blue-600' },
+  { level: 'B2', emoji: '📙', units: 13, color: 'bg-purple-100 text-purple-700 border-purple-200', langColor: 'bg-purple-50 text-purple-600' },
+  { level: 'C1', emoji: '🏆', units: 15, color: 'bg-amber-100 text-amber-700 border-amber-200', langColor: 'bg-amber-50 text-amber-600' },
 ];
 
 const VALID_AGE_GROUPS = ['kids', 'teens', 'adults'];
@@ -168,6 +87,12 @@ const PRECIO_CLASE_DESC = PRECIO_CLASE_BASE / 2;
 
 export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgramProps) {
   const navigate = useNavigate();
+  const { lang } = useLanguage();
+  const t = translations[lang].english;
+  const STEPS = STEPS_STYLE.map((s, i) => ({ ...s, ...t.cincoPasos.steps[i] }));
+  const UNITS = UNITS_STYLE.map((u, i) => ({ ...u, ...t.comoFunciona.units[i] }));
+  const LEVELS = LEVELS_STYLE.map((lv, i) => ({ ...lv, ...t.niveles.levels[i] }));
+  const FAQ = t.faq;
   const [searchParams] = useSearchParams();
   // Grupo de edad detectado por la tarjeta de la pantalla de bienvenida (?age=kids|teens|adults).
   // Si llega por otro medio (link directo, etc.) queda sin preseleccionar y el modal usa 'adults' por defecto.
@@ -250,15 +175,15 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
             {/* Badge + título */}
             <motion.div variants={fadeInUp} className="text-center mb-10 sm:mb-14">
               <span className="inline-flex items-center gap-2 bg-primary/10 text-primary text-xs sm:text-sm font-bold px-4 sm:px-5 py-2 rounded-full mb-4 sm:mb-5 border border-primary/20">
-                🎥 Clases en vivo
+                {t.armaTuPlan.badge}
               </span>
               <h2 className="text-3xl sm:text-5xl md:text-6xl font-black text-foreground leading-tight mb-3 sm:mb-4">
-                Clases{' '}
-                <span className="text-primary">1 a 1</span>
-                {' '}con<br className="hidden md:block" />{' '}nuestros profes
+                {t.armaTuPlan.titlePre}{' '}
+                <span className="text-primary">{t.armaTuPlan.titleHighlight}</span>
+                <br className="hidden md:block" />{' '}{t.armaTuPlan.titlePost}
               </h2>
               <p className="text-base sm:text-xl text-muted-foreground max-w-xl mx-auto">
-                Practica con un profe en vivo, a tu horario y a tu ritmo
+                {t.armaTuPlan.subtitle}
               </p>
             </motion.div>
 
@@ -267,13 +192,7 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
 
               {/* Columna izquierda: beneficios */}
               <motion.div variants={staggerItem} className="flex flex-col gap-4 sm:gap-5">
-                {[
-                  { icon: '🗓️', title: 'Tú eliges el horario', desc: 'Elige los días y el horario fijo de tus clases al armar tu plan mensual.' },
-                  { icon: '🎯', title: 'Temas a la medida', desc: 'Trabaja exactamente lo que necesitas: gramática, conversación, pronunciación, negocios...' },
-                  { icon: '💻', title: 'Google Meet', desc: 'Sesiones cómodas por videollamada, desde cualquier lugar del mundo.' },
-                  { icon: '🔓', title: 'Sin matrícula obligatoria', desc: 'No necesitas estar matriculado en un curso para tomar clases en vivo.' },
-                  { icon: 'ℹ️', title: 'Servicio adicional', desc: 'Este servicio es adicional a los cursos. Escríbenos por WhatsApp al +57 323 640 5246 para armar tu plan de clases en vivo.' },
-                ].map((item, i) => (
+                {['🗓️', '🎯', '💻', '🔓', 'ℹ️'].map((icon, i) => ({ icon, ...t.armaTuPlan.benefits[i] })).map((item, i) => (
                   <motion.div
                     key={i}
                     variants={staggerItem}
@@ -300,7 +219,7 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
                   {/* Badge de descuento — aplica sin importar la edad elegida */}
                   <div className="absolute top-4 right-4 sm:top-5 sm:right-5 z-20">
                     <span className="inline-flex items-center gap-1 bg-amber-400 text-black text-xs sm:text-sm font-black px-3 py-1.5 rounded-full shadow-lg rotate-3">
-                      🎉 -50% primer mes
+                      {t.armaTuPlan.priceCard.discountBadge}
                     </span>
                   </div>
 
@@ -308,8 +227,8 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
                     <div className="flex items-center gap-3 mb-4 sm:mb-6">
                       <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white/20 flex items-center justify-center text-xl sm:text-2xl">👨‍🏫</div>
                       <div>
-                        <p className="font-extrabold text-base sm:text-lg">Clase individual</p>
-                        <p className="text-white/70 text-xs sm:text-sm">Con profesor nativo / bilingüe</p>
+                        <p className="font-extrabold text-base sm:text-lg">{t.armaTuPlan.priceCard.role}</p>
+                        <p className="text-white/70 text-xs sm:text-sm">{t.armaTuPlan.priceCard.sub}</p>
                       </div>
                     </div>
                     <div className="flex items-end gap-3 mb-2 flex-wrap">
@@ -320,14 +239,10 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
                         ${PRECIO_CLASE_DESC.toLocaleString('es-CO')}
                       </span>
                     </div>
-                    <p className="text-white/70 text-xs sm:text-sm mb-4 sm:mb-6">COP por clase · primer mes · Según tu plan mensual</p>
+                    <p className="text-white/70 text-xs sm:text-sm mb-4 sm:mb-6">{t.armaTuPlan.priceCard.per}</p>
                     <ul className="space-y-2 sm:space-y-2.5 mb-6 sm:mb-8">
-                      {[
-                        '✓  Corrección en tiempo real',
-                        '✓  Feedback personalizado',
-                        '✓  Cancela con 24h de anticipación',
-                      ].map((f, i) => (
-                        <li key={i} className="text-white/90 font-medium text-xs sm:text-sm">{f}</li>
+                      {t.armaTuPlan.priceCard.bullets.map((f, i) => (
+                        <li key={i} className="text-white/90 font-medium text-xs sm:text-sm">✓  {f}</li>
                       ))}
                     </ul>
                     <Button
@@ -335,7 +250,7 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
                       className="w-full bg-white text-primary hover:bg-white/90 font-extrabold text-base sm:text-lg py-5 sm:py-6 rounded-2xl shadow-xl transition-all active:scale-[0.98]"
                       onClick={() => setShowClasesModal(true)}
                     >
-                      📅 Arma tu plan mensual
+                      {t.armaTuPlan.priceCard.cta}
                     </Button>
                   </div>
                 </div>
@@ -344,8 +259,8 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
                 <div className="flex items-center gap-3 sm:gap-4 bg-white/80 backdrop-blur border border-border/50 rounded-2xl p-3 sm:p-4 shadow-sm">
                   <span className="text-2xl sm:text-3xl">⭐</span>
                   <div>
-                    <p className="font-extrabold text-xs sm:text-sm text-foreground">Profesores verificados</p>
-                    <p className="text-xs text-muted-foreground">Bilingües con experiencia comprobada en enseñanza de inglés</p>
+                    <p className="font-extrabold text-xs sm:text-sm text-foreground">{t.armaTuPlan.trust.title}</p>
+                    <p className="text-xs text-muted-foreground">{t.armaTuPlan.trust.desc}</p>
                   </div>
                 </div>
               </motion.div>
@@ -366,18 +281,19 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
           >
             <motion.div variants={staggerItem} className="mb-6">
               <span className="inline-flex items-center gap-2 bg-primary/10 text-primary text-xs sm:text-sm font-semibold px-4 sm:px-5 py-2 sm:py-2.5 rounded-full border border-primary/20">
-                🎉 ¡50% de descuento en tu primer mes!
+                {t.compactHero.badge}
               </span>
             </motion.div>
 
             <motion.div variants={staggerItem}>
+              {/* Slogan de marca — se mantiene siempre en inglés, sin importar el idioma de interfaz */}
               <h1 className="text-3xl sm:text-5xl md:text-6xl font-black leading-[1.05] tracking-tight">
                 <span className="italic text-foreground/70">&quot;Speak Up and</span><br />
                 <span className="text-primary">Stand Out</span><br />
                 <span className="italic text-foreground/70">with </span>
                 <span className="bg-gradient-to-r from-primary to-violet-500 bg-clip-text text-transparent">BLANG&quot;</span>
               </h1>
-              <p className="text-base sm:text-lg text-muted-foreground font-medium mt-4 sm:mt-5">Aprende inglés desde ya 🌎</p>
+              <p className="text-base sm:text-lg text-muted-foreground font-medium mt-4 sm:mt-5">{t.compactHero.subtitle}</p>
             </motion.div>
 
             <motion.div variants={staggerItem} className="mt-8">
@@ -385,7 +301,7 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
                 onClick={() => onOpenAuth?.('register')}
                 className="w-full sm:w-auto sm:px-14 bg-gradient-to-r from-primary to-violet-600 hover:opacity-90 text-white font-extrabold text-base sm:text-lg py-4 rounded-2xl transition-opacity shadow-lg shadow-primary/30"
               >
-                ¡Crear mi cuenta gratis! 🚀
+                {t.compactHero.cta}
               </button>
             </motion.div>
           </motion.div>
@@ -400,8 +316,8 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
             initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger}
           >
             <motion.div variants={fadeUp} className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-extrabold mb-3">¿Cómo funciona?</h2>
-              <p className="text-muted-foreground text-lg max-w-xl mx-auto">El aprendizaje está organizado en <strong className="text-foreground">unidades semanales</strong> con un ciclo completo de 5 pasos</p>
+              <h2 className="text-3xl md:text-4xl font-extrabold mb-3">{t.comoFunciona.title}</h2>
+              <p className="text-muted-foreground text-lg max-w-xl mx-auto">{t.comoFunciona.subtitlePre}<strong className="text-foreground">{t.comoFunciona.subtitleStrong}</strong>{t.comoFunciona.subtitlePost}</p>
             </motion.div>
             <motion.div variants={stagger} className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
               {UNITS.map((u, i) => (
@@ -427,11 +343,11 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
           >
             <motion.div variants={fadeUp} className="text-center mb-14">
               <span className="inline-block bg-primary/10 text-primary text-sm font-semibold px-4 py-1.5 rounded-full mb-3">
-                El ciclo completo
+                {t.cincoPasos.badge}
               </span>
-              <h2 className="text-3xl md:text-4xl font-extrabold mb-3">Los 5 pasos de cada unidad</h2>
+              <h2 className="text-3xl md:text-4xl font-extrabold mb-3">{t.cincoPasos.title}</h2>
               <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-                Cada unidad recorre este ciclo completo. Así el aprendizaje se vuelve natural y sólido.
+                {t.cincoPasos.subtitle}
               </p>
             </motion.div>
 
@@ -447,7 +363,7 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
                     <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${step.color} flex items-center justify-center text-3xl mb-3 shadow-lg`}>
                       {step.emoji}
                     </div>
-                    <span className={`text-xs font-bold px-3 py-1 rounded-full ${step.tag} mb-2`}>Paso {step.number}</span>
+                    <span className={`text-xs font-bold px-3 py-1 rounded-full ${step.tag} mb-2`}>{t.cincoPasos.pasoLabel} {step.number}</span>
                     <h3 className="text-2xl font-extrabold">{step.title}</h3>
                   </div>
 
@@ -480,20 +396,18 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
             initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger}
           >
             <motion.div variants={fadeUp} className="text-center mb-10">
-              <h2 className="text-3xl md:text-4xl font-extrabold mb-3">5 cursos, del A1 al C1</h2>
-              <p className="text-muted-foreground text-lg">Empieza desde donde estás y avanza a tu ritmo. Cada curso aplica la misma metodología intuitiva.</p>
+              <h2 className="text-3xl md:text-4xl font-extrabold mb-3">{t.niveles.title}</h2>
+              <p className="text-muted-foreground text-lg">{t.niveles.subtitle}</p>
             </motion.div>
 
             {/* Language transition note */}
             <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-8">
               <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-full px-5 py-2">
-                <span className="text-lg">🇪🇸</span>
-                <span className="text-sm font-semibold text-green-700">A1 y A2 — Español como apoyo</span>
+                <span className="text-sm font-semibold text-green-700">{t.niveles.esBadge}</span>
               </div>
               <span className="text-muted-foreground font-bold text-lg hidden sm:block">→</span>
               <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-full px-5 py-2">
-                <span className="text-lg">🇺🇸</span>
-                <span className="text-sm font-semibold text-blue-700">B1 a C1 — 100% en inglés</span>
+                <span className="text-sm font-semibold text-blue-700">{t.niveles.enBadge}</span>
               </div>
             </motion.div>
 
@@ -507,7 +421,7 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
                   <span className="text-xs font-bold uppercase tracking-wide">{lv.level}</span>
                   <h3 className="font-bold text-base mt-0.5 mb-1">{lv.title}</h3>
                   <p className="text-xs text-muted-foreground leading-snug mb-3 flex-1">{lv.desc}</p>
-                  <span className="text-xs font-semibold block mb-2">{lv.units} unidades</span>
+                  <span className="text-xs font-semibold block mb-2">{lv.units} {t.niveles.unidadesSuffix}</span>
                   <span className={`text-xs font-semibold px-2 py-1 rounded-full ${lv.langColor} inline-block`}>
                     {lv.lang}
                   </span>
@@ -530,13 +444,14 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
             {/* Encabezado */}
             <motion.div variants={staggerItem} className="text-center mb-8 sm:mb-10">
               <span className="inline-flex items-center gap-2 bg-primary/10 text-primary text-xs sm:text-sm font-bold px-4 py-2 rounded-full mb-4 border border-primary/20">
-                <Sparkles className="w-3.5 h-3.5" /> Módulos especiales
+                <Sparkles className="w-3.5 h-3.5" /> {t.englishForYou.badge}
               </span>
+              {/* "English for you!" es el nombre de marca de este módulo — se mantiene en inglés siempre */}
               <h2 className="text-3xl sm:text-5xl font-black tracking-tight mb-3">
                 English for <span className="text-primary">you!</span>
               </h2>
               <p className="text-muted-foreground text-base sm:text-lg max-w-xl mx-auto">
-                Módulos adicionales de aprendizaje para llevar tu inglés al siguiente nivel.
+                {t.englishForYou.subtitle}
               </p>
             </motion.div>
 
@@ -548,14 +463,14 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
               <div className="flex items-center gap-2.5">
                 <Lock className="w-4 h-4 text-primary shrink-0" />
                 <p className="text-sm sm:text-base font-semibold text-foreground">
-                  Regístrate gratis y accede a todo el contenido
+                  {t.englishForYou.accessBanner}
                 </p>
               </div>
               <button
                 onClick={() => onOpenAuth?.('register')}
                 className="shrink-0 bg-gradient-to-r from-primary to-violet-600 hover:opacity-90 text-white font-bold text-sm px-5 py-2.5 rounded-xl shadow-md transition-opacity whitespace-nowrap"
               >
-                Registrarse gratis →
+                {t.englishForYou.accessCta}
               </button>
             </motion.div>
 
@@ -597,8 +512,8 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
                         /* Sin contenido publicado todavía */
                         <div className="flex-1 flex flex-col items-center justify-center py-5 gap-2 text-center">
                           <span className="text-3xl">🚀</span>
-                          <p className="text-xs font-semibold text-muted-foreground">Contenido próximamente</p>
-                          <p className="text-[11px] text-muted-foreground/60">Regístrate para ser el primero en acceder</p>
+                          <p className="text-xs font-semibold text-muted-foreground">{t.englishForYou.comingSoon}</p>
+                          <p className="text-[11px] text-muted-foreground/60">{t.englishForYou.comingSoonSub}</p>
                         </div>
                       ) : (
                         <div className="flex-1 flex flex-col gap-2">
@@ -634,7 +549,7 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
                         className={`mt-auto w-full rounded-xl bg-gradient-to-r ${mod.gradient} text-white font-semibold text-sm py-2.5 shadow-sm hover:shadow-md hover:opacity-90 transition-all flex items-center justify-center gap-1.5`}
                       >
                         <Lock className="w-3.5 h-3.5" />
-                        Regístrate para acceder
+                        {t.englishForYou.unlockCta}
                       </button>
                     </div>
                   </motion.div>
@@ -648,10 +563,10 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
                 onClick={() => onOpenAuth?.('register')}
                 className="inline-flex items-center gap-2 bg-gradient-to-r from-primary to-violet-600 hover:opacity-90 text-white font-extrabold text-base sm:text-lg px-8 py-4 rounded-2xl shadow-lg shadow-primary/30 transition-opacity"
               >
-                Desbloquear todos los módulos
+                {t.englishForYou.finalCta}
                 <ChevronRight className="w-5 h-5" />
               </button>
-              <p className="text-xs text-muted-foreground mt-3">50% de descuento en tu primer mes · Sin compromisos</p>
+              <p className="text-xs text-muted-foreground mt-3">{t.englishForYou.finalSub}</p>
             </motion.div>
 
           </motion.div>
@@ -671,14 +586,13 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
               <div className="rounded-[22px] bg-background/95 backdrop-blur px-8 py-10 text-center">
                 <div className="text-5xl mb-4">🎯</div>
                 <h2 className="text-2xl md:text-3xl font-extrabold mb-3">
-                  Conoce tu nivel de inglés
+                  {t.nivelTest.title}
                 </h2>
                 <p className="text-muted-foreground text-base mb-2 max-w-xl mx-auto">
-                  ¿En qué nivel estás? Descúbrelo con nuestro test de 30 preguntas que evalúa
-                  vocabulario, gramática, lectura y comprensión auditiva.
+                  {t.nivelTest.desc}
                 </p>
                 <p className="text-sm text-muted-foreground mb-7">
-                  ~10 minutos &nbsp;·&nbsp; Gratuito &nbsp;·&nbsp; Sin registro &nbsp;·&nbsp; Resultado inmediato
+                  {t.nivelTest.meta}
                 </p>
 
                 {/* Level scale decorative */}
@@ -702,7 +616,7 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
                   className="bg-gradient-to-r from-violet-600 to-primary hover:opacity-90 text-white rounded-full px-10 py-6 font-extrabold text-base shadow-lg shadow-primary/30 gap-2"
                   onClick={() => setQuizOpen(true)}
                 >
-                  🚀 Comenzar test de nivel
+                  {t.nivelTest.cta}
                 </Button>
               </div>
             </motion.div>
@@ -718,17 +632,13 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
           >
             <motion.div variants={fadeUp} className="text-center mb-10">
               <span className="inline-block bg-primary/10 text-primary text-sm font-semibold px-4 py-1.5 rounded-full mb-3">
-                💳 Pagos
+                {t.comoFuncionaPago.badge}
               </span>
-              <h2 className="text-3xl font-bold">¿Cómo funciona el pago?</h2>
-              <p className="text-muted-foreground mt-2 text-sm">Proceso simple, sin sorpresas</p>
+              <h2 className="text-3xl font-bold">{t.comoFuncionaPago.title}</h2>
+              <p className="text-muted-foreground mt-2 text-sm">{t.comoFuncionaPago.subtitle}</p>
             </motion.div>
             <motion.div variants={stagger} className="grid md:grid-cols-3 gap-5">
-              {[
-                { icon: '📝', step: '1', title: 'Regístrate', desc: 'Crea tu cuenta en segundos y activa tu plan con 50% de descuento en el primer mes.' },
-                { icon: '💬', step: '2', title: 'Contáctanos', desc: 'Escríbenos y te indicamos cómo realizar el pago.' },
-                { icon: '🚀', step: '3', title: 'Activa tu plan', desc: 'Confirmado el pago, activamos tu cuenta en máximo 24 horas hábiles.' },
-              ].map(({ icon, step, title, desc }) => (
+              {['📝', '💬', '🚀'].map((icon, i) => ({ icon, step: String(i + 1), ...t.comoFuncionaPago.steps[i] })).map(({ icon, step, title, desc }) => (
                 <motion.div key={step} variants={fadeUp} className="bg-background border border-border/40 rounded-2xl p-6 shadow-sm text-center hover:shadow-md transition-shadow">
                   <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center mx-auto mb-3">{step}</div>
                   <div className="text-3xl mb-2">{icon}</div>
@@ -739,11 +649,11 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
             </motion.div>
             <motion.div variants={fadeUp} className="mt-8 bg-primary/5 border border-primary/20 rounded-2xl p-5 text-center">
               <p className="text-sm text-muted-foreground">
-                📲 Escríbenos por{' '}
+                {t.comoFuncionaPago.whatsappPrefix}{' '}
                 <a href="https://wa.me/573236405246" target="_blank" rel="noopener noreferrer" className="text-primary font-semibold hover:underline">
-                  WhatsApp +57 323 640 5246
+                  {t.comoFuncionaPago.whatsappLink}
                 </a>
-                {' '}— respondemos en máximo 24 horas hábiles.
+                {' '}{t.comoFuncionaPago.whatsappSuffix}
               </p>
             </motion.div>
           </motion.div>
@@ -757,7 +667,7 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
             initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger}
           >
             <motion.div variants={fadeUp} className="text-center mb-10">
-              <h2 className="text-3xl font-bold">Preguntas frecuentes</h2>
+              <h2 className="text-3xl font-bold">{t.faqTitle}</h2>
             </motion.div>
             <motion.div variants={fadeUp}>
               <Accordion type="single" collapsible className="space-y-3">
@@ -791,13 +701,13 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
               {/* Encabezado */}
               <motion.div variants={staggerItem} className="text-center mb-10 sm:mb-14">
                 <span className="inline-flex items-center gap-2 bg-amber-100 text-amber-700 text-xs font-bold px-4 py-1.5 rounded-full mb-4 border border-amber-200">
-                  <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" /> Reseñas reales
+                  <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" /> {t.reviews.badge}
                 </span>
                 <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-3">
-                  Lo que dicen nuestros <span className="text-primary">estudiantes</span>
+                  {t.reviews.titlePre}<span className="text-primary">{t.reviews.titleHighlight}</span>{t.reviews.titlePost}
                 </h2>
                 <p className="text-muted-foreground text-base max-w-xl mx-auto">
-                  Experiencias de personas que ya están aprendiendo inglés con BLANG.
+                  {t.reviews.subtitle}
                 </p>
               </motion.div>
 
@@ -830,7 +740,7 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
                         ✦
                       </div>
                       <span className="text-sm font-semibold text-foreground/80 leading-tight">
-                        Estudiante BLANG
+                        {t.reviews.anonName}
                       </span>
                     </div>
                   </motion.div>
@@ -851,25 +761,25 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
             initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger}
             className="max-w-2xl mx-auto"
           >
-            <motion.p variants={fadeUp} className="text-5xl mb-4">🚀</motion.p>
+            <motion.p variants={fadeUp} className="text-5xl mb-4">{t.ctaFinal.emoji}</motion.p>
             <motion.h2 variants={fadeUp} className="text-4xl md:text-5xl font-extrabold text-white mb-4 leading-tight">
-              ¡Empieza con 50% de descuento!
+              {t.ctaFinal.title}
             </motion.h2>
             <motion.p variants={fadeUp} className="text-lg text-white/80 mb-8">
-              Tu primer mes por ${PRECIO_MENSUAL_USD_DESC} USD o ${PRECIO_MENSUAL_COP_DESC.toLocaleString('es-CO')} COP. Luego $16 USD o $60,000 COP al mes 🎊
+              {t.ctaFinal.subtitle(PRECIO_MENSUAL_USD_DESC, PRECIO_MENSUAL_COP_DESC)}
             </motion.p>
             <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button size="lg"
                 className="bg-white text-primary hover:bg-white/90 rounded-full font-bold px-10 py-6 text-lg"
                 onClick={() => onOpenAuth?.('register')}
               >
-                Registrarse gratis 🎉
+                {t.ctaFinal.register}
               </Button>
               <Button size="lg" variant="outline"
                 className="border-white/40 text-white hover:bg-white/10 rounded-full px-10 py-6 text-lg"
                 onClick={() => onOpenAuth?.('login')}
               >
-                Ya tengo cuenta
+                {t.ctaFinal.login}
               </Button>
             </motion.div>
           </motion.div>

@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { ROUTE_PATHS } from '@/lib/index';
 import type { AuthModal } from '@/lib/index';
 import { openWhatsApp } from '@/lib/whatsapp';
+import { useLanguage } from '@/lib/language';
+import { translations } from '@/lib/translations';
 
 // ── PENDIENTE POR DEFINIR (no inventar, solo dejar nota) ──────────────────────
 // 1. Precios reales del curso de Español para Extranjeros — por ahora el
@@ -59,86 +61,19 @@ interface SpanishProgramProps {
 // Comprensión antes que producción: primero se entiende (leer/escuchar),
 // luego se produce (hablar/escribir) — ajustar orden/nombres si el negocio
 // define una secuencia distinta.
-const STEPS = [
-  {
-    number: '01',
-    emoji: '📖',
-    title: 'Comprensión de lectura',
-    color: 'from-orange-500 to-red-600',
-    bg: 'from-orange-50 to-red-50 border-orange-200',
-    tag: 'bg-orange-100 text-orange-700',
-    desc: 'Empiezas por entender textos reales y graduales. Leer antes de producir te da el vocabulario y las estructuras que luego vas a usar.',
-    details: [
-      'Textos cortos adaptados a tu nivel',
-      'Vocabulario nuevo resaltado con traducción',
-      'Preguntas guía de comprensión',
-      'Temas cotidianos y de cultura hispana',
-    ],
-  },
-  {
-    number: '02',
-    emoji: '🎧',
-    title: 'Comprensión auditiva',
-    color: 'from-rose-500 to-pink-600',
-    bg: 'from-rose-50 to-pink-50 border-rose-200',
-    tag: 'bg-rose-100 text-rose-700',
-    desc: 'Entrenas el oído con hablantes nativos en situaciones reales, antes de tener que hablar tú — así como aprenden los niños su lengua materna.',
-    details: [
-      'Audios con distintos acentos hispanos',
-      'Velocidad ajustable para practicar',
-      'Transcripciones para comparar',
-      'Diálogos de la vida real',
-    ],
-  },
-  {
-    number: '03',
-    emoji: '🗂️',
-    title: 'Vocabulario',
-    color: 'from-amber-500 to-orange-600',
-    bg: 'from-amber-50 to-orange-50 border-amber-200',
-    tag: 'bg-amber-100 text-amber-700',
-    desc: 'Con la base de comprensión ya construida, consolidas el vocabulario y las estructuras que reconociste leyendo y escuchando.',
-    details: [
-      'Palabras agrupadas por temas prácticos',
-      'Frases completas, no solo palabras sueltas',
-      'Flashcards y repetición espaciada',
-      'Pronunciación incluida en cada palabra',
-    ],
-  },
-  {
-    number: '04',
-    emoji: '🗣️',
-    title: 'Producción oral',
-    color: 'from-red-500 to-rose-600',
-    bg: 'from-red-50 to-rose-50 border-red-200',
-    tag: 'bg-red-100 text-red-700',
-    desc: 'Ahora que ya entiendes, empiezas a hablar: primero frases guiadas, luego conversación libre, con corrección de pronunciación.',
-    details: [
-      'Práctica guiada antes de conversación libre',
-      'Corrección de pronunciación',
-      'Situaciones cotidianas reales',
-      'Sin miedo a equivocarte',
-    ],
-  },
-  {
-    number: '05',
-    emoji: '✍️',
-    title: 'Producción escrita',
-    color: 'from-pink-500 to-fuchsia-600',
-    bg: 'from-pink-50 to-fuchsia-50 border-pink-200',
-    tag: 'bg-pink-100 text-pink-700',
-    desc: 'El último paso: escribir con lo aprendido. Cierras el ciclo produciendo tu propio texto, con corrección y retroalimentación.',
-    details: [
-      'Ejercicios de escritura guiada',
-      'Corrección de gramática y estilo',
-      'Frases y párrafos según tu nivel',
-      'Retroalimentación personalizada',
-    ],
-  },
+const STEPS_STYLE = [
+  { number: '01', emoji: '📖', color: 'from-orange-500 to-red-600', bg: 'from-orange-50 to-red-50 border-orange-200', tag: 'bg-orange-100 text-orange-700' },
+  { number: '02', emoji: '🎧', color: 'from-rose-500 to-pink-600', bg: 'from-rose-50 to-pink-50 border-rose-200', tag: 'bg-rose-100 text-rose-700' },
+  { number: '03', emoji: '🗂️', color: 'from-amber-500 to-orange-600', bg: 'from-amber-50 to-orange-50 border-amber-200', tag: 'bg-amber-100 text-amber-700' },
+  { number: '04', emoji: '🗣️', color: 'from-red-500 to-rose-600', bg: 'from-red-50 to-rose-50 border-red-200', tag: 'bg-red-100 text-red-700' },
+  { number: '05', emoji: '✍️', color: 'from-pink-500 to-fuchsia-600', bg: 'from-pink-50 to-fuchsia-50 border-pink-200', tag: 'bg-pink-100 text-pink-700' },
 ];
 
 export default function SpanishProgram({ onOpenAuth, isLoggedIn }: SpanishProgramProps) {
   const navigate = useNavigate();
+  const { lang } = useLanguage();
+  const t = translations[lang].spanish;
+  const STEPS = STEPS_STYLE.map((s, i) => ({ ...s, ...t.cincoPasos.steps[i] }));
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -147,7 +82,7 @@ export default function SpanishProgram({ onOpenAuth, isLoggedIn }: SpanishProgra
   }, [isLoggedIn, navigate]);
 
   const contactWhatsApp = () => {
-    openWhatsApp('Hola! 🇪🇸 Quiero información sobre el curso de Español para Extranjeros (Spanish for Foreigners) y el 50% de descuento en el primer mes.');
+    openWhatsApp(t.whatsappMessage);
   };
 
   return (
@@ -165,16 +100,19 @@ export default function SpanishProgram({ onOpenAuth, isLoggedIn }: SpanishProgra
           >
             <motion.div variants={staggerItem} className="mb-4">
               <span className="inline-flex items-center gap-2 bg-orange-100 text-orange-700 text-xs sm:text-sm font-bold px-4 sm:px-5 py-2 rounded-full border border-orange-200">
-                🇪🇸 Español para extranjeros
+                {t.header.badge}
               </span>
             </motion.div>
+            {/* "Aprende español / Learn Spanish" es un título bilingüe intencional
+                (mismo patrón que "Bienvenido/a / Welcome" en Home) — se mantiene
+                siempre igual, sin importar el idioma de interfaz elegido. */}
             <motion.h1 variants={staggerItem} className="text-3xl sm:text-5xl font-black text-foreground leading-tight">
               Aprende <span className="text-orange-600">español</span>
               <span className="text-muted-foreground"> / </span>
               <span className="italic text-muted-foreground">Learn Spanish</span>
             </motion.h1>
             <motion.p variants={staggerItem} className="text-base sm:text-lg text-muted-foreground max-w-xl mx-auto mt-4">
-              Metodología de inmersión: primero desarrollas comprensión (lectura y escucha), luego producción (habla y escritura).
+              {t.header.subtitle}
             </motion.p>
           </motion.div>
         </div>
@@ -193,13 +131,13 @@ export default function SpanishProgram({ onOpenAuth, isLoggedIn }: SpanishProgra
           >
             <motion.div variants={fadeInUp} className="text-center mb-10 sm:mb-14">
               <span className="inline-flex items-center gap-2 bg-orange-100 text-orange-700 text-xs sm:text-sm font-bold px-4 sm:px-5 py-2 rounded-full mb-4 sm:mb-5 border border-orange-200">
-                📅 Arma tu plan
+                {t.armaTuPlan.badge}
               </span>
               <h2 className="text-3xl sm:text-5xl md:text-6xl font-black text-foreground leading-tight mb-3 sm:mb-4">
-                Clases <span className="text-orange-600">1 a 1</span> con nuestros profes
+                {t.armaTuPlan.titlePre} <span className="text-orange-600">{t.armaTuPlan.titleHighlight}</span> {t.armaTuPlan.titlePost}
               </h2>
               <p className="text-base sm:text-xl text-muted-foreground max-w-xl mx-auto">
-                Inmersión total, a tu horario y a tu ritmo
+                {t.armaTuPlan.subtitle}
               </p>
             </motion.div>
 
@@ -207,13 +145,7 @@ export default function SpanishProgram({ onOpenAuth, isLoggedIn }: SpanishProgra
 
               {/* Columna izquierda: beneficios */}
               <motion.div variants={staggerItem} className="flex flex-col gap-4 sm:gap-5">
-                {[
-                  { icon: '🗣️', title: 'Comprensión antes que producción', desc: 'Primero entiendes leyendo y escuchando, luego produces hablando y escribiendo — así se aprende una lengua de forma natural.' },
-                  { icon: '🎯', title: 'A tu ritmo', desc: 'Contenido estructurado para avanzar según tu nivel real, sin saltarte pasos.' },
-                  { icon: '💻', title: 'Google Meet', desc: 'Sesiones cómodas por videollamada, desde cualquier lugar del mundo.' },
-                  { icon: '🔓', title: 'Sin matrícula obligatoria', desc: 'No necesitas estar matriculado en un curso para tomar clases en vivo.' },
-                  { icon: 'ℹ️', title: 'Planes y precios muy pronto', desc: 'Estamos definiendo los planes del curso de Español para Extranjeros. Escríbenos por WhatsApp y te avisamos apenas estén listos.' },
-                ].map((item, i) => (
+                {['🗣️', '🎯', '💻', '🔓', 'ℹ️'].map((icon, i) => ({ icon, ...t.armaTuPlan.benefits[i] })).map((item, i) => (
                   <motion.div
                     key={i}
                     variants={staggerItem}
@@ -239,7 +171,7 @@ export default function SpanishProgram({ onOpenAuth, isLoggedIn }: SpanishProgra
                   {/* Badge de descuento — precio base aún por definir, ver nota al inicio del archivo */}
                   <div className="absolute top-4 right-4 sm:top-5 sm:right-5 z-20">
                     <span className="inline-flex items-center gap-1 bg-amber-400 text-black text-xs sm:text-sm font-black px-3 py-1.5 rounded-full shadow-lg rotate-3">
-                      🎉 -50% primer mes
+                      {t.armaTuPlan.priceCard.discountBadge}
                     </span>
                   </div>
 
@@ -247,21 +179,17 @@ export default function SpanishProgram({ onOpenAuth, isLoggedIn }: SpanishProgra
                     <div className="flex items-center gap-3 mb-4 sm:mb-6">
                       <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white/20 flex items-center justify-center text-xl sm:text-2xl">👩‍🏫</div>
                       <div>
-                        <p className="font-extrabold text-base sm:text-lg">Clase individual</p>
-                        <p className="text-white/70 text-xs sm:text-sm">Con profesor nativo / bilingüe</p>
+                        <p className="font-extrabold text-base sm:text-lg">{t.armaTuPlan.priceCard.role}</p>
+                        <p className="text-white/70 text-xs sm:text-sm">{t.armaTuPlan.priceCard.sub}</p>
                       </div>
                     </div>
                     <div className="flex items-end gap-2 mb-2">
-                      <span className="text-4xl sm:text-5xl font-black leading-none">Consultar</span>
+                      <span className="text-4xl sm:text-5xl font-black leading-none">{t.armaTuPlan.priceCard.priceLabel}</span>
                     </div>
-                    <p className="text-white/70 text-xs sm:text-sm mb-4 sm:mb-6">Con 50% de descuento en tu primer mes · Escríbenos para conocer el precio</p>
+                    <p className="text-white/70 text-xs sm:text-sm mb-4 sm:mb-6">{t.armaTuPlan.priceCard.per}</p>
                     <ul className="space-y-2 sm:space-y-2.5 mb-6 sm:mb-8">
-                      {[
-                        '✓  Corrección en tiempo real',
-                        '✓  Feedback personalizado',
-                        '✓  Horario flexible',
-                      ].map((f, i) => (
-                        <li key={i} className="text-white/90 font-medium text-xs sm:text-sm">{f}</li>
+                      {t.armaTuPlan.priceCard.bullets.map((f, i) => (
+                        <li key={i} className="text-white/90 font-medium text-xs sm:text-sm">✓  {f}</li>
                       ))}
                     </ul>
                     <Button
@@ -269,7 +197,7 @@ export default function SpanishProgram({ onOpenAuth, isLoggedIn }: SpanishProgra
                       className="w-full bg-white text-orange-600 hover:bg-white/90 font-extrabold text-base sm:text-lg py-5 sm:py-6 rounded-2xl shadow-xl transition-all active:scale-[0.98]"
                       onClick={contactWhatsApp}
                     >
-                      📩 Contáctanos por WhatsApp
+                      {t.armaTuPlan.priceCard.cta}
                     </Button>
                   </div>
                 </div>
@@ -277,8 +205,8 @@ export default function SpanishProgram({ onOpenAuth, isLoggedIn }: SpanishProgra
                 <div className="flex items-center gap-3 sm:gap-4 bg-white/80 backdrop-blur border border-border/50 rounded-2xl p-3 sm:p-4 shadow-sm">
                   <span className="text-2xl sm:text-3xl">⭐</span>
                   <div>
-                    <p className="font-extrabold text-xs sm:text-sm text-foreground">Profesores verificados</p>
-                    <p className="text-xs text-muted-foreground">Nativos o bilingües con experiencia en enseñanza de español</p>
+                    <p className="font-extrabold text-xs sm:text-sm text-foreground">{t.armaTuPlan.trust.title}</p>
+                    <p className="text-xs text-muted-foreground">{t.armaTuPlan.trust.desc}</p>
                   </div>
                 </div>
               </motion.div>
@@ -296,11 +224,11 @@ export default function SpanishProgram({ onOpenAuth, isLoggedIn }: SpanishProgra
           >
             <motion.div variants={fadeUp} className="text-center mb-14">
               <span className="inline-block bg-orange-100 text-orange-700 text-sm font-semibold px-4 py-1.5 rounded-full mb-3">
-                El ciclo completo
+                {t.cincoPasos.badge}
               </span>
-              <h2 className="text-3xl md:text-4xl font-extrabold mb-3">Los 5 pasos de la inmersión</h2>
+              <h2 className="text-3xl md:text-4xl font-extrabold mb-3">{t.cincoPasos.title}</h2>
               <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-                Primero comprensión, luego producción — así se aprende un idioma de forma natural.
+                {t.cincoPasos.subtitle}
               </p>
             </motion.div>
 
@@ -315,7 +243,7 @@ export default function SpanishProgram({ onOpenAuth, isLoggedIn }: SpanishProgra
                     <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${step.color} flex items-center justify-center text-3xl mb-3 shadow-lg`}>
                       {step.emoji}
                     </div>
-                    <span className={`text-xs font-bold px-3 py-1 rounded-full ${step.tag} mb-2`}>Paso {step.number}</span>
+                    <span className={`text-xs font-bold px-3 py-1 rounded-full ${step.tag} mb-2`}>{t.cincoPasos.pasoLabel} {step.number}</span>
                     <h3 className="text-2xl font-extrabold">{step.title}</h3>
                   </div>
 
@@ -349,9 +277,9 @@ export default function SpanishProgram({ onOpenAuth, isLoggedIn }: SpanishProgra
             <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-orange-500 to-rose-600 flex items-center justify-center text-3xl shadow-lg mb-4">
               📊
             </div>
-            <h2 className="text-2xl md:text-3xl font-extrabold mb-3">Niveles próximamente</h2>
+            <h2 className="text-2xl md:text-3xl font-extrabold mb-3">{t.niveles.title}</h2>
             <p className="text-muted-foreground text-base leading-relaxed">
-              Estamos definiendo la escala de niveles del curso de Español para Extranjeros. En cuanto estén listos, los vas a ver acá con el mismo formato de tarjetas que usamos para inglés.
+              {t.niveles.desc}
             </p>
           </motion.div>
         </div>
@@ -367,12 +295,12 @@ export default function SpanishProgram({ onOpenAuth, isLoggedIn }: SpanishProgra
             initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger}
             className="max-w-xl mx-auto"
           >
-            <motion.p variants={fadeUp} className="text-5xl mb-4">🇪🇸</motion.p>
+            <motion.p variants={fadeUp} className="text-5xl mb-4">{t.ctaFinal.emoji}</motion.p>
             <motion.h2 variants={fadeUp} className="text-3xl md:text-4xl font-extrabold text-white mb-4 leading-tight">
-              ¿Tienes preguntas?
+              {t.ctaFinal.title}
             </motion.h2>
             <motion.p variants={fadeUp} className="text-base sm:text-lg text-white/80 mb-8">
-              Escríbenos por WhatsApp y te contamos todo sobre el curso de Español para Extranjeros.
+              {t.ctaFinal.subtitle}
             </motion.p>
             <motion.div variants={fadeUp}>
               <Button
@@ -380,7 +308,7 @@ export default function SpanishProgram({ onOpenAuth, isLoggedIn }: SpanishProgra
                 className="bg-white text-orange-600 hover:bg-white/90 rounded-full font-bold px-10 py-6 text-lg"
                 onClick={contactWhatsApp}
               >
-                📩 Escríbenos por WhatsApp
+                {t.ctaFinal.cta}
               </Button>
             </motion.div>
           </motion.div>

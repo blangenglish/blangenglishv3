@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { ChevronRight } from 'lucide-react';
 import { ROUTE_PATHS } from '@/lib/index';
 import type { AuthModal } from '@/lib/index';
+import { useLanguage } from '@/lib/language';
+import { translations } from '@/lib/translations';
 
 const staggerContainer = {
   hidden: { opacity: 0 },
@@ -22,51 +24,18 @@ interface HomeProps {
   isLoggedIn?: boolean;
 }
 
-const PROGRAMS = [
-  {
-    id: 'spanish',
-    emoji: '🇪🇸',
-    title: 'Español para extranjeros',
-    subtitle: 'Spanish for Foreigners',
-    desc: 'Aprende español bajo inmersión. Metodología que desarrolla primero comprensión (lectura y escucha) y luego producción (habla y escritura).',
-    gradient: 'from-orange-500 via-red-500 to-rose-600',
-    softBg: 'from-orange-50 to-rose-50 border-orange-200',
-    route: ROUTE_PATHS.SPANISH,
-  },
-  {
-    id: 'kids',
-    emoji: '🧒',
-    title: 'Inglés para niños',
-    subtitle: '8–13 años',
-    desc: 'Aprendizaje divertido y visual, con juegos, canciones e historias cortas. Sesiones breves, vocabulario básico a través del juego.',
-    gradient: 'from-teal-500 via-cyan-500 to-sky-600',
-    softBg: 'from-teal-50 to-sky-50 border-teal-200',
-    route: ROUTE_PATHS.ENGLISH,
-  },
-  {
-    id: 'teens',
-    emoji: '🧑',
-    title: 'Inglés jóvenes',
-    subtitle: '14–17 años',
-    desc: 'Conversación real, preparación académica y vocabulario para exámenes o intercambios. Contenido dinámico y social.',
-    gradient: 'from-fuchsia-500 via-purple-500 to-violet-600',
-    softBg: 'from-fuchsia-50 to-violet-50 border-fuchsia-200',
-    route: ROUTE_PATHS.ENGLISH,
-  },
-  {
-    id: 'adults',
-    emoji: '🎓',
-    title: 'Inglés para adultos',
-    subtitle: 'Todos los niveles',
-    desc: 'Metodología por niveles (A1–C1), práctica con IA, clases en vivo opcionales, horario flexible.',
-    gradient: 'from-primary via-violet-600 to-purple-700',
-    softBg: 'from-primary/5 to-purple-50 border-primary/30',
-    route: ROUTE_PATHS.ENGLISH,
-  },
+const PROGRAMS_STYLE = [
+  { id: 'spanish', emoji: '🇪🇸', gradient: 'from-orange-500 via-red-500 to-rose-600', softBg: 'from-orange-50 to-rose-50 border-orange-200', route: ROUTE_PATHS.SPANISH },
+  { id: 'kids', emoji: '🧒', gradient: 'from-teal-500 via-cyan-500 to-sky-600', softBg: 'from-teal-50 to-sky-50 border-teal-200', route: ROUTE_PATHS.ENGLISH },
+  { id: 'teens', emoji: '🧑', gradient: 'from-fuchsia-500 via-purple-500 to-violet-600', softBg: 'from-fuchsia-50 to-violet-50 border-fuchsia-200', route: ROUTE_PATHS.ENGLISH },
+  { id: 'adults', emoji: '🎓', gradient: 'from-primary via-violet-600 to-purple-700', softBg: 'from-primary/5 to-purple-50 border-primary/30', route: ROUTE_PATHS.ENGLISH },
 ];
 
 export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
   const navigate = useNavigate();
+  const { lang } = useLanguage();
+  const t = translations[lang];
+  const PROGRAMS = PROGRAMS_STYLE.map((p) => ({ ...p, ...t.welcome.programs[p.id] }));
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -94,9 +63,11 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
           >
             <motion.div variants={staggerItem} className="mb-5 sm:mb-7">
               <span className="inline-flex items-center gap-2 bg-white/10 text-white/90 text-xs sm:text-sm font-bold px-4 sm:px-5 py-2 rounded-full border border-white/20 backdrop-blur">
-                👋 BLANG Academy
+                {t.welcome.badge}
               </span>
             </motion.div>
+            {/* "Bienvenido/a / Welcome" es un saludo bilingüe intencional (branding) y
+                se muestra siempre igual, sin importar el idioma de interfaz elegido. */}
             <motion.div variants={staggerItem} className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-4">
               <h1 className="text-4xl sm:text-6xl md:text-7xl font-black text-white leading-none tracking-tight">
                 Bienvenido/a
@@ -107,7 +78,7 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
               </h1>
             </motion.div>
             <motion.p variants={staggerItem} className="text-base sm:text-xl text-white/80 max-w-xl mx-auto mt-5 sm:mt-6">
-              Elige el programa que mejor se adapte a ti
+              {t.welcome.subtitle}
             </motion.p>
           </motion.div>
         </div>
@@ -143,7 +114,7 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
                     className={`relative w-full rounded-xl py-5 sm:py-6 font-bold text-sm sm:text-base bg-gradient-to-r ${p.gradient} text-white hover:opacity-90 transition-opacity gap-2 shadow-lg`}
                     onClick={(e) => { e.stopPropagation(); navigate(targetUrl); }}
                   >
-                    Conoce precios
+                    {t.welcome.cta}
                     <ChevronRight className="w-4 h-4" />
                   </Button>
                 </motion.div>

@@ -7,6 +7,9 @@ import { Button } from '@/components/ui/button';
 import { IMAGES } from '@/assets/images';
 import { ROUTE_PATHS } from '@/lib/index';
 import type { AuthModal } from '@/lib/index';
+import { useLanguage } from '@/lib/language';
+import { translations } from '@/lib/translations';
+import { Globe } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -22,6 +25,8 @@ export function Layout({ children, isLoggedIn = false, onOpenAuth, onLogout, use
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const { lang, toggleLang } = useLanguage();
+  const t = translations[lang];
 
   // Scroll to top on every route change
   useEffect(() => {
@@ -53,9 +58,20 @@ export function Layout({ children, isLoggedIn = false, onOpenAuth, onLogout, use
         { label: 'Mi Cuenta', href: ROUTE_PATHS.DASHBOARD, icon: LayoutDashboard },
       ]
     : [
-        { label: 'Inicio', href: ROUTE_PATHS.HOME },
-        { label: 'Preguntas', href: ROUTE_PATHS.FAQ },
+        { label: t.footer.home, href: ROUTE_PATHS.HOME },
+        { label: t.footer.faq, href: ROUTE_PATHS.FAQ },
       ];
+
+  const LanguageToggle = () => (
+    <button
+      onClick={toggleLang}
+      className="flex items-center gap-1 text-xs sm:text-sm font-bold text-foreground/70 hover:text-primary border border-border/60 hover:border-primary/40 rounded-full px-2.5 sm:px-3 py-1.5 transition-colors shrink-0"
+      aria-label="Switch language / Cambiar idioma"
+    >
+      <Globe className="w-3.5 h-3.5" />
+      {t.common.langToggleLabel}
+    </button>
+  );
 
   const socialLinks = [
     { icon: SiWhatsapp, href: 'https://whatsapp.com/channel/0029VbCYgGe6WaKj1KPxei2F', label: 'WhatsApp' },
@@ -83,8 +99,8 @@ export function Layout({ children, isLoggedIn = false, onOpenAuth, onLogout, use
                   className="flex items-center gap-1.5 text-xs sm:text-sm font-medium text-foreground/70 hover:text-primary transition-colors truncate"
                 >
                   <ChevronLeft className="w-4 h-4 shrink-0" />
-                  <span className="hidden sm:inline">Volver al menú principal</span>
-                  <span className="sm:hidden">Volver</span>
+                  <span className="hidden sm:inline">{t.nav.back}</span>
+                  <span className="sm:hidden">{t.nav.backShort}</span>
                 </button>
               )}
             </div>
@@ -123,11 +139,11 @@ export function Layout({ children, isLoggedIn = false, onOpenAuth, onLogout, use
                     <>
                       <Button variant="ghost" size="sm" onClick={() => onOpenAuth?.('login')} className="gap-1.5">
                         <LogIn className="w-4 h-4" />
-                        Iniciar sesión
+                        {t.nav.login}
                       </Button>
                       <Button size="sm" onClick={() => onOpenAuth?.('register')} className="gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-full px-5">
                         <UserPlus className="w-4 h-4" />
-                        Registrarse gratis
+                        {t.nav.registerFull}
                       </Button>
                     </>
                   )}
@@ -145,6 +161,7 @@ export function Layout({ children, isLoggedIn = false, onOpenAuth, onLogout, use
             ) : (
               /* navMode 'back' | 'minimal' — sin links de nav, auth siempre visible sin hamburguesa */
               <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+                <LanguageToggle />
                 {isLoggedIn ? (
                   <div className="flex items-center gap-2 sm:gap-3">
                     <span className="hidden sm:inline text-sm font-medium text-foreground/80">
@@ -158,11 +175,11 @@ export function Layout({ children, isLoggedIn = false, onOpenAuth, onLogout, use
                   <>
                     <Button variant="ghost" size="sm" onClick={() => onOpenAuth?.('login')} className="gap-1.5 px-2 sm:px-3">
                       <LogIn className="w-4 h-4" />
-                      <span className="hidden sm:inline">Iniciar sesión</span>
+                      <span className="hidden sm:inline">{t.nav.login}</span>
                     </Button>
                     <Button size="sm" onClick={() => onOpenAuth?.('register')} className="gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-full px-3 sm:px-5">
                       <UserPlus className="w-4 h-4" />
-                      <span className="hidden sm:inline">Registrarse</span>
+                      <span className="hidden sm:inline">{t.nav.register}</span>
                     </Button>
                   </>
                 )}
@@ -191,10 +208,10 @@ export function Layout({ children, isLoggedIn = false, onOpenAuth, onLogout, use
               ) : (
                 <div className="flex flex-col gap-2 pt-2">
                   <Button variant="outline" className="w-full" onClick={() => { onOpenAuth?.('login'); setMobileMenuOpen(false); }}>
-                    Iniciar sesión
+                    {t.nav.login}
                   </Button>
                   <Button className="w-full bg-primary text-primary-foreground" onClick={() => { onOpenAuth?.('register'); setMobileMenuOpen(false); }}>
-                    Registrarse gratis 🎉
+                    {t.nav.registerFull} 🎉
                   </Button>
                 </div>
               )}
@@ -211,7 +228,7 @@ export function Layout({ children, isLoggedIn = false, onOpenAuth, onLogout, use
             <div className="col-span-1 md:col-span-2">
               <img src={IMAGES.BLANG_LOGO} alt="BLANG English Academy" className="h-10 w-auto mb-4 brightness-0 invert" />
               <p className="text-sm text-background/70 max-w-md">
-                Aprende inglés de forma fácil, divertida y efectiva. Diseñado para todo aquel que quiera aprender inglés desde su propia comodidad y tiempo. 🌎
+                {t.footer.tagline}
               </p>
               <div className="flex gap-4 mt-6">
                 {socialLinks.map((social) => {
@@ -233,12 +250,12 @@ export function Layout({ children, isLoggedIn = false, onOpenAuth, onLogout, use
             </div>
 
             <div>
-              <h3 className="font-semibold mb-4 text-background">Plataforma</h3>
+              <h3 className="font-semibold mb-4 text-background">{t.footer.platform}</h3>
               <ul className="space-y-2">
                 {[
-                  { label: 'Inicio', href: ROUTE_PATHS.HOME },
-                  { label: 'Inglés', href: ROUTE_PATHS.ENGLISH },
-                  { label: 'Español', href: ROUTE_PATHS.SPANISH },
+                  { label: t.footer.home, href: ROUTE_PATHS.HOME },
+                  { label: t.footer.english, href: ROUTE_PATHS.ENGLISH },
+                  { label: t.footer.spanish, href: ROUTE_PATHS.SPANISH },
                 ].map((link) => (
                   <li key={link.label}>
                     <Link to={link.href} className="text-sm text-background/60 hover:text-background transition-colors">
@@ -250,26 +267,26 @@ export function Layout({ children, isLoggedIn = false, onOpenAuth, onLogout, use
             </div>
 
             <div>
-              <h3 className="font-semibold mb-4 text-background">Contáctanos — Preguntas Frecuentes</h3>
+              <h3 className="font-semibold mb-4 text-background">{t.footer.contactFaq}</h3>
               <ul className="space-y-2">
                 <li>
                   <Link to={ROUTE_PATHS.FAQ} className="text-sm text-background/60 hover:text-background transition-colors">
-                    Preguntas Frecuentes
+                    {t.footer.faq}
                   </Link>
                 </li>
                 <li>
                   <Link to={ROUTE_PATHS.FAQ} className="text-sm text-background/60 hover:text-background transition-colors">
-                    Contacto
+                    {t.footer.contact}
                   </Link>
                 </li>
                 <li>
                   <Link to={ROUTE_PATHS.TERMS} className="text-sm text-background/60 hover:text-background transition-colors">
-                    Términos de Servicio
+                    {t.footer.terms}
                   </Link>
                 </li>
                 <li>
                   <Link to={ROUTE_PATHS.PRIVACY} className="text-sm text-background/60 hover:text-background transition-colors">
-                    Política de Privacidad
+                    {t.footer.privacy}
                   </Link>
                 </li>
               </ul>
@@ -278,7 +295,7 @@ export function Layout({ children, isLoggedIn = false, onOpenAuth, onLogout, use
 
           <div className="border-t border-background/10 mt-8 pt-8 text-center">
             <p className="text-sm text-background/40">
-              © 2026 BLANG English Academy. Todos los derechos reservados. Diseñado para todo aquel que quiera aprender inglés desde su propia comodidad y tiempo.
+              {t.footer.copyright}
             </p>
           </div>
         </div>

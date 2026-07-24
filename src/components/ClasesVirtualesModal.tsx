@@ -7,6 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { openWhatsApp } from '@/lib/whatsapp';
 import { TermsAcceptBox } from '@/components/TermsAcceptBox';
+import { useLanguage } from '@/lib/language';
+import { translations } from '@/lib/translations';
 
 interface ClasesVirtualesModalProps {
   open: boolean;
@@ -17,39 +19,22 @@ interface ClasesVirtualesModalProps {
   defaultAgeGroup?: 'kids' | 'teens' | 'adults';
 }
 
-const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
+// Claves invariantes (no dependen del idioma) para que la selección de días
+// sobreviva un cambio de idioma en curso — la etiqueta visible sale de t.diasSemana.
+const DIA_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri'] as const;
 
 // ── Grupos de edad ────────────────────────────────────────────────────────────
 // PENDIENTE POR DEFINIR: si el precio final varía según el grupo de edad, o si
 // es el mismo precio base para los 3 y solo cambia el enfoque/contenido del plan
 // (como está ahora). No inventar montos distintos hasta que esto se confirme —
 // por ahora PRECIOS (abajo) es el mismo para niños, jóvenes y adultos.
-const EDAD_CONFIG = {
-  kids: {
-    label: 'Niños',
-    sublabel: '8–13 años',
-    emoji: '🧒',
-    desc: 'Sesiones más cortas y dinámicas, con juegos y acompañamiento constante del profesor. Enviamos reportes de avance para que los papás sigan el progreso.',
-  },
-  teens: {
-    label: 'Jóvenes',
-    sublabel: '14–17 años',
-    emoji: '🧑',
-    desc: 'Enfoque en conversación real desde la primera clase, con preparación académica y para exámenes o intercambios cuando se necesite.',
-  },
-  adults: {
-    label: 'Adultos',
-    sublabel: '',
-    emoji: '🎓',
-    desc: 'Metodología por niveles (A1–C1), práctica con IA, clases en vivo opcionales y horario totalmente flexible.',
-  },
-} as const;
+const EDAD_EMOJI = { kids: '🧒', teens: '🧑', adults: '🎓' } as const;
 
 // ── Autoaprendizaje (solo Adultos): plan de plataforma sin profesor, sin horario ──
 // Mismos precios de siempre del curso (Plan Mensual / Plan Trimestral).
-const AUTOESTUDIO_PRECIOS = {
-  mensual: { cop: 60000, usd: 16, periodo: 'mes', label: 'Plan Mensual', incluye: 'Acceso completo A1–C1 + ChatGPT para practicar' },
-  trimestral: { cop: 250000, usd: 68, periodo: '3 meses', label: 'Plan Trimestral', incluye: 'Acceso completo A1–C1 + Speakology IA incluido' },
+const AUTOESTUDIO_PRECIOS_BASE = {
+  mensual: { cop: 60000, usd: 16 },
+  trimestral: { cop: 250000, usd: 68 },
 } as const;
 
 // ── Tabla de precios por combinación horas×días (modalidad con profesor) ──────
@@ -121,6 +106,19 @@ export function ClasesVirtualesModal({
   defaultEmail = '',
   defaultAgeGroup,
 }: ClasesVirtualesModalProps) {
+  const { lang } = useLanguage();
+  const t = translations[lang].modal;
+  const EDAD_CONFIG = {
+    kids: { emoji: EDAD_EMOJI.kids, ...t.edad.kids },
+    teens: { emoji: EDAD_EMOJI.teens, ...t.edad.teens },
+    adults: { emoji: EDAD_EMOJI.adults, ...t.edad.adults },
+  } as const;
+  const AUTOESTUDIO_PRECIOS = {
+    mensual: { ...AUTOESTUDIO_PRECIOS_BASE.mensual, ...t.autoestudio.mensual },
+    trimestral: { ...AUTOESTUDIO_PRECIOS_BASE.trimestral, ...t.autoestudio.trimestral },
+  } as const;
+  const DIAS = DIA_KEYS.map((key, i) => ({ key, label: t.diasSemana[i] }));
+  const diaLabel = (key: string) => t.diasSemana[DIA_KEYS.indexOf(key as typeof DIA_KEYS[number])];
   const [nombre, setNombre] = useState(defaultName);
   const [correo, setCorreo] = useState(defaultEmail);
   const [edad, setEdad] = useState<'kids' | 'teens' | 'adults'>(defaultAgeGroup || 'adults');
@@ -192,61 +190,60 @@ export function ClasesVirtualesModal({
 
   const handleSubmit = () => {
     if (!canSubmit) return;
-    const metodoLabel =
-      payMethod === 'bold'       ? '💳 Bold / PSE — COP (+$10.000 recargo)' :
-      payMethod === 'bancolombia'? '🟡 Transferencia Bancolombia — COP (cta. ahorros)' :
-      payMethod === 'breb'       ? '🔑 Bre-B / Llave — COP (cualquier banco colombiano)' :
-                                   '🌐 PayPal — USD';
+    // El mensaje de WhatsApp sigue el idioma de interfaz elegido (reutiliza las
+    // mismas traducciones que se muestran en el formulario).
+    const metodoLabel = t.whatsapp.metodoLabels[payMethod];
+    const unitLabel = t.unitLabel[precio.label];
 
     const planLines = isAutoestudio
       ? [
-          `📚 *PLAN DE ESTUDIO*`,
-          `• Modalidad: Autoaprendizaje (sin profesor, sin horario fijo)`,
-          `• Plan: ${autoestudioPlan.label}`,
-          `• Incluye: ${autoestudioPlan.incluye}`,
+          t.whatsapp.planEstudio,
+          `• ${t.whatsapp.modalidadAuto}`,
+          `• ${t.whatsapp.plan}: ${autoestudioPlan.label}`,
+          `• ${t.whatsapp.incluye}: ${autoestudioPlan.incluye}`,
         ]
       : [
-          `📅 *PLAN DE CLASES*`,
-          `• Modalidad: Con profesor (clases en vivo)`,
-          `• Duración por clase: ${horasDia} hora${horasDia === 2 ? 's' : ''}`,
-          `• Días por semana: ${diasSemana}`,
-          `• Días elegidos: ${diasSel.join(', ')}`,
-          `• Horario fijo: ${franja}`,
+          t.whatsapp.planClases,
+          `• ${t.whatsapp.modalidadTeacher}`,
+          `• ${t.whatsapp.duracionClase}: ${t.horaSuffix(horasDia)}`,
+          `• ${t.whatsapp.diasPorSemana}: ${diasSemana}`,
+          `• ${t.whatsapp.diasElegidos}: ${diasSel.map(diaLabel).join(', ')}`,
+          `• ${t.whatsapp.horarioFijo}: ${franja}`,
         ];
 
     const iaLines = isAutoestudio
       ? [] // ya incluido en el plan de estudio, no se repite como sección aparte
       : [
           ``,
-          `🤖 *PLATAFORMA DE PRÁCTICA IA*`,
+          t.whatsapp.plataformaIA,
           iaPlatform === 'trimestral'
-            ? `• Speakology IA — cargo único trimestral: ${formatCOP(SPEAKOLOGY_FEE)} COP`
-            : `• Uso de ChatGPT — sin costo adicional`,
+            ? `• ${t.whatsapp.speakologyLine(formatCOP(SPEAKOLOGY_FEE))}`
+            : `• ${t.whatsapp.chatgptLine}`,
         ];
 
     const mensaje = [
-      `📋 *SOLICITUD ${isAutoestudio ? 'DE INSCRIPCIÓN' : 'DE CLASES VIRTUALES'} — BLANG ENGLISH*`,
+      `📋 *${isAutoestudio ? t.whatsapp.requestTitleInscripcion : t.whatsapp.requestTitleClases}*`,
       ``,
-      `👤 *DATOS DEL ESTUDIANTE*`,
-      `• Nombre: ${nombre.trim()}`,
-      `• Correo: ${correo.trim()}`,
-      `• Grupo de edad: ${EDAD_CONFIG[edad].emoji} ${EDAD_CONFIG[edad].label}${EDAD_CONFIG[edad].sublabel ? ` (${EDAD_CONFIG[edad].sublabel})` : ''}`,
+      t.whatsapp.studentData,
+      `• ${t.whatsapp.name}: ${nombre.trim()}`,
+      `• ${t.whatsapp.email}: ${correo.trim()}`,
+      `• ${t.whatsapp.ageGroup}: ${EDAD_CONFIG[edad].emoji} ${EDAD_CONFIG[edad].label}${EDAD_CONFIG[edad].sublabel ? ` (${EDAD_CONFIG[edad].sublabel})` : ''}`,
       ``,
       ...planLines,
       ...iaLines,
       ``,
-      `💰 *PRECIO*`,
-      isAutoestudio ? null : `• Clases al mes: ${precio.unidades} ${precio.label}s`,
-      `• Precio${isAutoestudio ? '' : ' con descuento'}: ${formatCOP(baseFinal)} COP (${formatUSD(baseFinal)})`,
-      iaFee > 0 ? `• Activación Speakology IA (c/3 meses): ${formatCOP(iaFee)} COP` : null,
-      payMethod === 'bold' ? `• Recargo transacción Bold/PSE: +${formatCOP(PSE_SURCHARGE)} COP` : null,
-      `• *Total a pagar: ${formatCOP(effectiveTotal)} COP (${formatUSD(effectiveTotal)})*`,
-      isAutoestudio ? null : `• Valor por ${precio.label}: ~${formatCOP(precio.valorUnit)} COP`,
+      t.whatsapp.precio,
+      isAutoestudio ? null : `• ${t.whatsapp.clasesAlMes(precio.unidades, unitLabel)}`,
+      `• ${isAutoestudio ? t.whatsapp.precioLabel : t.whatsapp.precioConDescuento}: ${formatCOP(baseFinal)} COP (${formatUSD(baseFinal)})`,
+      iaFee > 0 ? `• ${t.whatsapp.activacionSpeakology(formatCOP(iaFee))}` : null,
+      payMethod === 'bold' ? `• ${t.whatsapp.recargoBold(formatCOP(PSE_SURCHARGE))}` : null,
+      `• ${t.whatsapp.totalAPagar(formatCOP(effectiveTotal), formatUSD(effectiveTotal))}`,
+      isAutoestudio ? null : `• ${t.whatsapp.valorPor(unitLabel, formatCOP(precio.valorUnit))}`,
       ``,
-      `💳 *MÉTODO DE PAGO*`,
+      t.whatsapp.metodoPago,
       `• ${metodoLabel}`,
       ``,
-      `✅ _El estudiante aceptó los términos y condiciones._`,
+      t.whatsapp.termsAccepted,
     ].filter(line => line !== null).join('\n');
     openWhatsApp(mensaje);
     setSent(true);
@@ -278,12 +275,10 @@ export function ClasesVirtualesModal({
             <span className="text-3xl">📅</span>
             <div>
               <h3 className="font-extrabold text-lg leading-tight">
-                Arma tu plan mensual
+                {t.title}
               </h3>
               <p className="text-white/80 text-xs mt-0.5">
-                {isAutoestudio
-                  ? 'Autoaprendizaje · Sin horario fijo · Desde $60,000 COP/mes'
-                  : 'Google Meet · Desde $37,500 COP/clase · Horario fijo'}
+                {isAutoestudio ? t.subtitleAuto : t.subtitleTeacher}
               </p>
             </div>
           </div>
@@ -296,42 +291,42 @@ export function ClasesVirtualesModal({
               <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
                 <Check className="w-8 h-8 text-green-600" />
               </div>
-              <h4 className="text-xl font-bold mb-3">¡Listo! 🎉</h4>
+              <h4 className="text-xl font-bold mb-3">{t.success.title}</h4>
               <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
-                Se abrió WhatsApp con tu solicitud. Toca <strong>Enviar</strong> en WhatsApp para completarla.
+                {t.success.descPre}<strong>{t.success.descStrong}</strong>{t.success.descPost}
               </p>
               <Button className="rounded-full bg-violet-600 hover:bg-violet-700 text-white px-8" onClick={onClose}>
-                Cerrar
+                {t.success.close}
               </Button>
             </div>
           ) : (
             <>
               {/* ── Nombre ── */}
               <div className="space-y-1.5">
-                <Label className="text-sm font-semibold">Nombre completo *</Label>
+                <Label className="text-sm font-semibold">{t.nombreLabel}</Label>
                 <Input
                   value={nombre}
                   onChange={e => setNombre(e.target.value)}
-                  placeholder="Tu nombre completo"
+                  placeholder={t.nombrePlaceholder}
                   className="rounded-xl"
                 />
               </div>
 
               {/* ── Correo ── */}
               <div className="space-y-1.5">
-                <Label className="text-sm font-semibold">Correo electrónico *</Label>
+                <Label className="text-sm font-semibold">{t.correoLabel}</Label>
                 <Input
                   type="email"
                   value={correo}
                   onChange={e => setCorreo(e.target.value)}
-                  placeholder="tucorreo@ejemplo.com"
+                  placeholder={t.correoPlaceholder}
                   className="rounded-xl"
                 />
               </div>
 
               {/* ── Grupo de edad ── */}
               <div className="space-y-2">
-                <Label className="text-sm font-semibold">¿Para quién es el plan? *</Label>
+                <Label className="text-sm font-semibold">{t.edadLabel}</Label>
                 <div className="grid grid-cols-3 gap-2">
                   {(Object.keys(EDAD_CONFIG) as Array<keyof typeof EDAD_CONFIG>).map(key => (
                     <button
@@ -360,7 +355,7 @@ export function ClasesVirtualesModal({
               {/* ── Modalidad (solo Adultos) ── */}
               {edad === 'adults' && (
                 <div className="space-y-2">
-                  <Label className="text-sm font-semibold">¿Cómo quieres aprender? *</Label>
+                  <Label className="text-sm font-semibold">{t.modalidadLabel}</Label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <button
                       type="button"
@@ -371,10 +366,10 @@ export function ClasesVirtualesModal({
                           : 'border-border/50 hover:border-primary/40 hover:bg-muted/30'
                       }`}
                     >
-                      <p className="text-sm font-bold leading-tight">📚 Estudiar por mi cuenta</p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">Autoaprendizaje en la plataforma, sin horario ni profesor</p>
+                      <p className="text-sm font-bold leading-tight">{t.modalidad.self.title}</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">{t.modalidad.self.desc}</p>
                       {modoAdulto === 'self' && (
-                        <span className="inline-block mt-1.5 text-[10px] font-bold text-primary bg-primary/15 rounded-full px-2 py-0.5">✓ Seleccionado</span>
+                        <span className="inline-block mt-1.5 text-[10px] font-bold text-primary bg-primary/15 rounded-full px-2 py-0.5">{t.selected}</span>
                       )}
                     </button>
                     <button
@@ -386,10 +381,10 @@ export function ClasesVirtualesModal({
                           : 'border-border/50 hover:border-primary/40 hover:bg-muted/30'
                       }`}
                     >
-                      <p className="text-sm font-bold leading-tight">👨‍🏫 Con profesor</p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">Clases en vivo con horario fijo semanal</p>
+                      <p className="text-sm font-bold leading-tight">{t.modalidad.teacher.title}</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">{t.modalidad.teacher.desc}</p>
                       {modoAdulto === 'teacher' && (
-                        <span className="inline-block mt-1.5 text-[10px] font-bold text-primary bg-primary/15 rounded-full px-2 py-0.5">✓ Seleccionado</span>
+                        <span className="inline-block mt-1.5 text-[10px] font-bold text-primary bg-primary/15 rounded-full px-2 py-0.5">{t.selected}</span>
                       )}
                     </button>
                   </div>
@@ -399,7 +394,7 @@ export function ClasesVirtualesModal({
               {/* ── Plan de autoaprendizaje (solo Adultos + "por mi cuenta") ── */}
               {isAutoestudio && (
                 <div className="space-y-2">
-                  <Label className="text-sm font-semibold">Elige tu plan *</Label>
+                  <Label className="text-sm font-semibold">{t.planAutoestudioLabel}</Label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {(Object.keys(AUTOESTUDIO_PRECIOS) as Array<keyof typeof AUTOESTUDIO_PRECIOS>).map(key => {
                       const p = AUTOESTUDIO_PRECIOS[key];
@@ -419,7 +414,7 @@ export function ClasesVirtualesModal({
                           <p className="text-lg font-extrabold mt-1.5">{formatCOP(p.cop)} COP</p>
                           <p className="text-[10px] text-muted-foreground">≈ ${p.usd} USD / {p.periodo}</p>
                           {planAutoestudio === key && (
-                            <span className="inline-block mt-1.5 text-[10px] font-bold text-primary bg-primary/15 rounded-full px-2 py-0.5">✓ Seleccionado</span>
+                            <span className="inline-block mt-1.5 text-[10px] font-bold text-primary bg-primary/15 rounded-full px-2 py-0.5">{t.selected}</span>
                           )}
                         </button>
                       );
@@ -432,7 +427,7 @@ export function ClasesVirtualesModal({
                 <>
                   {/* ── Horas por día ── */}
                   <div className="space-y-2">
-                    <Label className="text-sm font-semibold">Horas por día *</Label>
+                    <Label className="text-sm font-semibold">{t.horasLabel}</Label>
                     <div className="grid grid-cols-2 gap-2">
                       {([1, 2] as const).map(h => (
                         <button
@@ -445,7 +440,7 @@ export function ClasesVirtualesModal({
                               : 'border-border/50 text-muted-foreground hover:border-primary/40 hover:text-foreground'
                           }`}
                         >
-                          {h} hora{h === 2 ? 's' : ''}
+                          {t.horaSuffix(h)}
                         </button>
                       ))}
                     </div>
@@ -453,7 +448,7 @@ export function ClasesVirtualesModal({
 
                   {/* ── Clases a la semana ── */}
                   <div className="space-y-2">
-                    <Label className="text-sm font-semibold">Clases a la semana *</Label>
+                    <Label className="text-sm font-semibold">{t.diasSemanaLabel}</Label>
                     <div className="grid grid-cols-5 gap-2">
                       {[1, 2, 3, 4, 5].map(n => (
                         <button
@@ -466,7 +461,7 @@ export function ClasesVirtualesModal({
                               : 'border-border/50 text-muted-foreground hover:border-primary/40 hover:text-foreground'
                           }`}
                         >
-                          {n} día{n !== 1 ? 's' : ''}
+                          {t.diaSuffix(n)}
                         </button>
                       ))}
                     </div>
@@ -475,25 +470,25 @@ export function ClasesVirtualesModal({
                   {/* ── Días de la semana ── */}
                   <div className="space-y-2">
                     <Label className="text-sm font-semibold">
-                      Días *{' '}
+                      {t.diasLabel}{' '}
                       <span
                         className={`text-xs font-normal ml-1 ${
                           diasMatch ? 'text-green-600 font-semibold' : 'text-muted-foreground'
                         }`}
                       >
-                        — selecciona exactamente {diasSemana} ({diasSel.length}/{diasSemana})
+                        {t.diasHint(diasSel.length, diasSemana)}
                       </span>
                     </Label>
                     <div className="flex flex-wrap gap-2">
-                      {DIAS.map(dia => {
-                        const sel = diasSel.includes(dia);
+                      {DIAS.map(({ key, label }) => {
+                        const sel = diasSel.includes(key);
                         const maxed = !sel && diasSel.length >= diasSemana;
                         return (
                           <button
-                            key={dia}
+                            key={key}
                             type="button"
                             disabled={maxed}
-                            onClick={() => toggleDia(dia)}
+                            onClick={() => toggleDia(key)}
                             className={`px-4 py-2 rounded-xl text-xs font-bold border-2 transition-all ${
                               sel
                                 ? 'border-primary bg-primary/10 text-primary shadow-sm'
@@ -502,30 +497,30 @@ export function ClasesVirtualesModal({
                                 : 'border-border/50 text-muted-foreground hover:border-primary/40 hover:text-foreground'
                             }`}
                           >
-                            {dia}
+                            {label}
                           </button>
                         );
                       })}
                     </div>
                     {diasSel.length > 0 && !diasMatch && (
                       <p className="text-xs text-amber-600">
-                        Selecciona {diasSemana - diasSel.length} día{diasSemana - diasSel.length !== 1 ? 's' : ''} más
+                        {t.diasFaltan(diasSemana - diasSel.length)}
                       </p>
                     )}
                   </div>
 
                   {/* ── Franja horaria ── */}
                   <div className="space-y-1.5">
-                    <Label className="text-sm font-semibold">Franja horaria fija *</Label>
+                    <Label className="text-sm font-semibold">{t.franjaLabel}</Label>
                     <p className="text-xs text-muted-foreground">
-                      La misma franja aplica para todos los días seleccionados
+                      {t.franjaHint}
                     </p>
                     <select
                       value={franja}
                       onChange={e => setFranja(e.target.value)}
                       className="w-full border border-border/60 rounded-xl px-4 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
                     >
-                      <option value="">Selecciona tu franja horaria...</option>
+                      <option value="">{t.franjaPlaceholder}</option>
                       {franjas.map(f => (
                         <option key={f} value={f}>{f}</option>
                       ))}
@@ -544,7 +539,7 @@ export function ClasesVirtualesModal({
               {/* ── Plataforma de práctica IA (no aplica en autoaprendizaje: ya viene incluida en el plan) ── */}
               {!isAutoestudio && (
                 <div className="space-y-2">
-                  <Label className="text-sm font-semibold">Plataforma de práctica con IA *</Label>
+                  <Label className="text-sm font-semibold">{t.iaPlatformLabel}</Label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <button
                       type="button"
@@ -555,10 +550,10 @@ export function ClasesVirtualesModal({
                           : 'border-border/50 hover:border-green-300 hover:bg-green-50/50'
                       }`}
                     >
-                      <p className="text-sm font-bold leading-tight">Plataforma mensual gratis</p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">Uso de ChatGPT — sin costo adicional</p>
+                      <p className="text-sm font-bold leading-tight">{t.iaMensual.title}</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">{t.iaMensual.desc}</p>
                       {iaPlatform === 'mensual' && (
-                        <span className="inline-block mt-1.5 text-[10px] font-bold text-green-700 bg-green-100 rounded-full px-2 py-0.5">✓ Seleccionado</span>
+                        <span className="inline-block mt-1.5 text-[10px] font-bold text-green-700 bg-green-100 rounded-full px-2 py-0.5">{t.selected}</span>
                       )}
                     </button>
                     <button
@@ -570,16 +565,16 @@ export function ClasesVirtualesModal({
                           : 'border-border/50 hover:border-amber-300 hover:bg-amber-50/50'
                       }`}
                     >
-                      <p className="text-sm font-bold leading-tight">Plataforma trimestral</p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">Uso de Speakology IA — +{formatCOP(SPEAKOLOGY_FEE)} COP</p>
+                      <p className="text-sm font-bold leading-tight">{t.iaTrimestral.title}</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">{t.iaTrimestral.desc(formatCOP(SPEAKOLOGY_FEE))}</p>
                       {iaPlatform === 'trimestral' && (
-                        <span className="inline-block mt-1.5 text-[10px] font-bold text-amber-700 bg-amber-100 rounded-full px-2 py-0.5">✓ Seleccionado</span>
+                        <span className="inline-block mt-1.5 text-[10px] font-bold text-amber-700 bg-amber-100 rounded-full px-2 py-0.5">{t.selected}</span>
                       )}
                     </button>
                   </div>
                   {iaPlatform === 'trimestral' && (
                     <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 leading-relaxed">
-                      💡 Este pago de {formatCOP(SPEAKOLOGY_FEE)} COP es para activar el plan con <strong>Speakology</strong>, el uso de la plataforma de inteligencia artificial conectada con los módulos de la página para práctica extra. Este valor corresponde a un único pago cada tres meses — el siguiente mes no pagas este valor.
+                      {t.iaTrimestralNote(formatCOP(SPEAKOLOGY_FEE))}
                     </p>
                   )}
                 </div>
@@ -590,11 +585,11 @@ export function ClasesVirtualesModal({
                 <div key={planAutoestudio} className="rounded-2xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 to-indigo-50 overflow-hidden">
                   <div className="bg-violet-600 px-4 py-2.5 flex items-center gap-2">
                     <span className="text-base">💰</span>
-                    <p className="text-white text-sm font-bold">Resumen de precio estimado</p>
+                    <p className="text-white text-sm font-bold">{t.resumenTitle}</p>
                     <span className="ml-auto text-violet-200 text-xs font-medium">{autoestudioPlan.label}</span>
                   </div>
                   <div className="px-5 py-4">
-                    <p className="text-xs text-violet-700 font-semibold mb-0.5">Total a pagar</p>
+                    <p className="text-xs text-violet-700 font-semibold mb-0.5">{t.totalAPagar}</p>
                     {payMethod !== 'paypal' ? (
                       <>
                         <p className="text-3xl font-extrabold text-violet-700 leading-none">
@@ -603,7 +598,7 @@ export function ClasesVirtualesModal({
                         </p>
                         <p className="text-xs text-muted-foreground mt-0.5">{formatUSD(effectiveTotal)}</p>
                         {payMethod === 'bold' && (
-                          <p className="text-[11px] text-orange-600 font-medium mt-0.5">+{formatCOP(PSE_SURCHARGE)} COP recargo transacción</p>
+                          <p className="text-[11px] text-orange-600 font-medium mt-0.5">{t.surchargeNote(formatCOP(PSE_SURCHARGE))}</p>
                         )}
                       </>
                     ) : (
@@ -618,7 +613,7 @@ export function ClasesVirtualesModal({
                   </div>
                   <div className="px-5 pb-3">
                     <p className="text-[11px] text-muted-foreground">
-                      📲 Te contactaremos por WhatsApp para confirmar y coordinar el pago
+                      {t.contactNote}
                     </p>
                   </div>
                 </div>
@@ -627,9 +622,9 @@ export function ClasesVirtualesModal({
                   {/* Cabecera */}
                   <div className="bg-violet-600 px-4 py-2.5 flex items-center gap-2">
                     <span className="text-base">💰</span>
-                    <p className="text-white text-sm font-bold">Resumen de precio estimado</p>
+                    <p className="text-white text-sm font-bold">{t.resumenTitle}</p>
                     <span className="ml-auto text-violet-200 text-xs font-medium">
-                      {precio.unidades} {precio.label}s / mes
+                      {t.unidadesPorMes(precio.unidades, t.unitLabel[precio.label])}
                     </span>
                   </div>
 
@@ -637,22 +632,22 @@ export function ClasesVirtualesModal({
                   <div className="px-5 py-4 flex items-end justify-between gap-4">
                     <div>
                       {/* Precio regular tachado */}
-                      <p className="text-xs text-muted-foreground mb-0.5">Precio regular</p>
+                      <p className="text-xs text-muted-foreground mb-0.5">{t.precioRegular}</p>
                       <p className="text-base font-semibold text-muted-foreground line-through">
                         {formatCOP(precio.regular)} COP
                       </p>
                       {/* Desglose incluido */}
                       <p className="text-xs text-violet-500 mt-1">
-                        📦 Uso de la plataforma gratis en cualquier plan
+                        {t.platformFreeNote}
                       </p>
                       {/* Cargo Speakology */}
                       {iaFee > 0 && (
                         <p className="text-xs text-amber-600 font-semibold mt-1">
-                          🤖 + Activación Speakology IA (única vez / 3 meses): {formatCOP(iaFee)} COP
+                          {t.speakologyChargeNote(formatCOP(iaFee))}
                         </p>
                       )}
                       {/* Precio final */}
-                      <p className="text-xs text-violet-700 font-semibold mt-2 mb-0.5">{iaFee > 0 ? 'Total este mes' : 'Precio final'}</p>
+                      <p className="text-xs text-violet-700 font-semibold mt-2 mb-0.5">{iaFee > 0 ? t.totalEsteMes : t.precioFinal}</p>
                       {payMethod !== 'paypal' ? (
                         <>
                           <p className="text-3xl font-extrabold text-violet-700 leading-none">
@@ -661,7 +656,7 @@ export function ClasesVirtualesModal({
                           </p>
                           <p className="text-xs text-muted-foreground mt-0.5">{formatUSD(effectiveTotal)}</p>
                           {payMethod === 'bold' && (
-                            <p className="text-[11px] text-orange-600 font-medium mt-0.5">+{formatCOP(PSE_SURCHARGE)} COP recargo transacción</p>
+                            <p className="text-[11px] text-orange-600 font-medium mt-0.5">{t.surchargeNote(formatCOP(PSE_SURCHARGE))}</p>
                           )}
                         </>
                       ) : (
@@ -679,7 +674,7 @@ export function ClasesVirtualesModal({
                     <div className="text-right shrink-0">
                       <div className="bg-white border border-violet-200 rounded-xl px-3 py-2 shadow-sm">
                         <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold">
-                          por {precio.label}
+                          {t.porUnidad(t.unitLabel[precio.label])}
                         </p>
                         {payMethod !== 'paypal' ? (
                           <>
@@ -696,7 +691,7 @@ export function ClasesVirtualesModal({
                       {/* Ahorro */}
                       {precio.final < precio.regular && (
                         <p className="text-xs text-green-600 font-bold mt-1.5">
-                          Ahorras {formatCOP(precio.regular - precio.final)} COP 🎉
+                          {t.ahorras(formatCOP(precio.regular - precio.final))}
                         </p>
                       )}
                     </div>
@@ -705,7 +700,7 @@ export function ClasesVirtualesModal({
                   {/* Nota */}
                   <div className="px-5 pb-3">
                     <p className="text-[11px] text-muted-foreground">
-                      📲 Te contactaremos por WhatsApp para confirmar y coordinar el pago
+                      {t.contactNote}
                     </p>
                   </div>
                 </div>
@@ -713,7 +708,7 @@ export function ClasesVirtualesModal({
 
               {/* ── Selector de método de pago ── */}
               <div className="space-y-2">
-                <Label className="text-sm font-semibold">Método de pago *</Label>
+                <Label className="text-sm font-semibold">{t.metodoPagoLabel}</Label>
                 <div className="grid grid-cols-2 gap-2">
                   {/* PayPal */}
                   <button
@@ -726,10 +721,10 @@ export function ClasesVirtualesModal({
                     }`}
                   >
                     <p className="text-base mb-0.5">🌐</p>
-                    <p className="text-sm font-bold leading-tight">PayPal</p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">Dólares (USD)</p>
+                    <p className="text-sm font-bold leading-tight">{t.metodos.paypal.title}</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">{t.metodos.paypal.desc}</p>
                     {payMethod === 'paypal' && (
-                      <span className="inline-block mt-1.5 text-[10px] font-bold text-blue-700 bg-blue-100 rounded-full px-2 py-0.5">✓ Seleccionado</span>
+                      <span className="inline-block mt-1.5 text-[10px] font-bold text-blue-700 bg-blue-100 rounded-full px-2 py-0.5">{t.selected}</span>
                     )}
                   </button>
 
@@ -744,11 +739,11 @@ export function ClasesVirtualesModal({
                     }`}
                   >
                     <p className="text-base mb-0.5">💳</p>
-                    <p className="text-sm font-bold leading-tight">Bold / PSE</p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">Pesos (COP)</p>
-                    <p className="text-[10px] text-orange-600 font-medium mt-0.5">+$10.000 recargo transacción</p>
+                    <p className="text-sm font-bold leading-tight">{t.metodos.bold.title}</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">{t.metodos.bold.desc}</p>
+                    <p className="text-[10px] text-orange-600 font-medium mt-0.5">{t.metodos.bold.note}</p>
                     {payMethod === 'bold' && (
-                      <span className="inline-block mt-1 text-[10px] font-bold text-violet-700 bg-violet-100 rounded-full px-2 py-0.5">✓ Seleccionado</span>
+                      <span className="inline-block mt-1 text-[10px] font-bold text-violet-700 bg-violet-100 rounded-full px-2 py-0.5">{t.selected}</span>
                     )}
                   </button>
 
@@ -763,11 +758,11 @@ export function ClasesVirtualesModal({
                     }`}
                   >
                     <p className="text-base mb-0.5">🟡</p>
-                    <p className="text-sm font-bold leading-tight">Bancolombia</p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">Pesos (COP)</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">Desde cta. Bancolombia (ahorros)</p>
+                    <p className="text-sm font-bold leading-tight">{t.metodos.bancolombia.title}</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">{t.metodos.bancolombia.desc}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{t.metodos.bancolombia.note}</p>
                     {payMethod === 'bancolombia' && (
-                      <span className="inline-block mt-1 text-[10px] font-bold text-yellow-800 bg-yellow-100 rounded-full px-2 py-0.5">✓ Seleccionado</span>
+                      <span className="inline-block mt-1 text-[10px] font-bold text-yellow-800 bg-yellow-100 rounded-full px-2 py-0.5">{t.selected}</span>
                     )}
                   </button>
 
@@ -782,11 +777,11 @@ export function ClasesVirtualesModal({
                     }`}
                   >
                     <p className="text-base mb-0.5">🔑</p>
-                    <p className="text-sm font-bold leading-tight">Bre-B / Llave</p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">Pesos (COP)</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">Desde cualquier banco colombiano</p>
+                    <p className="text-sm font-bold leading-tight">{t.metodos.breb.title}</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">{t.metodos.breb.desc}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{t.metodos.breb.note}</p>
                     {payMethod === 'breb' && (
-                      <span className="inline-block mt-1 text-[10px] font-bold text-teal-700 bg-teal-100 rounded-full px-2 py-0.5">✓ Seleccionado</span>
+                      <span className="inline-block mt-1 text-[10px] font-bold text-teal-700 bg-teal-100 rounded-full px-2 py-0.5">{t.selected}</span>
                     )}
                   </button>
                 </div>
@@ -802,7 +797,7 @@ export function ClasesVirtualesModal({
               >
                 <span className="flex items-center gap-2">
                   <Send className="w-4 h-4" />
-                  Enviar por WhatsApp
+                  {t.submit}
                 </span>
               </Button>
             </>
