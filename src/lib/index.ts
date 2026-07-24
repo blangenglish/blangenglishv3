@@ -12,6 +12,7 @@ export const ROUTE_PATHS = {
   RESET_PASSWORD: '/reset-password',
   ENGLISH_MODULE: '/english/:moduleSlug',
   ENGLISH: '/english',
+  SPANISH: '/espanol',
   PHONETICS: '/phonetics',
 } as const;
 

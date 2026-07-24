@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, BookOpen, Video, TrendingUp, LayoutDashboard, LogIn, UserPlus } from 'lucide-react';
+import { Menu, X, BookOpen, Video, TrendingUp, LayoutDashboard, LogIn, UserPlus, ChevronLeft } from 'lucide-react';
 import { SiWhatsapp, SiInstagram, SiTiktok } from 'react-icons/si';
 import { Button } from '@/components/ui/button';
 import { IMAGES } from '@/assets/images';
@@ -14,13 +14,14 @@ interface LayoutProps {
   onOpenAuth?: (modal: AuthModal) => void;
   onLogout?: () => void;
   userName?: string;
+  /** 'full' = nav completo (default) · 'back' = botón "Volver al menú principal" · 'minimal' = solo logo + auth */
+  navMode?: 'full' | 'back' | 'minimal';
 }
 
-export function Layout({ children, isLoggedIn = false, onOpenAuth, onLogout, userName }: LayoutProps) {
+export function Layout({ children, isLoggedIn = false, onOpenAuth, onLogout, userName, navMode = 'full' }: LayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const isHome = location.pathname === ROUTE_PATHS.HOME;
 
   // Scroll to top on every route change
   useEffect(() => {
@@ -53,8 +54,6 @@ export function Layout({ children, isLoggedIn = false, onOpenAuth, onLogout, use
       ]
     : [
         { label: 'Inicio', href: ROUTE_PATHS.HOME },
-        { label: 'Metodología', href: ROUTE_PATHS.METHODOLOGY },
-        { label: 'Precios', href: ROUTE_PATHS.PRICING },
         { label: 'Preguntas', href: ROUTE_PATHS.FAQ },
       ];
 
@@ -68,70 +67,112 @@ export function Layout({ children, isLoggedIn = false, onOpenAuth, onLogout, use
     <div className="min-h-screen flex flex-col">
       <header className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur border-b border-border shadow-sm">
         <div className="container mx-auto px-3 sm:px-4">
-          <div className="flex h-14 sm:h-16 items-center justify-between">
-            {/* Logo — siempre lleva al inicio */}
-            <Link
-              to={isLoggedIn ? ROUTE_PATHS.DASHBOARD : ROUTE_PATHS.HOME}
-              className="flex items-center"
-            >
-              <img src={IMAGES.BLANG_LOGO} alt="BLANG English Academy" className="h-8 sm:h-10 w-auto" />
-            </Link>
+          <div className="flex h-14 sm:h-16 items-center justify-between gap-2">
+            <div className="flex items-center gap-3 sm:gap-5 min-w-0">
+              {/* Logo — siempre lleva al inicio */}
+              <Link
+                to={isLoggedIn ? ROUTE_PATHS.DASHBOARD : ROUTE_PATHS.HOME}
+                className="flex items-center shrink-0"
+              >
+                <img src={IMAGES.BLANG_LOGO} alt="BLANG English Academy" className="h-8 sm:h-10 w-auto" />
+              </Link>
 
-            {/* Desktop Nav */}
-            <nav className="hidden md:flex items-center gap-4 lg:gap-6">
-              {navLinks.map((link) => (
+              {navMode === 'back' && (
                 <button
-                  key={link.href}
-                  onClick={() => handleNavClick(link.href)}
-                  className={`text-sm font-medium transition-colors flex items-center gap-1.5 ${
-                    location.pathname === link.href
-                      ? 'text-primary font-semibold'
-                      : 'text-foreground/70 hover:text-primary'
-                  }`}
+                  onClick={() => navigate(ROUTE_PATHS.HOME)}
+                  className="flex items-center gap-1.5 text-xs sm:text-sm font-medium text-foreground/70 hover:text-primary transition-colors truncate"
                 >
-                  {link.label}
+                  <ChevronLeft className="w-4 h-4 shrink-0" />
+                  <span className="hidden sm:inline">Volver al menú principal</span>
+                  <span className="sm:hidden">Volver</span>
                 </button>
-              ))}
-            </nav>
-
-            {/* Auth Buttons */}
-            <div className="hidden md:flex items-center gap-3">
-              {isLoggedIn ? (
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-medium text-foreground/80">
-                    👋 Hola, <span className="text-primary font-semibold">{userName || 'Estudiante'}</span>
-                  </span>
-                  <Button variant="outline" size="sm" onClick={onLogout}>
-                    Salir
-                  </Button>
-                </div>
-              ) : (
-                <>
-                  <Button variant="ghost" size="sm" onClick={() => onOpenAuth?.('login')} className="gap-1.5">
-                    <LogIn className="w-4 h-4" />
-                    Iniciar sesión
-                  </Button>
-                  <Button size="sm" onClick={() => onOpenAuth?.('register')} className="gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-full px-5">
-                    <UserPlus className="w-4 h-4" />
-                    Registrarse gratis
-                  </Button>
-                </>
               )}
             </div>
 
-            {/* Mobile hamburger */}
-            <button
-              className="md:hidden p-2 rounded-lg hover:bg-muted transition-colors"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label="Toggle menu"
-            >
-              {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-            </button>
+            {navMode === 'full' ? (
+              <>
+                {/* Desktop Nav */}
+                <nav className="hidden md:flex items-center gap-4 lg:gap-6">
+                  {navLinks.map((link) => (
+                    <button
+                      key={link.href}
+                      onClick={() => handleNavClick(link.href)}
+                      className={`text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                        location.pathname === link.href
+                          ? 'text-primary font-semibold'
+                          : 'text-foreground/70 hover:text-primary'
+                      }`}
+                    >
+                      {link.label}
+                    </button>
+                  ))}
+                </nav>
+
+                {/* Auth Buttons */}
+                <div className="hidden md:flex items-center gap-3">
+                  {isLoggedIn ? (
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-medium text-foreground/80">
+                        👋 Hola, <span className="text-primary font-semibold">{userName || 'Estudiante'}</span>
+                      </span>
+                      <Button variant="outline" size="sm" onClick={onLogout}>
+                        Salir
+                      </Button>
+                    </div>
+                  ) : (
+                    <>
+                      <Button variant="ghost" size="sm" onClick={() => onOpenAuth?.('login')} className="gap-1.5">
+                        <LogIn className="w-4 h-4" />
+                        Iniciar sesión
+                      </Button>
+                      <Button size="sm" onClick={() => onOpenAuth?.('register')} className="gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-full px-5">
+                        <UserPlus className="w-4 h-4" />
+                        Registrarse gratis
+                      </Button>
+                    </>
+                  )}
+                </div>
+
+                {/* Mobile hamburger */}
+                <button
+                  className="md:hidden p-2 rounded-lg hover:bg-muted transition-colors"
+                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                  aria-label="Toggle menu"
+                >
+                  {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+                </button>
+              </>
+            ) : (
+              /* navMode 'back' | 'minimal' — sin links de nav, auth siempre visible sin hamburguesa */
+              <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+                {isLoggedIn ? (
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <span className="hidden sm:inline text-sm font-medium text-foreground/80">
+                      👋 Hola, <span className="text-primary font-semibold">{userName || 'Estudiante'}</span>
+                    </span>
+                    <Button variant="outline" size="sm" onClick={onLogout}>
+                      Salir
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <Button variant="ghost" size="sm" onClick={() => onOpenAuth?.('login')} className="gap-1.5 px-2 sm:px-3">
+                      <LogIn className="w-4 h-4" />
+                      <span className="hidden sm:inline">Iniciar sesión</span>
+                    </Button>
+                    <Button size="sm" onClick={() => onOpenAuth?.('register')} className="gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-full px-3 sm:px-5">
+                      <UserPlus className="w-4 h-4" />
+                      <span className="hidden sm:inline">Registrarse</span>
+                    </Button>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Mobile Menu */}
-        {mobileMenuOpen && (
+        {/* Mobile Menu (solo navMode 'full') */}
+        {navMode === 'full' && mobileMenuOpen && (
           <div className="md:hidden border-t border-border bg-background/98">
             <nav className="container mx-auto px-4 py-4 flex flex-col gap-3">
               {navLinks.map((link) => (
@@ -196,8 +237,8 @@ export function Layout({ children, isLoggedIn = false, onOpenAuth, onLogout, use
               <ul className="space-y-2">
                 {[
                   { label: 'Inicio', href: ROUTE_PATHS.HOME },
-                  { label: 'Metodología', href: ROUTE_PATHS.METHODOLOGY },
-                  { label: 'Precios', href: ROUTE_PATHS.PRICING },
+                  { label: 'Inglés', href: ROUTE_PATHS.ENGLISH },
+                  { label: 'Español', href: ROUTE_PATHS.SPANISH },
                 ].map((link) => (
                   <li key={link.label}>
                     <Link to={link.href} className="text-sm text-background/60 hover:text-background transition-colors">

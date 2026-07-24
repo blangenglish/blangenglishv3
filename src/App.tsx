@@ -10,6 +10,8 @@ import { ADMIN_ROUTES } from '@/lib/admin';
 import type { AuthModal } from '@/lib/index';
 import { supabase } from '@/integrations/supabase/client';
 import Home from '@/pages/Home';
+import EnglishProgram from '@/pages/EnglishProgram';
+import SpanishProgram from '@/pages/Spanish';
 import Lessons from '@/pages/Lessons';
 import LiveClasses from '@/pages/LiveClasses';
 // Progress page removed
@@ -190,6 +192,8 @@ function AppRoutes() {
         <Route path={ROUTE_PATHS.DASHBOARD} element={<Dashboard {...sharedProps} />} />
         <Route path={ROUTE_PATHS.PRICING} element={<Navigate to={ROUTE_PATHS.HOME} replace />} />
         <Route path={ROUTE_PATHS.METHODOLOGY} element={<Navigate to={ROUTE_PATHS.HOME} replace />} />
+        <Route path={ROUTE_PATHS.ENGLISH} element={<EnglishProgram onOpenAuth={(m) => setAuthModal(m)} isLoggedIn={isLoggedIn} />} />
+        <Route path={ROUTE_PATHS.SPANISH} element={<SpanishProgram onOpenAuth={(m) => setAuthModal(m)} isLoggedIn={isLoggedIn} />} />
         <Route path={ROUTE_PATHS.FAQ} element={<FAQ {...sharedProps} />} />
         <Route path={ROUTE_PATHS.TERMS} element={<Terms {...sharedProps} />} />
         <Route path={ROUTE_PATHS.PRIVACY} element={<Privacy {...sharedProps} />} />
