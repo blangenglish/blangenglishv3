@@ -415,7 +415,7 @@ export function ClasesVirtualesModal({
               </div>
 
               {/* ── Resumen de precio dinámico ── */}
-              <div className="rounded-2xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 to-indigo-50 overflow-hidden">
+              <div key={`${horasDia}-${diasSemana}`} className="rounded-2xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 to-indigo-50 overflow-hidden">
                 {/* Cabecera */}
                 <div className="bg-violet-600 px-4 py-2.5 flex items-center gap-2">
                   <span className="text-base">💰</span>
