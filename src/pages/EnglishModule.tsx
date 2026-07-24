@@ -218,15 +218,10 @@ export default function EnglishModule({ isLoggedIn, onOpenAuth, onLogout, userNa
 
                     {/* Contenido HTML embebido */}
                     {section.embed_html && (
-                      <div className="rounded-xl overflow-hidden border border-border/40">
-                        <iframe
-                          srcDoc={section.embed_html}
-                          className="w-full"
-                          style={{ height: '480px', border: 0 }}
-                          sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-                          title={`${section.title} - contenido embebido`}
-                        />
-                      </div>
+                      <div
+                        className="rounded-xl overflow-hidden [&_iframe]:w-full [&_iframe]:rounded-xl"
+                        dangerouslySetInnerHTML={{ __html: section.embed_html }}
+                      />
                     )}
 
                     {/* Audio */}

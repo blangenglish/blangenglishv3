@@ -482,15 +482,10 @@ export default function AdminEnglishForStudents() {
                           {formEmbedHtml.trim() && (
                             <div className="space-y-1">
                               <p className="text-xs text-muted-foreground">Vista previa:</p>
-                              <div className="rounded-xl border border-border overflow-hidden bg-muted/20">
-                                <iframe
-                                  srcDoc={formEmbedHtml}
-                                  className="w-full"
-                                  style={{ height: '320px', border: 0 }}
-                                  sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-                                  title="Vista previa del embed"
-                                />
-                              </div>
+                              <div
+                                className="rounded-xl border border-border overflow-hidden bg-muted/20 [&_iframe]:w-full"
+                                dangerouslySetInnerHTML={{ __html: formEmbedHtml }}
+                              />
                             </div>
                           )}
                         </div>
@@ -557,15 +552,10 @@ export default function AdminEnglishForStudents() {
                           {formEmbedHtml.trim() && (
                             <div className="space-y-1">
                               <p className="text-xs text-muted-foreground">Vista previa:</p>
-                              <div className="rounded-xl border border-border overflow-hidden bg-muted/20">
-                                <iframe
-                                  srcDoc={formEmbedHtml}
-                                  className="w-full"
-                                  style={{ height: '320px', border: 0 }}
-                                  sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-                                  title="Vista previa del embed"
-                                />
-                              </div>
+                              <div
+                                className="rounded-xl border border-border overflow-hidden bg-muted/20 [&_iframe]:w-full"
+                                dangerouslySetInnerHTML={{ __html: formEmbedHtml }}
+                              />
                             </div>
                           )}
                         </div>

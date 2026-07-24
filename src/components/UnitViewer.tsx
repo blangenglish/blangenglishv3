@@ -1347,15 +1347,10 @@ function MaterialItem({ mat, stage }: { mat: any; stage?: string }) {
 
         {/* ── HTML embebido ── */}
         {mat.material_type === 'html' && mat.embed_html && (
-          <div className="rounded-xl overflow-hidden border border-border">
-            <iframe
-              srcDoc={mat.embed_html}
-              className="w-full"
-              style={{ height: '480px', border: 0 }}
-              sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-              title={mat.title || 'Contenido embebido'}
-            />
-          </div>
+          <div
+            className="rounded-xl overflow-hidden [&_iframe]:w-full [&_iframe]:rounded-xl"
+            dangerouslySetInnerHTML={{ __html: mat.embed_html }}
+          />
         )}
 
         {/* ── Text: smart by subtype ── */}

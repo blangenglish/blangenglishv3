@@ -532,15 +532,10 @@ function MaterialCard({
             {material.embed_html?.trim() && (
               <div className="mt-2 space-y-1">
                 <p className="text-[11px] text-muted-foreground">Vista previa:</p>
-                <div className="rounded-xl border border-border overflow-hidden bg-muted/20">
-                  <iframe
-                    srcDoc={material.embed_html}
-                    className="w-full"
-                    style={{ height: '320px', border: 0 }}
-                    sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-                    title="Vista previa del embed"
-                  />
-                </div>
+                <div
+                  className="rounded-xl border border-border overflow-hidden bg-muted/20 [&_iframe]:w-full"
+                  dangerouslySetInnerHTML={{ __html: material.embed_html }}
+                />
               </div>
             )}
           </div>
