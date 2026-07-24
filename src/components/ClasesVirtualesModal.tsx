@@ -13,9 +13,37 @@ interface ClasesVirtualesModalProps {
   onClose: () => void;
   defaultName?: string;
   defaultEmail?: string;
+  /** Grupo de edad preseleccionado (ej. desde la tarjeta de la pantalla de bienvenida) */
+  defaultAgeGroup?: 'kids' | 'teens' | 'adults';
 }
 
 const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
+
+// ── Grupos de edad ────────────────────────────────────────────────────────────
+// PENDIENTE POR DEFINIR: si el precio final varía según el grupo de edad, o si
+// es el mismo precio base para los 3 y solo cambia el enfoque/contenido del plan
+// (como está ahora). No inventar montos distintos hasta que esto se confirme —
+// por ahora PRECIOS (abajo) es el mismo para niños, jóvenes y adultos.
+const EDAD_CONFIG = {
+  kids: {
+    label: 'Niños',
+    sublabel: '8–13 años',
+    emoji: '🧒',
+    desc: 'Sesiones más cortas y dinámicas, con juegos y acompañamiento constante del profesor. Enviamos reportes de avance para que los papás sigan el progreso.',
+  },
+  teens: {
+    label: 'Jóvenes',
+    sublabel: '14–17 años',
+    emoji: '🧑',
+    desc: 'Enfoque en conversación real desde la primera clase, con preparación académica y para exámenes o intercambios cuando se necesite.',
+  },
+  adults: {
+    label: 'Adultos',
+    sublabel: '',
+    emoji: '🎓',
+    desc: 'Metodología por niveles (A1–C1), práctica con IA, clases en vivo opcionales y horario totalmente flexible.',
+  },
+} as const;
 
 // ── Tabla de precios por combinación horas×días ──────────────────────────────
 const PRECIOS = {
@@ -84,9 +112,11 @@ export function ClasesVirtualesModal({
   onClose,
   defaultName = '',
   defaultEmail = '',
+  defaultAgeGroup,
 }: ClasesVirtualesModalProps) {
   const [nombre, setNombre] = useState(defaultName);
   const [correo, setCorreo] = useState(defaultEmail);
+  const [edad, setEdad] = useState<'kids' | 'teens' | 'adults'>(defaultAgeGroup || 'adults');
   const [horasDia, setHorasDia] = useState<1 | 2>(1);
   const [diasSemana, setDiasSemana] = useState<number>(2);
   const [diasSel, setDiasSel] = useState<string[]>([]);
@@ -108,6 +138,7 @@ export function ClasesVirtualesModal({
   // Reset form when modal closes
   useEffect(() => {
     if (!open) {
+      setEdad(defaultAgeGroup || 'adults');
       setHorasDia(1);
       setDiasSemana(2);
       setDiasSel([]);
@@ -159,6 +190,7 @@ export function ClasesVirtualesModal({
       `👤 *DATOS DEL ESTUDIANTE*`,
       `• Nombre: ${nombre.trim()}`,
       `• Correo: ${correo.trim()}`,
+      `• Grupo de edad: ${EDAD_CONFIG[edad].emoji} ${EDAD_CONFIG[edad].label}${EDAD_CONFIG[edad].sublabel ? ` (${EDAD_CONFIG[edad].sublabel})` : ''}`,
       ``,
       `📅 *PLAN DE CLASES*`,
       `• Duración por clase: ${horasDia} hora${horasDia === 2 ? 's' : ''}`,
@@ -261,6 +293,34 @@ export function ClasesVirtualesModal({
                   placeholder="tucorreo@ejemplo.com"
                   className="rounded-xl"
                 />
+              </div>
+
+              {/* ── Grupo de edad ── */}
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold">¿Para quién es el plan? *</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(Object.keys(EDAD_CONFIG) as Array<keyof typeof EDAD_CONFIG>).map(key => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setEdad(key)}
+                      className={`py-3 rounded-xl font-bold text-xs sm:text-sm border-2 transition-all flex flex-col items-center gap-0.5 ${
+                        edad === key
+                          ? 'border-primary bg-primary/10 text-primary shadow-sm'
+                          : 'border-border/50 text-muted-foreground hover:border-primary/40 hover:text-foreground'
+                      }`}
+                    >
+                      <span className="text-base">{EDAD_CONFIG[key].emoji}</span>
+                      {EDAD_CONFIG[key].label}
+                      {EDAD_CONFIG[key].sublabel && (
+                        <span className="text-[10px] font-normal opacity-70">{EDAD_CONFIG[key].sublabel}</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground bg-muted/40 rounded-xl px-3 py-2 leading-relaxed">
+                  {EDAD_CONFIG[edad].desc}
+                </p>
               </div>
 
               {/* ── Horas por día ── */}

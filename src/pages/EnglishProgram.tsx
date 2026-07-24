@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -151,8 +151,15 @@ const FAQ = [
   { q: '¿Hay compromiso al empezar?', a: 'No. Los días de prueba son completamente gratis y sin ningún compromiso. Cancelas cuando quieras.' },
 ];
 
+const VALID_AGE_GROUPS = ['kids', 'teens', 'adults'];
+
 export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgramProps) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  // Grupo de edad detectado por la tarjeta de la pantalla de bienvenida (?age=kids|teens|adults).
+  // Si llega por otro medio (link directo, etc.) queda sin preseleccionar y el modal usa 'adults' por defecto.
+  const ageParam = searchParams.get('age');
+  const initialAgeGroup = VALID_AGE_GROUPS.includes(ageParam) ? (ageParam as 'kids' | 'teens' | 'adults') : undefined;
   const [showClasesModal, setShowClasesModal] = useState(false);
   const [quizOpen, setQuizOpen] = useState(false);
   const [reviews, setReviews] = useState<{ full_name: string; rating: number; comment: string }[]>([]);
@@ -848,6 +855,7 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
       <ClasesVirtualesModal
         open={showClasesModal}
         onClose={() => setShowClasesModal(false)}
+        defaultAgeGroup={initialAgeGroup}
       />
 
       <LevelQuiz

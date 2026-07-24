@@ -102,29 +102,34 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
 
             {/* Tarjetas de programa */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
-              {PROGRAMS.map((p) => (
-                <motion.div
-                  key={p.id}
-                  variants={staggerItem}
-                  whileHover={{ y: -4, transition: { duration: 0.2 } }}
-                  onClick={() => navigate(p.route)}
-                  className={`relative cursor-pointer bg-gradient-to-br ${p.softBg} border-2 rounded-3xl p-6 sm:p-8 shadow-sm hover:shadow-xl transition-all flex flex-col`}
-                >
-                  <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-gradient-to-br ${p.gradient} flex items-center justify-center text-3xl sm:text-4xl shadow-lg mb-5`}>
-                    {p.emoji}
-                  </div>
-                  <h2 className="text-xl sm:text-2xl font-black text-foreground leading-tight">{p.title}</h2>
-                  <p className="text-sm font-semibold text-muted-foreground mb-3">{p.subtitle}</p>
-                  <p className="text-sm sm:text-base text-muted-foreground leading-relaxed flex-1 mb-6">{p.desc}</p>
-                  <Button
-                    className={`w-full rounded-xl py-5 sm:py-6 font-bold text-sm sm:text-base bg-gradient-to-r ${p.gradient} text-white hover:opacity-90 transition-opacity gap-2`}
-                    onClick={(e) => { e.stopPropagation(); navigate(p.route); }}
+              {PROGRAMS.map((p) => {
+                // Para los 3 programas de inglés, llevamos el grupo de edad como query param
+                // (?age=kids|teens|adults) para preseleccionarlo en "Arma tu plan mensual".
+                const targetUrl = p.route === ROUTE_PATHS.ENGLISH ? `${p.route}?age=${p.id}` : p.route;
+                return (
+                  <motion.div
+                    key={p.id}
+                    variants={staggerItem}
+                    whileHover={{ y: -4, transition: { duration: 0.2 } }}
+                    onClick={() => navigate(targetUrl)}
+                    className={`relative cursor-pointer bg-gradient-to-br ${p.softBg} border-2 rounded-3xl p-6 sm:p-8 shadow-sm hover:shadow-xl transition-all flex flex-col`}
                   >
-                    Conoce precios
-                    <ChevronRight className="w-4 h-4" />
-                  </Button>
-                </motion.div>
-              ))}
+                    <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-gradient-to-br ${p.gradient} flex items-center justify-center text-3xl sm:text-4xl shadow-lg mb-5`}>
+                      {p.emoji}
+                    </div>
+                    <h2 className="text-xl sm:text-2xl font-black text-foreground leading-tight">{p.title}</h2>
+                    <p className="text-sm font-semibold text-muted-foreground mb-3">{p.subtitle}</p>
+                    <p className="text-sm sm:text-base text-muted-foreground leading-relaxed flex-1 mb-6">{p.desc}</p>
+                    <Button
+                      className={`w-full rounded-xl py-5 sm:py-6 font-bold text-sm sm:text-base bg-gradient-to-r ${p.gradient} text-white hover:opacity-90 transition-opacity gap-2`}
+                      onClick={(e) => { e.stopPropagation(); navigate(targetUrl); }}
+                    >
+                      Conoce precios
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </motion.div>
+                );
+              })}
             </div>
           </motion.div>
         </div>
