@@ -20,12 +20,14 @@ const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
 // ── Tabla de precios por combinación horas×días ──────────────────────────────
 const PRECIOS = {
   1: {
+    1: { regular: 200000,  final: 190000, unidades: 4,  valorUnit: 47500, label: 'clase' },
     2: { regular: 400000,  final: 360000, unidades: 8,  valorUnit: 45000, label: 'clase' },
     3: { regular: 600000,  final: 510000, unidades: 12, valorUnit: 42500, label: 'clase' },
     4: { regular: 800000,  final: 640000, unidades: 16, valorUnit: 40000, label: 'clase' },
     5: { regular: 1000000, final: 750000, unidades: 20, valorUnit: 37500, label: 'clase' },
   },
   2: {
+    1: { regular: 384000,  final: 365000,  unidades: 8,  valorUnit: 45625, label: 'hora' },
     2: { regular: 768000,  final: 690000,  unidades: 16, valorUnit: 43125, label: 'hora' },
     3: { regular: 1152000, final: 980000,  unidades: 24, valorUnit: 40833, label: 'hora' },
     4: { regular: 1536000, final: 1230000, unidades: 32, valorUnit: 38437, label: 'hora' },
@@ -138,7 +140,7 @@ export function ClasesVirtualesModal({
     franja &&
     termsAccepted;
 
-  const precio = PRECIOS[horasDia][diasSemana as 2 | 3 | 4 | 5];
+  const precio = PRECIOS[horasDia][diasSemana as 1 | 2 | 3 | 4 | 5];
   const iaFee = iaPlatform === 'trimestral' ? SPEAKOLOGY_FEE : 0;
   const totalFinal = precio.final + iaFee;
   const PSE_SURCHARGE = 10_000;
@@ -285,8 +287,8 @@ export function ClasesVirtualesModal({
               {/* ── Clases a la semana ── */}
               <div className="space-y-2">
                 <Label className="text-sm font-semibold">Clases a la semana *</Label>
-                <div className="grid grid-cols-4 gap-2">
-                  {[2, 3, 4, 5].map(n => (
+                <div className="grid grid-cols-5 gap-2">
+                  {[1, 2, 3, 4, 5].map(n => (
                     <button
                       key={n}
                       type="button"
@@ -297,7 +299,7 @@ export function ClasesVirtualesModal({
                           : 'border-border/50 text-muted-foreground hover:border-primary/40 hover:text-foreground'
                       }`}
                     >
-                      {n} días
+                      {n} día{n !== 1 ? 's' : ''}
                     </button>
                   ))}
                 </div>
