@@ -45,7 +45,14 @@ const EDAD_CONFIG = {
   },
 } as const;
 
-// ── Tabla de precios por combinación horas×días ──────────────────────────────
+// ── Autoaprendizaje (solo Adultos): plan de plataforma sin profesor, sin horario ──
+// Mismos precios de siempre del curso (Plan Mensual / Plan Trimestral).
+const AUTOESTUDIO_PRECIOS = {
+  mensual: { cop: 60000, usd: 16, periodo: 'mes', label: 'Plan Mensual', incluye: 'Acceso completo A1–C1 + ChatGPT para practicar' },
+  trimestral: { cop: 250000, usd: 68, periodo: '3 meses', label: 'Plan Trimestral', incluye: 'Acceso completo A1–C1 + Speakology IA incluido' },
+} as const;
+
+// ── Tabla de precios por combinación horas×días (modalidad con profesor) ──────
 const PRECIOS = {
   1: {
     1: { regular: 200000,  final: 190000, unidades: 4,  valorUnit: 47500, label: 'clase' },
@@ -117,6 +124,9 @@ export function ClasesVirtualesModal({
   const [nombre, setNombre] = useState(defaultName);
   const [correo, setCorreo] = useState(defaultEmail);
   const [edad, setEdad] = useState<'kids' | 'teens' | 'adults'>(defaultAgeGroup || 'adults');
+  // Solo aplica cuando edad === 'adults': autoaprendizaje (sin profesor, sin fechas) vs. con profesor (horario fijo).
+  const [modoAdulto, setModoAdulto] = useState<'self' | 'teacher'>('teacher');
+  const [planAutoestudio, setPlanAutoestudio] = useState<'mensual' | 'trimestral'>('mensual');
   const [horasDia, setHorasDia] = useState<1 | 2>(1);
   const [diasSemana, setDiasSemana] = useState<number>(2);
   const [diasSel, setDiasSel] = useState<string[]>([]);
@@ -139,6 +149,8 @@ export function ClasesVirtualesModal({
   useEffect(() => {
     if (!open) {
       setEdad(defaultAgeGroup || 'adults');
+      setModoAdulto('teacher');
+      setPlanAutoestudio('mensual');
       setHorasDia(1);
       setDiasSemana(2);
       setDiasSel([]);
@@ -164,16 +176,17 @@ export function ClasesVirtualesModal({
     }
   };
 
-  const canSubmit =
-    nombre.trim() &&
-    correo.trim() &&
-    diasMatch &&
-    franja &&
-    termsAccepted;
+  const isAutoestudio = edad === 'adults' && modoAdulto === 'self';
+
+  const canSubmit = isAutoestudio
+    ? nombre.trim() && correo.trim() && termsAccepted
+    : nombre.trim() && correo.trim() && diasMatch && franja && termsAccepted;
 
   const precio = PRECIOS[horasDia][diasSemana as 1 | 2 | 3 | 4 | 5];
-  const iaFee = iaPlatform === 'trimestral' ? SPEAKOLOGY_FEE : 0;
-  const totalFinal = precio.final + iaFee;
+  const autoestudioPlan = AUTOESTUDIO_PRECIOS[planAutoestudio];
+  const iaFee = !isAutoestudio && iaPlatform === 'trimestral' ? SPEAKOLOGY_FEE : 0;
+  const baseFinal = isAutoestudio ? autoestudioPlan.cop : precio.final;
+  const totalFinal = baseFinal + iaFee;
   const PSE_SURCHARGE = 10_000;
   const effectiveTotal = payMethod === 'bold' ? totalFinal + PSE_SURCHARGE : totalFinal;
 
@@ -184,32 +197,51 @@ export function ClasesVirtualesModal({
       payMethod === 'bancolombia'? '🟡 Transferencia Bancolombia — COP (cta. ahorros)' :
       payMethod === 'breb'       ? '🔑 Bre-B / Llave — COP (cualquier banco colombiano)' :
                                    '🌐 PayPal — USD';
+
+    const planLines = isAutoestudio
+      ? [
+          `📚 *PLAN DE ESTUDIO*`,
+          `• Modalidad: Autoaprendizaje (sin profesor, sin horario fijo)`,
+          `• Plan: ${autoestudioPlan.label}`,
+          `• Incluye: ${autoestudioPlan.incluye}`,
+        ]
+      : [
+          `📅 *PLAN DE CLASES*`,
+          `• Modalidad: Con profesor (clases en vivo)`,
+          `• Duración por clase: ${horasDia} hora${horasDia === 2 ? 's' : ''}`,
+          `• Días por semana: ${diasSemana}`,
+          `• Días elegidos: ${diasSel.join(', ')}`,
+          `• Horario fijo: ${franja}`,
+        ];
+
+    const iaLines = isAutoestudio
+      ? [] // ya incluido en el plan de estudio, no se repite como sección aparte
+      : [
+          ``,
+          `🤖 *PLATAFORMA DE PRÁCTICA IA*`,
+          iaPlatform === 'trimestral'
+            ? `• Speakology IA — cargo único trimestral: ${formatCOP(SPEAKOLOGY_FEE)} COP`
+            : `• Uso de ChatGPT — sin costo adicional`,
+        ];
+
     const mensaje = [
-      `📋 *SOLICITUD DE CLASES VIRTUALES — BLANG ENGLISH*`,
+      `📋 *SOLICITUD ${isAutoestudio ? 'DE INSCRIPCIÓN' : 'DE CLASES VIRTUALES'} — BLANG ENGLISH*`,
       ``,
       `👤 *DATOS DEL ESTUDIANTE*`,
       `• Nombre: ${nombre.trim()}`,
       `• Correo: ${correo.trim()}`,
       `• Grupo de edad: ${EDAD_CONFIG[edad].emoji} ${EDAD_CONFIG[edad].label}${EDAD_CONFIG[edad].sublabel ? ` (${EDAD_CONFIG[edad].sublabel})` : ''}`,
       ``,
-      `📅 *PLAN DE CLASES*`,
-      `• Duración por clase: ${horasDia} hora${horasDia === 2 ? 's' : ''}`,
-      `• Días por semana: ${diasSemana}`,
-      `• Días elegidos: ${diasSel.join(', ')}`,
-      `• Horario fijo: ${franja}`,
-      ``,
-      `🤖 *PLATAFORMA DE PRÁCTICA IA*`,
-      iaPlatform === 'trimestral'
-        ? `• Speakology IA — cargo único trimestral: ${formatCOP(SPEAKOLOGY_FEE)} COP`
-        : `• Uso de ChatGPT — sin costo adicional`,
+      ...planLines,
+      ...iaLines,
       ``,
       `💰 *PRECIO*`,
-      `• Clases al mes: ${precio.unidades} ${precio.label}s`,
-      `• Precio con descuento: ${formatCOP(precio.final)} COP (${formatUSD(precio.final)})`,
+      isAutoestudio ? null : `• Clases al mes: ${precio.unidades} ${precio.label}s`,
+      `• Precio${isAutoestudio ? '' : ' con descuento'}: ${formatCOP(baseFinal)} COP (${formatUSD(baseFinal)})`,
       iaFee > 0 ? `• Activación Speakology IA (c/3 meses): ${formatCOP(iaFee)} COP` : null,
       payMethod === 'bold' ? `• Recargo transacción Bold/PSE: +${formatCOP(PSE_SURCHARGE)} COP` : null,
-      `• *Total a pagar este mes: ${formatCOP(effectiveTotal)} COP (${formatUSD(effectiveTotal)})*`,
-      `• Valor por ${precio.label}: ~${formatCOP(precio.valorUnit)} COP`,
+      `• *Total a pagar: ${formatCOP(effectiveTotal)} COP (${formatUSD(effectiveTotal)})*`,
+      isAutoestudio ? null : `• Valor por ${precio.label}: ~${formatCOP(precio.valorUnit)} COP`,
       ``,
       `💳 *MÉTODO DE PAGO*`,
       `• ${metodoLabel}`,
@@ -249,7 +281,9 @@ export function ClasesVirtualesModal({
                 Arma tu plan mensual
               </h3>
               <p className="text-white/80 text-xs mt-0.5">
-                Google Meet · Desde $37,500 COP/clase · Horario fijo
+                {isAutoestudio
+                  ? 'Autoaprendizaje · Sin horario fijo · Desde $60,000 COP/mes'
+                  : 'Google Meet · Desde $37,500 COP/clase · Horario fijo'}
               </p>
             </div>
           </div>
@@ -323,107 +357,182 @@ export function ClasesVirtualesModal({
                 </p>
               </div>
 
-              {/* ── Horas por día ── */}
-              <div className="space-y-2">
-                <Label className="text-sm font-semibold">Horas por día *</Label>
-                <div className="grid grid-cols-2 gap-2">
-                  {([1, 2] as const).map(h => (
+              {/* ── Modalidad (solo Adultos) ── */}
+              {edad === 'adults' && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold">¿Cómo quieres aprender? *</Label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <button
-                      key={h}
                       type="button"
-                      onClick={() => setHorasDia(h)}
-                      className={`py-3 rounded-xl font-bold text-sm border-2 transition-all ${
-                        horasDia === h
-                          ? 'border-primary bg-primary/10 text-primary shadow-sm'
-                          : 'border-border/50 text-muted-foreground hover:border-primary/40 hover:text-foreground'
+                      onClick={() => setModoAdulto('self')}
+                      className={`rounded-xl border-2 p-3 text-left transition-all ${
+                        modoAdulto === 'self'
+                          ? 'border-primary bg-primary/10 shadow-sm'
+                          : 'border-border/50 hover:border-primary/40 hover:bg-muted/30'
                       }`}
                     >
-                      {h} hora{h === 2 ? 's' : ''}
+                      <p className="text-sm font-bold leading-tight">📚 Estudiar por mi cuenta</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">Autoaprendizaje en la plataforma, sin horario ni profesor</p>
+                      {modoAdulto === 'self' && (
+                        <span className="inline-block mt-1.5 text-[10px] font-bold text-primary bg-primary/15 rounded-full px-2 py-0.5">✓ Seleccionado</span>
+                      )}
                     </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* ── Clases a la semana ── */}
-              <div className="space-y-2">
-                <Label className="text-sm font-semibold">Clases a la semana *</Label>
-                <div className="grid grid-cols-5 gap-2">
-                  {[1, 2, 3, 4, 5].map(n => (
                     <button
-                      key={n}
                       type="button"
-                      onClick={() => setDiasSemana(n)}
-                      className={`py-3 rounded-xl font-bold text-sm border-2 transition-all ${
-                        diasSemana === n
-                          ? 'border-primary bg-primary/10 text-primary shadow-sm'
-                          : 'border-border/50 text-muted-foreground hover:border-primary/40 hover:text-foreground'
+                      onClick={() => setModoAdulto('teacher')}
+                      className={`rounded-xl border-2 p-3 text-left transition-all ${
+                        modoAdulto === 'teacher'
+                          ? 'border-primary bg-primary/10 shadow-sm'
+                          : 'border-border/50 hover:border-primary/40 hover:bg-muted/30'
                       }`}
                     >
-                      {n} día{n !== 1 ? 's' : ''}
+                      <p className="text-sm font-bold leading-tight">👨‍🏫 Con profesor</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">Clases en vivo con horario fijo semanal</p>
+                      {modoAdulto === 'teacher' && (
+                        <span className="inline-block mt-1.5 text-[10px] font-bold text-primary bg-primary/15 rounded-full px-2 py-0.5">✓ Seleccionado</span>
+                      )}
                     </button>
-                  ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {/* ── Días de la semana ── */}
-              <div className="space-y-2">
-                <Label className="text-sm font-semibold">
-                  Días *{' '}
-                  <span
-                    className={`text-xs font-normal ml-1 ${
-                      diasMatch ? 'text-green-600 font-semibold' : 'text-muted-foreground'
-                    }`}
-                  >
-                    — selecciona exactamente {diasSemana} ({diasSel.length}/{diasSemana})
-                  </span>
-                </Label>
-                <div className="flex flex-wrap gap-2">
-                  {DIAS.map(dia => {
-                    const sel = diasSel.includes(dia);
-                    const maxed = !sel && diasSel.length >= diasSemana;
-                    return (
-                      <button
-                        key={dia}
-                        type="button"
-                        disabled={maxed}
-                        onClick={() => toggleDia(dia)}
-                        className={`px-4 py-2 rounded-xl text-xs font-bold border-2 transition-all ${
-                          sel
-                            ? 'border-primary bg-primary/10 text-primary shadow-sm'
-                            : maxed
-                            ? 'border-border/25 text-muted-foreground/40 cursor-not-allowed bg-muted/30'
-                            : 'border-border/50 text-muted-foreground hover:border-primary/40 hover:text-foreground'
+              {/* ── Plan de autoaprendizaje (solo Adultos + "por mi cuenta") ── */}
+              {isAutoestudio && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold">Elige tu plan *</Label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {(Object.keys(AUTOESTUDIO_PRECIOS) as Array<keyof typeof AUTOESTUDIO_PRECIOS>).map(key => {
+                      const p = AUTOESTUDIO_PRECIOS[key];
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => setPlanAutoestudio(key)}
+                          className={`rounded-xl border-2 p-3 text-left transition-all ${
+                            planAutoestudio === key
+                              ? 'border-primary bg-primary/10 shadow-sm'
+                              : 'border-border/50 hover:border-primary/40 hover:bg-muted/30'
+                          }`}
+                        >
+                          <p className="text-sm font-bold leading-tight">{p.label}</p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">{p.incluye}</p>
+                          <p className="text-lg font-extrabold mt-1.5">{formatCOP(p.cop)} COP</p>
+                          <p className="text-[10px] text-muted-foreground">≈ ${p.usd} USD / {p.periodo}</p>
+                          {planAutoestudio === key && (
+                            <span className="inline-block mt-1.5 text-[10px] font-bold text-primary bg-primary/15 rounded-full px-2 py-0.5">✓ Seleccionado</span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {!isAutoestudio && (
+                <>
+                  {/* ── Horas por día ── */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold">Horas por día *</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {([1, 2] as const).map(h => (
+                        <button
+                          key={h}
+                          type="button"
+                          onClick={() => setHorasDia(h)}
+                          className={`py-3 rounded-xl font-bold text-sm border-2 transition-all ${
+                            horasDia === h
+                              ? 'border-primary bg-primary/10 text-primary shadow-sm'
+                              : 'border-border/50 text-muted-foreground hover:border-primary/40 hover:text-foreground'
+                          }`}
+                        >
+                          {h} hora{h === 2 ? 's' : ''}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* ── Clases a la semana ── */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold">Clases a la semana *</Label>
+                    <div className="grid grid-cols-5 gap-2">
+                      {[1, 2, 3, 4, 5].map(n => (
+                        <button
+                          key={n}
+                          type="button"
+                          onClick={() => setDiasSemana(n)}
+                          className={`py-3 rounded-xl font-bold text-sm border-2 transition-all ${
+                            diasSemana === n
+                              ? 'border-primary bg-primary/10 text-primary shadow-sm'
+                              : 'border-border/50 text-muted-foreground hover:border-primary/40 hover:text-foreground'
+                          }`}
+                        >
+                          {n} día{n !== 1 ? 's' : ''}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* ── Días de la semana ── */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold">
+                      Días *{' '}
+                      <span
+                        className={`text-xs font-normal ml-1 ${
+                          diasMatch ? 'text-green-600 font-semibold' : 'text-muted-foreground'
                         }`}
                       >
-                        {dia}
-                      </button>
-                    );
-                  })}
-                </div>
-                {diasSel.length > 0 && !diasMatch && (
-                  <p className="text-xs text-amber-600">
-                    Selecciona {diasSemana - diasSel.length} día{diasSemana - diasSel.length !== 1 ? 's' : ''} más
-                  </p>
-                )}
-              </div>
+                        — selecciona exactamente {diasSemana} ({diasSel.length}/{diasSemana})
+                      </span>
+                    </Label>
+                    <div className="flex flex-wrap gap-2">
+                      {DIAS.map(dia => {
+                        const sel = diasSel.includes(dia);
+                        const maxed = !sel && diasSel.length >= diasSemana;
+                        return (
+                          <button
+                            key={dia}
+                            type="button"
+                            disabled={maxed}
+                            onClick={() => toggleDia(dia)}
+                            className={`px-4 py-2 rounded-xl text-xs font-bold border-2 transition-all ${
+                              sel
+                                ? 'border-primary bg-primary/10 text-primary shadow-sm'
+                                : maxed
+                                ? 'border-border/25 text-muted-foreground/40 cursor-not-allowed bg-muted/30'
+                                : 'border-border/50 text-muted-foreground hover:border-primary/40 hover:text-foreground'
+                            }`}
+                          >
+                            {dia}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {diasSel.length > 0 && !diasMatch && (
+                      <p className="text-xs text-amber-600">
+                        Selecciona {diasSemana - diasSel.length} día{diasSemana - diasSel.length !== 1 ? 's' : ''} más
+                      </p>
+                    )}
+                  </div>
 
-              {/* ── Franja horaria ── */}
-              <div className="space-y-1.5">
-                <Label className="text-sm font-semibold">Franja horaria fija *</Label>
-                <p className="text-xs text-muted-foreground">
-                  La misma franja aplica para todos los días seleccionados
-                </p>
-                <select
-                  value={franja}
-                  onChange={e => setFranja(e.target.value)}
-                  className="w-full border border-border/60 rounded-xl px-4 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
-                >
-                  <option value="">Selecciona tu franja horaria...</option>
-                  {franjas.map(f => (
-                    <option key={f} value={f}>{f}</option>
-                  ))}
-                </select>
-              </div>
+                  {/* ── Franja horaria ── */}
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-semibold">Franja horaria fija *</Label>
+                    <p className="text-xs text-muted-foreground">
+                      La misma franja aplica para todos los días seleccionados
+                    </p>
+                    <select
+                      value={franja}
+                      onChange={e => setFranja(e.target.value)}
+                      className="w-full border border-border/60 rounded-xl px-4 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
+                    >
+                      <option value="">Selecciona tu franja horaria...</option>
+                      {franjas.map(f => (
+                        <option key={f} value={f}>{f}</option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}
 
               {/* Error */}
               {error && (
@@ -432,84 +541,65 @@ export function ClasesVirtualesModal({
                 </p>
               )}
 
-              {/* ── Plataforma de práctica IA ── */}
-              <div className="space-y-2">
-                <Label className="text-sm font-semibold">Plataforma de práctica con IA *</Label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setIaPlatform('mensual')}
-                    className={`rounded-xl border-2 p-3 text-left transition-all ${
-                      iaPlatform === 'mensual'
-                        ? 'border-green-500 bg-green-50 shadow-sm'
-                        : 'border-border/50 hover:border-green-300 hover:bg-green-50/50'
-                    }`}
-                  >
-                    <p className="text-sm font-bold leading-tight">Plataforma mensual gratis</p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">Uso de ChatGPT — sin costo adicional</p>
-                    {iaPlatform === 'mensual' && (
-                      <span className="inline-block mt-1.5 text-[10px] font-bold text-green-700 bg-green-100 rounded-full px-2 py-0.5">✓ Seleccionado</span>
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIaPlatform('trimestral')}
-                    className={`rounded-xl border-2 p-3 text-left transition-all ${
-                      iaPlatform === 'trimestral'
-                        ? 'border-amber-500 bg-amber-50 shadow-sm'
-                        : 'border-border/50 hover:border-amber-300 hover:bg-amber-50/50'
-                    }`}
-                  >
-                    <p className="text-sm font-bold leading-tight">Plataforma trimestral</p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">Uso de Speakology IA — +{formatCOP(SPEAKOLOGY_FEE)} COP</p>
-                    {iaPlatform === 'trimestral' && (
-                      <span className="inline-block mt-1.5 text-[10px] font-bold text-amber-700 bg-amber-100 rounded-full px-2 py-0.5">✓ Seleccionado</span>
-                    )}
-                  </button>
+              {/* ── Plataforma de práctica IA (no aplica en autoaprendizaje: ya viene incluida en el plan) ── */}
+              {!isAutoestudio && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold">Plataforma de práctica con IA *</Label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIaPlatform('mensual')}
+                      className={`rounded-xl border-2 p-3 text-left transition-all ${
+                        iaPlatform === 'mensual'
+                          ? 'border-green-500 bg-green-50 shadow-sm'
+                          : 'border-border/50 hover:border-green-300 hover:bg-green-50/50'
+                      }`}
+                    >
+                      <p className="text-sm font-bold leading-tight">Plataforma mensual gratis</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">Uso de ChatGPT — sin costo adicional</p>
+                      {iaPlatform === 'mensual' && (
+                        <span className="inline-block mt-1.5 text-[10px] font-bold text-green-700 bg-green-100 rounded-full px-2 py-0.5">✓ Seleccionado</span>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIaPlatform('trimestral')}
+                      className={`rounded-xl border-2 p-3 text-left transition-all ${
+                        iaPlatform === 'trimestral'
+                          ? 'border-amber-500 bg-amber-50 shadow-sm'
+                          : 'border-border/50 hover:border-amber-300 hover:bg-amber-50/50'
+                      }`}
+                    >
+                      <p className="text-sm font-bold leading-tight">Plataforma trimestral</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">Uso de Speakology IA — +{formatCOP(SPEAKOLOGY_FEE)} COP</p>
+                      {iaPlatform === 'trimestral' && (
+                        <span className="inline-block mt-1.5 text-[10px] font-bold text-amber-700 bg-amber-100 rounded-full px-2 py-0.5">✓ Seleccionado</span>
+                      )}
+                    </button>
+                  </div>
+                  {iaPlatform === 'trimestral' && (
+                    <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 leading-relaxed">
+                      💡 Este pago de {formatCOP(SPEAKOLOGY_FEE)} COP es para activar el plan con <strong>Speakology</strong>, el uso de la plataforma de inteligencia artificial conectada con los módulos de la página para práctica extra. Este valor corresponde a un único pago cada tres meses — el siguiente mes no pagas este valor.
+                    </p>
+                  )}
                 </div>
-                {iaPlatform === 'trimestral' && (
-                  <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 leading-relaxed">
-                    💡 Este pago de {formatCOP(SPEAKOLOGY_FEE)} COP es para activar el plan con <strong>Speakology</strong>, el uso de la plataforma de inteligencia artificial conectada con los módulos de la página para práctica extra. Este valor corresponde a un único pago cada tres meses — el siguiente mes no pagas este valor.
-                  </p>
-                )}
-              </div>
+              )}
 
               {/* ── Resumen de precio dinámico ── */}
-              <div key={`${horasDia}-${diasSemana}`} className="rounded-2xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 to-indigo-50 overflow-hidden">
-                {/* Cabecera */}
-                <div className="bg-violet-600 px-4 py-2.5 flex items-center gap-2">
-                  <span className="text-base">💰</span>
-                  <p className="text-white text-sm font-bold">Resumen de precio estimado</p>
-                  <span className="ml-auto text-violet-200 text-xs font-medium">
-                    {precio.unidades} {precio.label}s / mes
-                  </span>
-                </div>
-
-                {/* Precios */}
-                <div className="px-5 py-4 flex items-end justify-between gap-4">
-                  <div>
-                    {/* Precio regular tachado */}
-                    <p className="text-xs text-muted-foreground mb-0.5">Precio regular</p>
-                    <p className="text-base font-semibold text-muted-foreground line-through">
-                      {formatCOP(precio.regular)} COP
-                    </p>
-                    {/* Desglose incluido */}
-                    <p className="text-xs text-violet-500 mt-1">
-                      📦 Uso de la plataforma gratis en cualquier plan
-                    </p>
-                    {/* Cargo Speakology */}
-                    {iaFee > 0 && (
-                      <p className="text-xs text-amber-600 font-semibold mt-1">
-                        🤖 + Activación Speakology IA (única vez / 3 meses): {formatCOP(iaFee)} COP
-                      </p>
-                    )}
-                    {/* Precio final */}
-                    <p className="text-xs text-violet-700 font-semibold mt-2 mb-0.5">{iaFee > 0 ? 'Total este mes' : 'Precio final'}</p>
+              {isAutoestudio ? (
+                <div key={planAutoestudio} className="rounded-2xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 to-indigo-50 overflow-hidden">
+                  <div className="bg-violet-600 px-4 py-2.5 flex items-center gap-2">
+                    <span className="text-base">💰</span>
+                    <p className="text-white text-sm font-bold">Resumen de precio estimado</p>
+                    <span className="ml-auto text-violet-200 text-xs font-medium">{autoestudioPlan.label}</span>
+                  </div>
+                  <div className="px-5 py-4">
+                    <p className="text-xs text-violet-700 font-semibold mb-0.5">Total a pagar</p>
                     {payMethod !== 'paypal' ? (
                       <>
                         <p className="text-3xl font-extrabold text-violet-700 leading-none">
                           {formatCOP(effectiveTotal)}
-                          <span className="text-sm font-bold ml-1">COP / mes</span>
+                          <span className="text-sm font-bold ml-1">COP / {autoestudioPlan.periodo}</span>
                         </p>
                         <p className="text-xs text-muted-foreground mt-0.5">{formatUSD(effectiveTotal)}</p>
                         {payMethod === 'bold' && (
@@ -520,47 +610,106 @@ export function ClasesVirtualesModal({
                       <>
                         <p className="text-3xl font-extrabold text-violet-700 leading-none">
                           ${(effectiveTotal / TRM).toFixed(2)}
-                          <span className="text-sm font-bold ml-1">USD / mes</span>
+                          <span className="text-sm font-bold ml-1">USD / {autoestudioPlan.periodo}</span>
                         </p>
                         <p className="text-xs text-muted-foreground mt-0.5">{formatCOP(effectiveTotal)} COP</p>
                       </>
                     )}
                   </div>
+                  <div className="px-5 pb-3">
+                    <p className="text-[11px] text-muted-foreground">
+                      📲 Te contactaremos por WhatsApp para confirmar y coordinar el pago
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div key={`${horasDia}-${diasSemana}`} className="rounded-2xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 to-indigo-50 overflow-hidden">
+                  {/* Cabecera */}
+                  <div className="bg-violet-600 px-4 py-2.5 flex items-center gap-2">
+                    <span className="text-base">💰</span>
+                    <p className="text-white text-sm font-bold">Resumen de precio estimado</p>
+                    <span className="ml-auto text-violet-200 text-xs font-medium">
+                      {precio.unidades} {precio.label}s / mes
+                    </span>
+                  </div>
 
-                  {/* Valor por clase/hora */}
-                  <div className="text-right shrink-0">
-                    <div className="bg-white border border-violet-200 rounded-xl px-3 py-2 shadow-sm">
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold">
-                        por {precio.label}
+                  {/* Precios */}
+                  <div className="px-5 py-4 flex items-end justify-between gap-4">
+                    <div>
+                      {/* Precio regular tachado */}
+                      <p className="text-xs text-muted-foreground mb-0.5">Precio regular</p>
+                      <p className="text-base font-semibold text-muted-foreground line-through">
+                        {formatCOP(precio.regular)} COP
                       </p>
+                      {/* Desglose incluido */}
+                      <p className="text-xs text-violet-500 mt-1">
+                        📦 Uso de la plataforma gratis en cualquier plan
+                      </p>
+                      {/* Cargo Speakology */}
+                      {iaFee > 0 && (
+                        <p className="text-xs text-amber-600 font-semibold mt-1">
+                          🤖 + Activación Speakology IA (única vez / 3 meses): {formatCOP(iaFee)} COP
+                        </p>
+                      )}
+                      {/* Precio final */}
+                      <p className="text-xs text-violet-700 font-semibold mt-2 mb-0.5">{iaFee > 0 ? 'Total este mes' : 'Precio final'}</p>
                       {payMethod !== 'paypal' ? (
                         <>
-                          <p className="text-base font-extrabold text-violet-600">~{formatCOP(precio.valorUnit)}</p>
-                          <p className="text-[10px] text-muted-foreground">{formatUSD(precio.valorUnit)}</p>
+                          <p className="text-3xl font-extrabold text-violet-700 leading-none">
+                            {formatCOP(effectiveTotal)}
+                            <span className="text-sm font-bold ml-1">COP / mes</span>
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{formatUSD(effectiveTotal)}</p>
+                          {payMethod === 'bold' && (
+                            <p className="text-[11px] text-orange-600 font-medium mt-0.5">+{formatCOP(PSE_SURCHARGE)} COP recargo transacción</p>
+                          )}
                         </>
                       ) : (
                         <>
-                          <p className="text-base font-extrabold text-violet-600">≈ ${(precio.valorUnit / TRM).toFixed(2)}</p>
-                          <p className="text-[10px] text-muted-foreground">~{formatCOP(precio.valorUnit)} COP</p>
+                          <p className="text-3xl font-extrabold text-violet-700 leading-none">
+                            ${(effectiveTotal / TRM).toFixed(2)}
+                            <span className="text-sm font-bold ml-1">USD / mes</span>
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{formatCOP(effectiveTotal)} COP</p>
                         </>
                       )}
                     </div>
-                    {/* Ahorro */}
-                    {precio.final < precio.regular && (
-                      <p className="text-xs text-green-600 font-bold mt-1.5">
-                        Ahorras {formatCOP(precio.regular - precio.final)} COP 🎉
-                      </p>
-                    )}
+
+                    {/* Valor por clase/hora */}
+                    <div className="text-right shrink-0">
+                      <div className="bg-white border border-violet-200 rounded-xl px-3 py-2 shadow-sm">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold">
+                          por {precio.label}
+                        </p>
+                        {payMethod !== 'paypal' ? (
+                          <>
+                            <p className="text-base font-extrabold text-violet-600">~{formatCOP(precio.valorUnit)}</p>
+                            <p className="text-[10px] text-muted-foreground">{formatUSD(precio.valorUnit)}</p>
+                          </>
+                        ) : (
+                          <>
+                            <p className="text-base font-extrabold text-violet-600">≈ ${(precio.valorUnit / TRM).toFixed(2)}</p>
+                            <p className="text-[10px] text-muted-foreground">~{formatCOP(precio.valorUnit)} COP</p>
+                          </>
+                        )}
+                      </div>
+                      {/* Ahorro */}
+                      {precio.final < precio.regular && (
+                        <p className="text-xs text-green-600 font-bold mt-1.5">
+                          Ahorras {formatCOP(precio.regular - precio.final)} COP 🎉
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Nota */}
+                  <div className="px-5 pb-3">
+                    <p className="text-[11px] text-muted-foreground">
+                      📲 Te contactaremos por WhatsApp para confirmar y coordinar el pago
+                    </p>
                   </div>
                 </div>
-
-                {/* Nota */}
-                <div className="px-5 pb-3">
-                  <p className="text-[11px] text-muted-foreground">
-                    📲 Te contactaremos por WhatsApp para confirmar y coordinar el pago
-                  </p>
-                </div>
-              </div>
+              )}
 
               {/* ── Selector de método de pago ── */}
               <div className="space-y-2">
