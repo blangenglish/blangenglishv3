@@ -13,7 +13,6 @@ import { MODULES } from '@/components/EnglishForYou';
 import { MUNDO_REAL_TOPICS } from '@/pages/MundoRealData';
 import { ClasesVirtualesModal } from '@/components/ClasesVirtualesModal';
 import LevelQuiz from '@/components/LevelQuiz';
-import { useSiteSettings } from '@/hooks/useSupabaseData';
 
 const staggerContainer = {
   hidden: { opacity: 0 },
@@ -144,14 +143,28 @@ const LEVELS = [
 ];
 
 const FAQ = [
-  { q: '¿Cuánto cuesta después de los días gratis?', a: 'Solo $16 USD ó $60,000 COP al mes. Sin contratos ni compromisos.' },
+  { q: '¿Cuánto cuesta el plan?', a: 'Tu primer mes tiene 50% de descuento. Luego solo $16 USD ó $60,000 COP al mes. Sin contratos ni compromisos.' },
   { q: '¿Cómo puedo pagar?', a: 'Aceptamos transferencia bancaria o pago por PayPal. Escríbenos y te indicamos el método más conveniente para ti.' },
   { q: '¿Puedo cancelar cuando quiera?', a: '¡Claro! No hay contratos ni compromisos. Cancelas cuando quieras desde tu perfil, sin cargos ocultos.' },
   { q: '¿Las sesiones en vivo son incluidas?', a: 'Las sesiones 1 a 1 no están incluidas en el plan mensual de cursos — arma tu propio plan de clases en vivo eligiendo días, horas y horario, desde $37,500 COP por clase.' },
-  { q: '¿Hay compromiso al empezar?', a: 'No. Los días de prueba son completamente gratis y sin ningún compromiso. Cancelas cuando quieras.' },
+  { q: '¿Hay compromiso al empezar?', a: 'No. Sin contratos ni compromisos, y tu primer mes tiene 50% de descuento. Cancelas cuando quieras.' },
 ];
 
 const VALID_AGE_GROUPS = ['kids', 'teens', 'adults'];
+
+// ── Promoción: 50% de descuento en el primer mes (reemplaza la prueba gratis) ──
+// PENDIENTE POR DEFINIR: si este descuento aplica también al precio del plan de
+// "Clases en vivo" (Arma tu plan / ClasesVirtualesModal) o solo al plan base/
+// estándar de cursos. Por ahora solo se muestra como promoción visual en esta
+// página — no se modifica el cálculo de precios dentro del modal (Parte 3).
+const PRECIO_MENSUAL_COP = 60000;
+const PRECIO_MENSUAL_USD = 16;
+const PRECIO_MENSUAL_COP_DESC = PRECIO_MENSUAL_COP / 2;
+const PRECIO_MENSUAL_USD_DESC = PRECIO_MENSUAL_USD / 2;
+// "Desde $37,500 COP/clase" es el mismo precio de referencia que ya se mostraba
+// en esta tarjeta antes de la promoción — no es un precio nuevo inventado.
+const PRECIO_CLASE_BASE = 37500;
+const PRECIO_CLASE_DESC = PRECIO_CLASE_BASE / 2;
 
 export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgramProps) {
   const navigate = useNavigate();
@@ -164,8 +177,6 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
   const [quizOpen, setQuizOpen] = useState(false);
   const [reviews, setReviews] = useState<{ full_name: string; rating: number; comment: string }[]>([]);
   const [moduleContent, setModuleContent] = useState<Record<string, { id: string; title: string; rich_text: string; sort_order: number }[]>>({});
-  const { data: settings } = useSiteSettings();
-  const trialDays = settings?.trial_days ?? '7';
 
   useEffect(() => {
     supabase
@@ -285,6 +296,14 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
                 <div className="relative bg-gradient-to-br from-primary via-violet-600 to-purple-700 rounded-3xl p-5 sm:p-8 text-white shadow-2xl shadow-primary/30 overflow-hidden">
                   <div className="absolute -top-6 -right-6 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
                   <div className="absolute -bottom-6 -left-6 w-24 h-24 bg-white/10 rounded-full blur-xl" />
+
+                  {/* Badge de descuento — aplica sin importar la edad elegida */}
+                  <div className="absolute top-4 right-4 sm:top-5 sm:right-5 z-20">
+                    <span className="inline-flex items-center gap-1 bg-amber-400 text-black text-xs sm:text-sm font-black px-3 py-1.5 rounded-full shadow-lg rotate-3">
+                      🎉 -50% primer mes
+                    </span>
+                  </div>
+
                   <div className="relative z-10">
                     <div className="flex items-center gap-3 mb-4 sm:mb-6">
                       <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white/20 flex items-center justify-center text-xl sm:text-2xl">👨‍🏫</div>
@@ -293,10 +312,15 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
                         <p className="text-white/70 text-xs sm:text-sm">Con profesor nativo / bilingüe</p>
                       </div>
                     </div>
-                    <div className="flex items-end gap-2 mb-2">
-                      <span className="text-5xl sm:text-7xl font-black leading-none">Desde $37,500</span>
+                    <div className="flex items-end gap-3 mb-2 flex-wrap">
+                      <span className="text-lg sm:text-2xl font-bold text-white/50 line-through leading-none">
+                        ${PRECIO_CLASE_BASE.toLocaleString('es-CO')}
+                      </span>
+                      <span className="text-5xl sm:text-7xl font-black leading-none">
+                        ${PRECIO_CLASE_DESC.toLocaleString('es-CO')}
+                      </span>
                     </div>
-                    <p className="text-white/70 text-xs sm:text-sm mb-4 sm:mb-6">COP por clase · Según tu plan mensual</p>
+                    <p className="text-white/70 text-xs sm:text-sm mb-4 sm:mb-6">COP por clase · primer mes · Según tu plan mensual</p>
                     <ul className="space-y-2 sm:space-y-2.5 mb-6 sm:mb-8">
                       {[
                         '✓  Corrección en tiempo real',
@@ -342,7 +366,7 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
           >
             <motion.div variants={staggerItem} className="mb-6">
               <span className="inline-flex items-center gap-2 bg-primary/10 text-primary text-xs sm:text-sm font-semibold px-4 sm:px-5 py-2 sm:py-2.5 rounded-full border border-primary/20">
-                🎉 ¡7 días de prueba completamente gratis!
+                🎉 ¡50% de descuento en tu primer mes!
               </span>
             </motion.div>
 
@@ -624,10 +648,10 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
                 onClick={() => onOpenAuth?.('register')}
                 className="inline-flex items-center gap-2 bg-gradient-to-r from-primary to-violet-600 hover:opacity-90 text-white font-extrabold text-base sm:text-lg px-8 py-4 rounded-2xl shadow-lg shadow-primary/30 transition-opacity"
               >
-                Desbloquear todos los módulos gratis
+                Desbloquear todos los módulos
                 <ChevronRight className="w-5 h-5" />
               </button>
-              <p className="text-xs text-muted-foreground mt-3">7 días de prueba gratis · Sin tarjeta requerida</p>
+              <p className="text-xs text-muted-foreground mt-3">50% de descuento en tu primer mes · Sin compromisos</p>
             </motion.div>
 
           </motion.div>
@@ -701,8 +725,8 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
             </motion.div>
             <motion.div variants={stagger} className="grid md:grid-cols-3 gap-5">
               {[
-                { icon: '📝', step: '1', title: 'Regístrate gratis', desc: `Comienza con ${trialDays} días de acceso completo sin pagar nada.` },
-                { icon: '💬', step: '2', title: 'Contáctanos', desc: 'Al terminar tu prueba, escríbenos y te indicamos cómo realizar el pago.' },
+                { icon: '📝', step: '1', title: 'Regístrate', desc: 'Crea tu cuenta en segundos y activa tu plan con 50% de descuento en el primer mes.' },
+                { icon: '💬', step: '2', title: 'Contáctanos', desc: 'Escríbenos y te indicamos cómo realizar el pago.' },
                 { icon: '🚀', step: '3', title: 'Activa tu plan', desc: 'Confirmado el pago, activamos tu cuenta en máximo 24 horas hábiles.' },
               ].map(({ icon, step, title, desc }) => (
                 <motion.div key={step} variants={fadeUp} className="bg-background border border-border/40 rounded-2xl p-6 shadow-sm text-center hover:shadow-md transition-shadow">
@@ -829,10 +853,10 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
           >
             <motion.p variants={fadeUp} className="text-5xl mb-4">🚀</motion.p>
             <motion.h2 variants={fadeUp} className="text-4xl md:text-5xl font-extrabold text-white mb-4 leading-tight">
-              ¡Empieza gratis hoy!
+              ¡Empieza con 50% de descuento!
             </motion.h2>
             <motion.p variants={fadeUp} className="text-lg text-white/80 mb-8">
-              {trialDays} días gratis. Luego solo $16 USD o $60,000 COP al mes 🎊
+              Tu primer mes por ${PRECIO_MENSUAL_USD_DESC} USD o ${PRECIO_MENSUAL_COP_DESC.toLocaleString('es-CO')} COP. Luego $16 USD o $60,000 COP al mes 🎊
             </motion.p>
             <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button size="lg"

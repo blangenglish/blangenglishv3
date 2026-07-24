@@ -16,6 +16,11 @@ import { openWhatsApp } from '@/lib/whatsapp';
 // 3. Si existen módulos especiales equivalentes a "English for you"
 //    (Pronunciación, Contextos, Mundo Real, etc.) para español — por ahora
 //    esta página no incluye esa sección.
+// 4. Precio original sobre el cual calcular el 50% de descuento del primer
+//    mes — como todavía no hay un precio base definido para español, la
+//    tarjeta de "Arma tu plan" solo muestra el badge "-50% primer mes" sin
+//    montos (a diferencia de inglés, que sí calcula el precio con descuento
+//    porque ya tenía un precio de referencia definido).
 
 const staggerContainer = {
   hidden: { opacity: 0 },
@@ -142,7 +147,7 @@ export default function SpanishProgram({ onOpenAuth, isLoggedIn }: SpanishProgra
   }, [isLoggedIn, navigate]);
 
   const contactWhatsApp = () => {
-    openWhatsApp('Hola! 🇪🇸 Quiero información sobre el curso de Español para Extranjeros (Spanish for Foreigners).');
+    openWhatsApp('Hola! 🇪🇸 Quiero información sobre el curso de Español para Extranjeros (Spanish for Foreigners) y el 50% de descuento en el primer mes.');
   };
 
   return (
@@ -230,6 +235,14 @@ export default function SpanishProgram({ onOpenAuth, isLoggedIn }: SpanishProgra
                 <div className="relative bg-gradient-to-br from-orange-500 via-red-500 to-rose-600 rounded-3xl p-5 sm:p-8 text-white shadow-2xl shadow-orange-500/30 overflow-hidden">
                   <div className="absolute -top-6 -right-6 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
                   <div className="absolute -bottom-6 -left-6 w-24 h-24 bg-white/10 rounded-full blur-xl" />
+
+                  {/* Badge de descuento — precio base aún por definir, ver nota al inicio del archivo */}
+                  <div className="absolute top-4 right-4 sm:top-5 sm:right-5 z-20">
+                    <span className="inline-flex items-center gap-1 bg-amber-400 text-black text-xs sm:text-sm font-black px-3 py-1.5 rounded-full shadow-lg rotate-3">
+                      🎉 -50% primer mes
+                    </span>
+                  </div>
+
                   <div className="relative z-10">
                     <div className="flex items-center gap-3 mb-4 sm:mb-6">
                       <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white/20 flex items-center justify-center text-xl sm:text-2xl">👩‍🏫</div>
@@ -241,7 +254,7 @@ export default function SpanishProgram({ onOpenAuth, isLoggedIn }: SpanishProgra
                     <div className="flex items-end gap-2 mb-2">
                       <span className="text-4xl sm:text-5xl font-black leading-none">Consultar</span>
                     </div>
-                    <p className="text-white/70 text-xs sm:text-sm mb-4 sm:mb-6">Precio próximamente · Escríbenos para más información</p>
+                    <p className="text-white/70 text-xs sm:text-sm mb-4 sm:mb-6">Con 50% de descuento en tu primer mes · Escríbenos para conocer el precio</p>
                     <ul className="space-y-2 sm:space-y-2.5 mb-6 sm:mb-8">
                       {[
                         '✓  Corrección en tiempo real',
