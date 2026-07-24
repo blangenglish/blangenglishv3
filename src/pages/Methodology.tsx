@@ -350,10 +350,10 @@ export default function Methodology({ isLoggedIn = false, onOpenAuth, onLogout, 
               <h2 className="text-2xl md:text-3xl font-extrabold mb-3">¿Quieres practicar en vivo?</h2>
               <p className="text-muted-foreground text-base mb-2 max-w-xl mx-auto">
                 Complementa tu aprendizaje con <strong className="text-foreground">sesiones 1 a 1 por Google Meet</strong> con un profesor nativo.
-                45-60 min, paga por sesión.
+                Arma tu plan mensual con los días y horario que prefieras.
               </p>
               <p className="text-sm text-muted-foreground mb-6">
-                💵 $14 USD &nbsp;·&nbsp; 💰 $50,000 COP &nbsp;·&nbsp; Sin suscripción
+                💵 Desde $37,500 COP/clase &nbsp;·&nbsp; 📅 Plan mensual personalizado
               </p>
               <Link to={ROUTE_PATHS.PRICING}>
                 <Button className="bg-blue-600 hover:bg-blue-700 text-white rounded-full px-8 py-5 font-bold">

@@ -20,16 +20,16 @@ const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
 // ── Tabla de precios por combinación horas×días ──────────────────────────────
 const PRECIOS = {
   1: {
-    2: { regular: 460000,  final: 380000,  unidades: 8,  valorUnit: 47500, label: 'clase' },
-    3: { regular: 660000,  final: 510000,  unidades: 12, valorUnit: 42500, label: 'clase' },
-    4: { regular: 860000,  final: 640000,  unidades: 16, valorUnit: 40000, label: 'clase' },
-    5: { regular: 1060000, final: 760000,  unidades: 20, valorUnit: 38000, label: 'clase' },
+    2: { regular: 400000,  final: 360000, unidades: 8,  valorUnit: 45000, label: 'clase' },
+    3: { regular: 600000,  final: 510000, unidades: 12, valorUnit: 42500, label: 'clase' },
+    4: { regular: 800000,  final: 640000, unidades: 16, valorUnit: 40000, label: 'clase' },
+    5: { regular: 1000000, final: 750000, unidades: 20, valorUnit: 37500, label: 'clase' },
   },
   2: {
-    2: { regular: 860000,  final: 700000,  unidades: 16, valorUnit: 43750, label: 'hora' },
-    3: { regular: 1260000, final: 950000,  unidades: 24, valorUnit: 39500, label: 'hora' },
-    4: { regular: 1200000, final: 1200000, unidades: 32, valorUnit: 37500, label: 'hora' },
-    5: { regular: 2060000, final: 1400000, unidades: 40, valorUnit: 35000, label: 'hora' },
+    2: { regular: 768000,  final: 690000,  unidades: 16, valorUnit: 43125, label: 'hora' },
+    3: { regular: 1152000, final: 980000,  unidades: 24, valorUnit: 40833, label: 'hora' },
+    4: { regular: 1536000, final: 1230000, unidades: 32, valorUnit: 38437, label: 'hora' },
+    5: { regular: 1920000, final: 1440000, unidades: 40, valorUnit: 36000, label: 'hora' },
   },
 } as const;
 
@@ -215,7 +215,7 @@ export function ClasesVirtualesModal({
                 Arma tu plan mensual
               </h3>
               <p className="text-white/80 text-xs mt-0.5">
-                Google Meet · $50,000 COP/sesión · Horario fijo
+                Google Meet · Desde $37,500 COP/clase · Horario fijo
               </p>
             </div>
           </div>

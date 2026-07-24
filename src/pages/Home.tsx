@@ -190,8 +190,8 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
                   emoji: '🎥',
                   title: 'Clases en Vivo',
                   desc: 'Plataforma gratis + sesiones en vivo según el horario que escojas',
-                  price: '$14 USD/sesión',
-                  priceSub: '$50,000 COP/sesión, o arma tu plan mensual y te damos un descuento',
+                  price: 'Desde $37,500 COP/clase',
+                  priceSub: 'Arma tu plan mensual y ahorra en cada clase',
                   bg: 'bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-700',
                   border: 'border-violet-300/40',
                   btn: 'bg-white text-violet-700 hover:bg-violet-50',
@@ -596,11 +596,11 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
               {/* Columna izquierda: beneficios */}
               <motion.div variants={staggerItem} className="flex flex-col gap-4 sm:gap-5">
                 {[
-                  { icon: '🗓️', title: 'Tú eliges el horario', desc: 'Reserva la sesión según la disponibilidad del docente, en los horarios disponibles.' },
+                  { icon: '🗓️', title: 'Tú eliges el horario', desc: 'Elige los días y el horario fijo de tus clases al armar tu plan mensual.' },
                   { icon: '🎯', title: 'Temas a la medida', desc: 'Trabaja exactamente lo que necesitas: gramática, conversación, pronunciación, negocios...' },
                   { icon: '💻', title: 'Google Meet', desc: 'Sesiones cómodas por videollamada, desde cualquier lugar del mundo.' },
-                  { icon: '🔓', title: 'Sin matrícula obligatoria', desc: 'No necesitas registrarte para reservar un cupo, puedes contratar este servicio cuando lo desees.' },
-                  { icon: 'ℹ️', title: 'Servicio adicional', desc: 'Este servicio no está incluido en el plan mensual. Tiene un costo según las horas que desees. Si quieres agendar más horas o un paquete mensual escríbenos por WhatsApp al +57 323 640 5246' },
+                  { icon: '🔓', title: 'Sin matrícula obligatoria', desc: 'No necesitas estar matriculado en un curso para tomar clases en vivo.' },
+                  { icon: 'ℹ️', title: 'Servicio adicional', desc: 'Este servicio es adicional a los cursos. Escríbenos por WhatsApp al +57 323 640 5246 para armar tu plan de clases en vivo.' },
                 ].map((item, i) => (
                   <motion.div
                     key={i}
@@ -633,9 +633,9 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
                       </div>
                     </div>
                     <div className="flex items-end gap-2 mb-2">
-                      <span className="text-5xl sm:text-7xl font-black leading-none">$50,000</span>
+                      <span className="text-5xl sm:text-7xl font-black leading-none">Desde $37,500</span>
                     </div>
-                    <p className="text-white/70 text-xs sm:text-sm mb-4 sm:mb-6">COP por sesión · Sin contratos</p>
+                    <p className="text-white/70 text-xs sm:text-sm mb-4 sm:mb-6">COP por clase · Según tu plan mensual</p>
                     <ul className="space-y-2 sm:space-y-2.5 mb-6 sm:mb-8">
                       {[
                         '✓  Corrección en tiempo real',
@@ -648,13 +648,6 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
                     <Button
                       size="lg"
                       className="w-full bg-white text-primary hover:bg-white/90 font-extrabold text-base sm:text-lg py-5 sm:py-6 rounded-2xl shadow-xl transition-all active:scale-[0.98]"
-                      onClick={() => navigate(ROUTE_PATHS.PRICING)}
-                    >
-                      Reservar sesión 📅
-                    </Button>
-                    <Button
-                      size="lg"
-                      className="w-full bg-white/20 hover:bg-white/30 border border-white/40 text-white font-bold text-sm sm:text-base py-4 sm:py-5 rounded-2xl transition-all active:scale-[0.98]"
                       onClick={() => setShowClasesModal(true)}
                     >
                       📅 Arma tu plan mensual

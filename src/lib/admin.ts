@@ -11,7 +11,6 @@ export const ADMIN_ROUTES = {
   SITE_EDITOR: '/adminblang/sitio',
   ENGLISH_FOR_STUDENTS: '/adminblang/english-students',
   REVIEWS: '/adminblang/comentarios',
-  SCHEDULE: '/adminblang/agenda',
   MUNDO_REAL: '/adminblang/mundo-real',
 } as const;
 

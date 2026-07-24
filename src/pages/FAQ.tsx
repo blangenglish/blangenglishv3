@@ -102,12 +102,12 @@ const ALL_FAQS = [
   {
     id: 'q15', category: 'Sesiones',
     question: '¿Qué son las sesiones en vivo?',
-    answer: 'Son clases 1 a 1 con un profesor de inglés verificado, realizadas a través de Google Meet. Es un servicio adicional que no está incluido en el plan mensual — puedes contratarlo cuando lo desees, con o sin suscripción activa. Los horarios disponibles los publica el equipo de BLANG y tú eliges el que más te convenga entre las opciones publicadas.',
+    answer: 'Son clases 1 a 1 con un profesor de inglés verificado, realizadas a través de Google Meet. Es un servicio adicional que no está incluido en el plan mensual de cursos — armas tu propio plan de clases eligiendo los días, la hora y la duración que prefieras, y te asignamos el mismo horario fijo cada semana.',
   },
   {
     id: 'q16', category: 'Sesiones',
     question: '¿Cuánto cuesta una sesión en vivo?',
-    answer: 'Cada sesión tiene un costo de $14 USD / $50,000 COP. Para agendar escríbenos por WhatsApp al +57 323 640 5246 — te informamos los horarios disponibles y coordinamos el pago.',
+    answer: 'El precio depende de tu plan mensual: desde $37,500 COP por clase de 1 hora, según cuántos días a la semana elijas (también hay opción de clases de 2 horas). Escríbenos por WhatsApp al +57 323 640 5246 y armamos tu plan.',
   },
   {
     id: 'q17', category: 'Sesiones',
@@ -127,7 +127,7 @@ const ALL_FAQS = [
   {
     id: 'q31', category: 'Sesiones',
     question: '¿Cómo agendo una sesión en vivo?',
-    answer: 'Escríbenos por WhatsApp al +57 323 640 5246. Te informaremos los horarios disponibles y coordinaremos el pago. Una vez confirmado, recibirás el enlace de Google Meet para tu sesión.',
+    answer: 'Escríbenos por WhatsApp al +57 323 640 5246 y arma tu plan mensual: eliges los días, la hora y la duración de tus clases. Te confirmamos el horario fijo y coordinamos el pago. Una vez confirmado, recibirás el enlace de Google Meet para tus sesiones.',
   },
   // 🤖 Práctica con IA
   {

@@ -22,11 +22,11 @@ import { OnboardingFlow } from '@/components/OnboardingFlow';
 import { LevelExam } from '@/components/LevelExam';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import {
-  User, Users, CreditCard, HelpCircle, LogOut,
+  User, CreditCard, HelpCircle, LogOut,
   ChevronRight, BookOpen, Lock, Eye, EyeOff, Check,
   AlertCircle, Flame, Star, Award, ChevronDown, ChevronUp,
   FlaskConical, Calendar, GraduationCap, MapPin,
-  Video, Plus, Trash2, Clock, Mail, History, CheckCircle2,
+  Video, Plus, Trash2, Mail, History, CheckCircle2,
   ExternalLink, Copy, MessageSquare, Sparkles, Globe,
 } from 'lucide-react';
 import { EnglishForYou } from '@/components/EnglishForYou';
@@ -54,7 +54,7 @@ const LEVEL_COLORS: Record<string, { color: string; badge: string }> = {
 const FAQ_QUICK = [
   { q: '¿Cómo cancelo mi suscripción?', a: 'Ve a la pestaña "Pagos" en tu perfil y selecciona "Cancelar suscripción". Tu acceso continuará hasta el final del período pagado.' },
   { q: '¿Puedo cambiar mi correo?', a: 'Por seguridad el correo no se puede cambiar directamente. Escríbenos por WhatsApp al +57 323 640 5246 con tu solicitud.' },
-  { q: '¿Cómo reservo una sesión en vivo?', a: 'Desde la sección "Sesión con Profesor" del menú podrás ver los horarios disponibles y reservar. El costo es de $14 USD / $50,000 COP por sesión. Para un plan mensual personalizado escríbenos por WhatsApp al +57 323 640 5246.' },
+  { q: '¿Cómo reservo una sesión en vivo?', a: 'Desde la sección "Clases en Vivo" del menú puedes armar tu plan mensual: eliges tus días, horario y frecuencia, y nosotros te asignamos el mismo horario cada semana. Escríbenos por WhatsApp al +57 323 640 5246 si tienes dudas.' },
   { q: '¿Cómo funciona la práctica con IA?', a: 'Al final de cada unidad encontrarás el paso 5 de práctica con IA, donde podrás conversar y escribir con inteligencia artificial para reforzar lo aprendido.' },
   { q: '¿Qué pasa si tengo un problema técnico?', a: 'Escríbenos usando el formulario de la sección de Preguntas Frecuentes o por nuestros canales de WhatsApp e Instagram.' },
 ];
@@ -1755,19 +1755,6 @@ const [loadingUnits, setLoadingUnits] = useState<string | null>(null);
 
   const [showClasesModal, setShowClasesModal] = useState(false);
 
-  // Schedule slots (sesión con profesor)
-  const [scheduleSlots, setScheduleSlots] = useState<{ id: string; date: string; start_time: string; end_time: string; teacher_name: string; available_spots: number }[]>([]);
-  const [slotsLoading, setSlotsLoading] = useState(false);
-  const [bookingSlotId, setBookingSlotId] = useState<string | null>(null);
-  const [bookedSlotIds, setBookedSlotIds] = useState<Set<string>>(new Set());
-  const [myBookedSlot, setMyBookedSlot] = useState<{ id: string; date: string; start_time: string; end_time: string; teacher_name: string; status: string; session_topic?: string } | null | 'loading'>('loading');
-  const [bookingModalSlot, setBookingModalSlot] = useState<{ id: string; date: string; start_time: string; end_time: string; teacher_name: string } | null>(null);
-  const [bookingFormTopic, setBookingFormTopic] = useState('');
-  const [bookingPaymentMethod, setBookingPaymentMethod] = useState('');
-  const [bookingSubmitting, setBookingSubmitting] = useState(false);
-  const [bookingSuccess, setBookingSuccess] = useState(false);
-  const [bookingError, setBookingError] = useState('');
-
   // Mundo Real state
   const [showMundoReal, setShowMundoReal] = useState(false);
   const [mundoRealTopic, setMundoRealTopic] = useState<string | null>(null);
@@ -1798,38 +1785,6 @@ const [loadingUnits, setLoadingUnits] = useState<string | null>(null);
     if (activeTab !== 'english') {
       setShowMundoReal(false);
       openMRTopic(null);
-    }
-    if (activeTab === 'sesion') {
-      // Cargar horarios disponibles
-      if (scheduleSlots.length === 0 && !slotsLoading) {
-        setSlotsLoading(true);
-        supabase
-          .from('schedule_slots')
-          .select('id, date, start_time, end_time, teacher_name, available_spots')
-          .gt('available_spots', 0)
-          .eq('status', 'available')
-          .gte('date', new Date().toISOString().split('T')[0])
-          .order('date', { ascending: true })
-          .order('start_time', { ascending: true })
-          .then(({ data }) => {
-            setScheduleSlots(data || []);
-            setSlotsLoading(false);
-          });
-      }
-      // Cargar la sesión reservada del estudiante (por su email)
-      const emailToCheck = currentEmail || userEmail;
-      if (emailToCheck) {
-        setMyBookedSlot('loading');
-        supabase
-          .from('schedule_slots')
-          .select('id, date, start_time, end_time, teacher_name, status, session_topic')
-          .eq('booked_student_email', emailToCheck)
-          .in('status', ['pending', 'confirmed'])
-          .maybeSingle()
-          .then(({ data }) => setMyBookedSlot(data ?? null));
-      } else {
-        setMyBookedSlot(null);
-      }
     }
   }, [activeTab]);
 
@@ -2159,50 +2114,6 @@ useEffect(() => {
       // silenciar error de red
     } finally {
       setReviewSending(false);
-    }
-  };
-
-  const handleSubmitBooking = async () => {
-    if (!bookingModalSlot || !bookingFormTopic.trim()) return;
-    setBookingSubmitting(true);
-    setBookingError('');
-    const studentName = profileForm.name || userName || 'Estudiante';
-    const studentEmail = currentEmail || userEmail || '';
-    try {
-      const { data, error } = await supabase.rpc('book_schedule_slot', {
-        p_slot_id: bookingModalSlot.id,
-        p_student_name: studentName,
-        p_student_email: studentEmail,
-        p_topic: bookingFormTopic.trim(),
-      });
-      if (error) {
-        setBookingError('Ocurrió un error al procesar tu reserva. Intenta de nuevo.');
-      } else if (data?.success === false || data?.error) {
-        setBookingError('Este horario ya no está disponible. Por favor elige otro.');
-        // Recargar slots para reflejar el estado real
-        supabase.from('schedule_slots').select('id, date, start_time, end_time, teacher_name, available_spots')
-          .gt('available_spots', 0).eq('status', 'available')
-          .order('date').order('start_time')
-          .then(({ data: fresh }) => { if (fresh) setScheduleSlots(fresh); });
-      } else {
-        // Éxito (data?.success === true o cualquier respuesta sin error)
-        setScheduleSlots(prev => prev.filter(s => s.id !== bookingModalSlot.id));
-        setBookingSuccess(true);
-        // Fire-and-forget: abrir WhatsApp con los detalles de la reserva
-        openWhatsApp(
-          `📅 RESERVA DE SESIÓN EN VIVO\n\n` +
-          `Estudiante: ${studentName}\nCorreo: ${studentEmail}\n\n` +
-          `Fecha: ${bookingModalSlot.date}\n` +
-          `Horario: ${bookingModalSlot.start_time} – ${bookingModalSlot.end_time}\n` +
-          `Profesor: ${bookingModalSlot.teacher_name}\n` +
-          `Tema: ${bookingFormTopic.trim()}\n` +
-          `Método de pago: ${bookingPaymentMethod}`
-        );
-      }
-    } catch (_) {
-      setBookingError('Error de conexión. Verifica tu internet e intenta de nuevo.');
-    } finally {
-      setBookingSubmitting(false);
     }
   };
 
@@ -2585,7 +2496,7 @@ useEffect(() => {
                 {([
                   { id: 'cursos',      icon: BookOpen, label: 'Mis Cursos' },
                   { id: 'english',    icon: Sparkles,  label: 'English for you!' },
-                  { id: 'sesion',   icon: Video,       label: 'Sesión con Profesor' },
+                  { id: 'sesion',   icon: Video,       label: 'Clases en Vivo' },
                   { id: 'cuenta',   icon: User,        label: 'Cuenta' },
                   { id: 'pagos',    icon: CreditCard,  label: 'Pagos' },
                   { id: 'ayuda',    icon: HelpCircle,  label: 'Ayuda' },
@@ -3095,198 +3006,14 @@ useEffect(() => {
               {activeTab === 'sesion' && (
                 <motion.div key="sesion" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-5">
                   <div className="mb-2">
-                    <h1 className="text-2xl md:text-3xl font-extrabold mb-1">Sesión con el Profesor 🎓</h1>
-                    <p className="text-muted-foreground text-sm">Reserva una clase 1 a 1 personalizada con el profesor.</p>
+                    <h1 className="text-2xl md:text-3xl font-extrabold mb-1">Clases en Vivo 🎓</h1>
+                    <p className="text-muted-foreground text-sm">Arma tu plan de clases 1 a 1 personalizadas con el profesor.</p>
                   </div>
-
-                  {/* ── MI SESIÓN RESERVADA ── */}
-                  {myBookedSlot === 'loading' ? (
-                    <div className="rounded-2xl border border-border/50 p-4 animate-pulse bg-card h-20" />
-                  ) : myBookedSlot !== null ? (
-                    <div className={`rounded-2xl border-2 p-5 ${
-                      myBookedSlot.status === 'confirmed'
-                        ? 'border-green-300 bg-green-50/60 dark:bg-green-900/10'
-                        : 'border-amber-300 bg-amber-50/60 dark:bg-amber-900/10'
-                    }`}>
-                      <div className="flex items-start gap-3">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-lg ${
-                          myBookedSlot.status === 'confirmed' ? 'bg-green-100' : 'bg-amber-100'
-                        }`}>
-                          {myBookedSlot.status === 'confirmed' ? '✅' : '⏳'}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap mb-1">
-                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                              myBookedSlot.status === 'confirmed'
-                                ? 'bg-green-200 text-green-800'
-                                : 'bg-amber-200 text-amber-800'
-                            }`}>
-                              {myBookedSlot.status === 'confirmed' ? '✓ Sesión confirmada' : '⏳ Solicitud pendiente'}
-                            </span>
-                          </div>
-                          <p className="font-bold text-sm">
-                            {(() => {
-                              const months = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-                              const [y,m,d] = myBookedSlot.date.split('-');
-                              return `${parseInt(d)} ${months[parseInt(m)-1]} ${y}`;
-                            })()}
-                            {' · '}
-                            {myBookedSlot.start_time.slice(0,5)} – {myBookedSlot.end_time.slice(0,5)}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-0.5">Prof. {myBookedSlot.teacher_name}</p>
-                          {myBookedSlot.session_topic && (
-                            <p className="text-xs mt-1 text-muted-foreground">📚 {myBookedSlot.session_topic}</p>
-                          )}
-                          <p className={`text-xs mt-2 font-medium ${
-                            myBookedSlot.status === 'confirmed' ? 'text-green-700' : 'text-amber-700'
-                          }`}>
-                            {myBookedSlot.status === 'confirmed'
-                              ? '🎉 ¡Tu clase está lista! Te enviaremos el link de videollamada poco antes de la sesión.'
-                              : '📧 Tu solicitud está siendo revisada. Recibirás un correo cuando sea confirmada.'}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ) : null}
 
                   {/* Info notice */}
                   <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-800">
                     <p className="font-bold mb-1">📌 Importante sobre las sesiones</p>
                     <p>Las sesiones con el profesor <strong>no reemplazan</strong> tu aprendizaje en la plataforma. Son un complemento para <strong>explicar un tema</strong> específico o <strong>practicar speaking</strong> en vivo. Sigue avanzando en tus cursos para sacar el mayor provecho.</p>
-                  </div>
-
-                  {/* Header banner */}
-                  <div className="bg-background rounded-2xl border border-border/50 shadow-sm overflow-hidden">
-                    <div className="relative bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 px-6 pt-6 pb-10">
-                      <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, white 1px, transparent 1px), radial-gradient(circle at 80% 20%, white 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
-                      <div className="relative flex items-center gap-4">
-                        <div className="w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-sm border-2 border-white/30 overflow-hidden shrink-0 shadow-lg">
-                          <img src={IMAGES.INSTRUCTOR_NOBG} alt="Profesor" className="w-full h-full object-contain" />
-                        </div>
-                        <div className="text-white">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-xs font-bold bg-white/20 border border-white/30 px-2.5 py-0.5 rounded-full">✨ Clases 1 a 1</span>
-                          </div>
-                          <h2 className="font-extrabold text-xl leading-tight">Sesión con el profesor</h2>
-                          <p className="text-white/80 text-sm mt-0.5">Personalizada · $14 USD / sesión</p>
-                        </div>
-                      </div>
-                      <div className="relative flex flex-wrap gap-2 mt-4">
-                        {['🎯 Conversación', '📝 Gramática', '🗣️ Pronunciación'].map(tag => (
-                          <span key={tag} className="text-xs bg-white/15 border border-white/20 text-white px-2.5 py-1 rounded-full">{tag}</span>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Horarios disponibles */}
-                    <div className="-mt-5 mx-4 mb-4 bg-background rounded-2xl border border-border/50 shadow-md p-5">
-                      <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-4">
-                        Horarios disponibles
-                      </p>
-
-                      {slotsLoading ? (
-                        <div className="space-y-3">
-                          {[1,2,3].map(i => (
-                            <div key={i} className="animate-pulse rounded-2xl border border-border/40 p-4 flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-xl bg-muted shrink-0" />
-                              <div className="flex-1 space-y-2">
-                                <div className="h-3.5 w-36 bg-muted rounded-full" />
-                                <div className="h-3 w-52 bg-muted rounded-full" />
-                              </div>
-                              <div className="w-20 h-8 bg-muted rounded-xl shrink-0" />
-                            </div>
-                          ))}
-                        </div>
-                      ) : scheduleSlots.length === 0 ? (
-                        <div className="text-center py-10 text-muted-foreground">
-                          <Calendar className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                          <p className="font-semibold text-sm">No hay clases disponibles en este momento</p>
-                          <p className="text-xs mt-1">Pronto agregaremos nuevos horarios. ¡Vuelve a revisar!</p>
-                        </div>
-                      ) : (
-                        <div className="space-y-3">
-                          {scheduleSlots.map(slot => {
-                            const isBooked = bookedSlotIds.has(slot.id);
-                            const isBooking = bookingSlotId === slot.id;
-                            const noSpots = slot.available_spots <= 0;
-                            const months = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-                            const [y, m, d] = slot.date.split('-');
-                            const dateLabel = `${d} ${months[parseInt(m)-1]} ${y}`;
-                            const timeLabel = `${slot.start_time.slice(0,5)} – ${slot.end_time.slice(0,5)}`;
-
-                            return (
-                              <motion.div
-                                key={slot.id}
-                                initial={{ opacity: 0, y: 8 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className={`rounded-2xl border p-4 flex items-center gap-3 transition-all ${
-                                  isBooked
-                                    ? 'border-green-200 bg-green-50/60'
-                                    : noSpots
-                                    ? 'border-border/30 bg-muted/30 opacity-60'
-                                    : 'border-border/60 bg-background hover:border-primary/30 hover:shadow-sm'
-                                }`}
-                              >
-                                {/* Ícono fecha */}
-                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                                  isBooked ? 'bg-green-100' : 'bg-primary/10'
-                                }`}>
-                                  {isBooked
-                                    ? <Check className="w-5 h-5 text-green-600" />
-                                    : <Calendar className="w-5 h-5 text-primary" />
-                                  }
-                                </div>
-
-                                {/* Info */}
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-semibold text-sm leading-tight">{dateLabel} · {timeLabel}</p>
-                                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                                    <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                      <User className="w-3 h-3" />{slot.teacher_name}
-                                    </span>
-                                    <span className={`text-xs font-medium flex items-center gap-1 ${
-                                      slot.available_spots <= 2 ? 'text-amber-600' : 'text-muted-foreground'
-                                    }`}>
-                                      <Users className="w-3 h-3" />
-                                      {noSpots ? 'Sin cupos' : `${slot.available_spots} cupo${slot.available_spots !== 1 ? 's' : ''}`}
-                                    </span>
-                                  </div>
-                                </div>
-
-                                {/* Botón */}
-                                {isBooked ? (
-                                  <span className="text-xs font-bold text-green-600 bg-green-100 px-3 py-1.5 rounded-xl shrink-0">
-                                    ✓ Reservado
-                                  </span>
-                                ) : noSpots ? (
-                                  <span className="text-xs font-medium text-muted-foreground bg-muted px-3 py-1.5 rounded-xl shrink-0">
-                                    Sin cupos
-                                  </span>
-                                ) : (
-                                  <Button
-                                    size="sm"
-                                    onClick={() => {
-                                      setBookingModalSlot(slot);
-                                      setBookingFormTopic('');
-                                      setBookingSuccess(false);
-                                      setBookingError('');
-                                    }}
-                                    className="rounded-xl shrink-0 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white text-xs px-4"
-                                  >
-                                    Reservar
-                                  </Button>
-
-                                )}
-                              </motion.div>
-                            );
-                          })}
-                        </div>
-                      )}
-
-                      <p className="text-xs text-muted-foreground text-center mt-5">
-                        💳 El pago se coordina por correo · $50,000 COP / sesión
-                      </p>
-                    </div>
                   </div>
 
                   {/* ── CLASES VIRTUALES PERSONALIZADAS MENSUALES ── */}
@@ -4856,192 +4583,6 @@ useEffect(() => {
           onClose={() => setShowLevelExam(false)}
         />
       )}
-
-      {/* ── BOOKING CONFIRMATION MODAL ── */}
-      <AnimatePresence>
-        {bookingModalSlot && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
-            onClick={e => { if (e.target === e.currentTarget && !bookingSubmitting) { setBookingModalSlot(null); setBookingSuccess(false); } }}
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 16 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 16 }}
-              transition={{ type: 'spring', duration: 0.35 }}
-              className="bg-card rounded-2xl border border-border shadow-xl w-full max-w-md overflow-hidden"
-            >
-              {bookingSuccess ? (
-                /* ── SUCCESS STATE ── */
-                <div className="p-8 flex flex-col items-center text-center gap-4">
-                  <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-3xl">✅</div>
-                  <div>
-                    <h3 className="font-extrabold text-lg mb-2">¡Solicitud enviada!</h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      Estate pendiente de tu correo — te llegará el link de pago. Una vez realices el pago, agendaremos tu clase. 🎉
-                    </p>
-                  </div>
-                  <Button
-                    className="rounded-xl px-8 mt-2"
-                    onClick={() => { setBookingModalSlot(null); setBookingSuccess(false); }}
-                  >
-                    Cerrar
-                  </Button>
-                </div>
-              ) : (
-                /* ── FORM STATE ── */
-                <>
-                  <div className="px-6 pt-6 pb-4 border-b border-border/60">
-                    <h3 className="font-extrabold text-base flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-primary" /> Confirmar reserva
-                    </h3>
-                    <p className="text-xs text-muted-foreground mt-1">Revisa los datos y cuéntanos qué quieres practicar.</p>
-                  </div>
-
-                  <div className="p-6 space-y-4">
-                    {/* Slot info (read-only) */}
-                    <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 space-y-1.5">
-                      <div className="flex items-center gap-2 text-sm">
-                        <Clock className="w-3.5 h-3.5 text-primary shrink-0" />
-                        <span className="font-semibold text-foreground">
-                          {(() => {
-                            const months = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-                            const [y,m,d] = bookingModalSlot.date.split('-');
-                            return `${parseInt(d)} de ${months[parseInt(m)-1]} de ${y}`;
-                          })()}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <span className="w-3.5 h-3.5 shrink-0" />
-                        {bookingModalSlot.start_time.slice(0,5)} – {bookingModalSlot.end_time.slice(0,5)} · Prof. {bookingModalSlot.teacher_name}
-                      </div>
-                    </div>
-
-                    {/* Name (pre-filled, read-only) */}
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Nombre</Label>
-                      <Input
-                        value={profileForm.name || userName || 'Estudiante'}
-                        readOnly
-                        className="rounded-xl bg-muted/40 border-border/50 text-sm cursor-not-allowed"
-                      />
-                    </div>
-
-                    {/* Email (pre-filled, read-only) */}
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Correo</Label>
-                      <Input
-                        value={currentEmail || userEmail || ''}
-                        readOnly
-                        className="rounded-xl bg-muted/40 border-border/50 text-sm cursor-not-allowed"
-                      />
-                    </div>
-
-                    {/* Topic */}
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                        ¿Qué quieres estudiar en esta sesión? <span className="text-destructive">*</span>
-                      </Label>
-                      <textarea
-                        value={bookingFormTopic}
-                        onChange={e => setBookingFormTopic(e.target.value)}
-                        placeholder="Ej: Verbos en pasado, pronunciación, vocabulario de negocios..."
-                        rows={3}
-                        className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
-                      />
-                    </div>
-
-                    {/* Error message */}
-                    {bookingError && (
-                      <div className="flex items-start gap-2 bg-destructive/10 text-destructive rounded-xl p-3 text-sm">
-                        <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-                        <span>{bookingError}</span>
-                      </div>
-                    )}
-
-                    {/* Resumen de pago */}
-                    <div className="rounded-2xl border border-violet-200 bg-violet-50/60 overflow-hidden">
-                      <div className="px-4 py-3 border-b border-violet-200/70 flex items-center justify-between">
-                        <span className="text-xs font-semibold text-violet-700 uppercase tracking-wide">Resumen de pago</span>
-                        <div className="text-right">
-                          <span className="text-lg font-extrabold text-violet-900">$14 USD</span>
-                          <span className="text-xs text-violet-600 ml-1.5">/ $50.000 COP</span>
-                        </div>
-                      </div>
-                      <div className="px-4 py-3">
-                        <p className="text-[11px] font-semibold text-violet-700 mb-2 uppercase tracking-wide">Selecciona tu método de pago</p>
-                        <div className="flex items-center gap-2">
-                          {/* PayPal */}
-                          <button
-                            type="button"
-                            onClick={() => setBookingPaymentMethod(p => p === 'PayPal' ? '' : 'PayPal')}
-                            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 border-2 transition-all duration-150 shadow-sm ${
-                              bookingPaymentMethod === 'PayPal'
-                                ? 'bg-[#003087] border-[#003087] shadow-md scale-105'
-                                : 'bg-white border-violet-200 hover:border-violet-400'
-                            }`}
-                          >
-                            <span className={`text-sm font-extrabold`} style={{ color: bookingPaymentMethod === 'PayPal' ? '#ffffff' : '#003087' }}>Pay</span>
-                            <span className={`text-sm font-extrabold`} style={{ color: bookingPaymentMethod === 'PayPal' ? '#93c5fd' : '#009cde' }}>Pal</span>
-                          </button>
-                          {/* Bold / PSE */}
-                          <button
-                            type="button"
-                            onClick={() => setBookingPaymentMethod(p => p === 'Bold (PSE)' ? '' : 'Bold (PSE)')}
-                            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 border-2 transition-all duration-150 shadow-sm ${
-                              bookingPaymentMethod === 'Bold (PSE)'
-                                ? 'bg-gray-800 border-gray-800 shadow-md scale-105'
-                                : 'bg-white border-violet-200 hover:border-violet-400'
-                            }`}
-                          >
-                            <span className={`text-sm font-extrabold ${bookingPaymentMethod === 'Bold (PSE)' ? 'text-white' : 'text-gray-800'}`}>Bold</span>
-                            <span className={`text-[10px] font-medium ${bookingPaymentMethod === 'Bold (PSE)' ? 'text-gray-300' : 'text-gray-400'}`}>(PSE)</span>
-                          </button>
-                        </div>
-                        {bookingPaymentMethod && (
-                          <p className="text-[11px] text-emerald-600 font-semibold mt-2 flex items-center gap-1">
-                            <Check className="w-3 h-3" /> {bookingPaymentMethod} seleccionado
-                          </p>
-                        )}
-                        <p className="text-[10px] text-violet-500 mt-1.5">
-                          💬 Te enviaremos el link de pago después de confirmar tu reserva.
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex gap-3 pt-1">
-                      <Button
-                        variant="outline"
-                        className="rounded-xl flex-1"
-                        onClick={() => { setBookingModalSlot(null); setBookingSuccess(false); setBookingError(''); setBookingPaymentMethod(''); }}
-                        disabled={bookingSubmitting}
-                      >
-                        Cancelar
-                      </Button>
-                      <Button
-                        className="rounded-xl flex-1 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white"
-                        onClick={handleSubmitBooking}
-                        disabled={bookingSubmitting || !bookingFormTopic.trim() || !bookingPaymentMethod}
-                      >
-                        {bookingSubmitting ? (
-                          <span className="flex items-center gap-2">
-                            <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                            Enviando...
-                          </span>
-                        ) : 'Enviar solicitud'}
-                      </Button>
-                    </div>
-                  </div>
-                </>
-              )}
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* ── MODAL: CLASES VIRTUALES PERSONALIZADAS MENSUALES ── */}
       <ClasesVirtualesModal
