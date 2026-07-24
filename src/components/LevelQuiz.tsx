@@ -220,38 +220,40 @@ function getLevel(score: number) {
   return 'C1';
 }
 
+// Paleta limitada a blanco/negro/morado (Parte 7): cada nivel/categoría se
+// diferencia por tono e intensidad dentro de esas 3 familias, no por colores distintos.
 const LEVEL_DATA = {
   A1: {
-    emoji: '🌱', color: 'from-green-400 to-emerald-500', bg: 'bg-green-50', border: 'border-green-200',
-    text: 'text-green-700', badge: 'bg-green-100 text-green-800',
+    emoji: '🌱', color: 'from-violet-300 to-purple-400', bg: 'bg-violet-50', border: 'border-violet-200',
+    text: 'text-violet-700', badge: 'bg-violet-100 text-violet-800',
     title: 'Principiante',
     desc: 'Conoces palabras y frases básicas del inglés. Puedes saludar, presentarte y entender instrucciones simples. ¡Estás dando tus primeros pasos y tienes todo el camino por delante!',
     tip: 'Empieza por el curso A1 — Desde Cero. En BLANG aprenderás con explicaciones en español y ejemplos de la vida real.',
   },
   A2: {
-    emoji: '📗', color: 'from-teal-400 to-cyan-500', bg: 'bg-teal-50', border: 'border-teal-200',
-    text: 'text-teal-700', badge: 'bg-teal-100 text-teal-800',
+    emoji: '📗', color: 'from-violet-400 to-purple-500', bg: 'bg-violet-100', border: 'border-violet-300',
+    text: 'text-violet-800', badge: 'bg-violet-200 text-violet-900',
     title: 'Elemental',
     desc: 'Puedes comunicarte en situaciones cotidianas simples: hacer compras, pedir información, hablar sobre tu rutina. Tu base es sólida, ¡es el momento de crecer!',
     tip: 'El curso A2 en BLANG es perfecto para ti. Aprenderás estructuras más complejas con la misma metodología clara y en español.',
   },
   B1: {
-    emoji: '📘', color: 'from-blue-400 to-indigo-500', bg: 'bg-blue-50', border: 'border-blue-200',
-    text: 'text-blue-700', badge: 'bg-blue-100 text-blue-800',
+    emoji: '📘', color: 'from-purple-500 to-violet-600', bg: 'bg-purple-50', border: 'border-purple-200',
+    text: 'text-purple-700', badge: 'bg-purple-100 text-purple-800',
     title: 'Intermedio',
     desc: 'Entiendes el inglés en situaciones familiares y puedes expresarte con cierta fluidez. Puedes participar en conversaciones cotidianas y eres capaz de comprender textos sobre temas conocidos.',
     tip: 'En el curso B1 de BLANG practicarás conversaciones reales, phrasal verbs y textos auténticos — todo 100% en inglés.',
   },
   B2: {
-    emoji: '📙', color: 'from-purple-400 to-violet-500', bg: 'bg-purple-50', border: 'border-purple-200',
-    text: 'text-purple-700', badge: 'bg-purple-100 text-purple-800',
+    emoji: '📙', color: 'from-purple-600 to-violet-700', bg: 'bg-purple-100', border: 'border-purple-300',
+    text: 'text-purple-800', badge: 'bg-purple-200 text-purple-900',
     title: 'Intermedio Avanzado',
     desc: 'Dominas el inglés en situaciones complejas. Puedes entender textos extensos, expresarte con fluidez y argumentar tu punto de vista con precisión. ¡Estás muy cerca de la fluidez total!',
     tip: 'El curso B2 de BLANG lleva tu inglés al nivel profesional: modismos, matices culturales y expresión avanzada.',
   },
   C1: {
-    emoji: '🏆', color: 'from-amber-400 to-orange-500', bg: 'bg-amber-50', border: 'border-amber-200',
-    text: 'text-amber-700', badge: 'bg-amber-100 text-amber-800',
+    emoji: '🏆', color: 'from-neutral-800 to-black', bg: 'bg-neutral-100', border: 'border-neutral-400',
+    text: 'text-neutral-900', badge: 'bg-neutral-900 text-white',
     title: 'Avanzado',
     desc: 'Tienes un dominio avanzado del inglés. Te expresas con fluidez, precisión y eficacia en contextos académicos y profesionales. Puedes entender prácticamente cualquier texto o conversación.',
     tip: 'En el curso C1 de BLANG perfeccionarás el inglés académico, debates de alto nivel y matices del idioma nativo.',
@@ -260,10 +262,10 @@ const LEVEL_DATA = {
 
 // ─── Category config ──────────────────────────────────────────────────────────
 const CAT_CONFIG = {
-  Vocabulario: { emoji: '📖', color: 'bg-blue-100 text-blue-700 border-blue-200' },
-  Gramática:   { emoji: '✏️', color: 'bg-violet-100 text-violet-700 border-violet-200' },
-  Lectura:     { emoji: '📰', color: 'bg-teal-100 text-teal-700 border-teal-200' },
-  Listening:   { emoji: '🎧', color: 'bg-rose-100 text-rose-700 border-rose-200' },
+  Vocabulario: { emoji: '📖', color: 'bg-violet-100 text-violet-700 border-violet-200' },
+  Gramática:   { emoji: '✏️', color: 'bg-purple-100 text-purple-700 border-purple-200' },
+  Lectura:     { emoji: '📰', color: 'bg-neutral-200 text-neutral-800 border-neutral-300' },
+  Listening:   { emoji: '🎧', color: 'bg-violet-200 text-violet-900 border-violet-300' },
 };
 
 // ─── TTS helper ───────────────────────────────────────────────────────────────
@@ -520,9 +522,9 @@ export default function LevelQuiz({ open, onClose, onRegister }: LevelQuizProps)
 
           {/* Reading passage */}
           {isReading && (
-            <div className="rounded-2xl bg-teal-50 border border-teal-200 p-4">
-              <p className="text-[10px] font-bold text-teal-600 uppercase tracking-wide mb-2">📰 Lee el siguiente texto</p>
-              <p className="text-sm text-teal-900 leading-relaxed">{READING_PASSAGE}</p>
+            <div className="rounded-2xl bg-neutral-100 border border-neutral-300 p-4">
+              <p className="text-[10px] font-bold text-neutral-700 uppercase tracking-wide mb-2">📰 Lee el siguiente texto</p>
+              <p className="text-sm text-neutral-900 leading-relaxed">{READING_PASSAGE}</p>
             </div>
           )}
 
@@ -533,8 +535,8 @@ export default function LevelQuiz({ open, onClose, onRegister }: LevelQuizProps)
                 onClick={() => { speak(q.audioText); setPlayed(true); }}
                 className={`w-20 h-20 rounded-full flex items-center justify-center shadow-lg transition-all active:scale-95 ${
                   played
-                    ? 'bg-rose-500 hover:bg-rose-600'
-                    : 'bg-rose-400 hover:bg-rose-500 animate-pulse'
+                    ? 'bg-primary hover:bg-primary/90'
+                    : 'bg-violet-500 hover:bg-primary animate-pulse'
                 }`}
               >
                 <Volume2 className="w-9 h-9 text-white" />
@@ -543,7 +545,7 @@ export default function LevelQuiz({ open, onClose, onRegister }: LevelQuizProps)
                 {played ? 'Toca para escuchar de nuevo' : 'Toca para escuchar el audio'}
               </p>
               {answered && (
-                <p className="text-xs text-rose-600 bg-rose-50 border border-rose-100 rounded-full px-3 py-1 font-medium">
+                <p className="text-xs text-violet-700 bg-violet-50 border border-violet-200 rounded-full px-3 py-1 font-medium">
                   🔊 Texto: "<em>{q.audioText}</em>"
                 </p>
               )}
@@ -552,8 +554,8 @@ export default function LevelQuiz({ open, onClose, onRegister }: LevelQuizProps)
 
           {/* Question */}
           {isFill ? (
-            <div className="rounded-2xl bg-amber-50 border-2 border-amber-200 px-5 py-4">
-              <p className="text-xs font-bold text-amber-600 uppercase tracking-wide mb-2">✏️ Completa la oración</p>
+            <div className="rounded-2xl bg-neutral-100 border-2 border-neutral-300 px-5 py-4">
+              <p className="text-xs font-bold text-neutral-700 uppercase tracking-wide mb-2">✏️ Completa la oración</p>
               <p className="text-base font-bold text-foreground leading-relaxed">
                 {q.question.split('___').map((part, i, arr) => (
                   <span key={i}>
@@ -561,8 +563,8 @@ export default function LevelQuiz({ open, onClose, onRegister }: LevelQuizProps)
                     {i < arr.length - 1 && (
                       <span className={`inline-block border-b-2 border-dashed mx-1 px-3 font-semibold min-w-[60px] text-center ${
                         answered
-                          ? selected === q.answer ? 'border-green-500 text-green-700' : 'border-red-400 text-red-600'
-                          : 'border-amber-500 text-amber-600'
+                          ? selected === q.answer ? 'border-primary text-primary' : 'border-neutral-700 text-neutral-800'
+                          : 'border-neutral-500 text-neutral-700'
                       }`}>
                         {answered ? q.options[q.answer] : '?'}
                       </span>
@@ -589,8 +591,8 @@ export default function LevelQuiz({ open, onClose, onRegister }: LevelQuizProps)
               const isCorrect = idx === q.answer;
               let cls = 'bg-background border-border hover:border-primary/50 hover:bg-primary/5 cursor-pointer';
               if (answered) {
-                if (isCorrect) cls = 'bg-green-50 border-green-400 text-green-800';
-                else if (isSelected && !isCorrect) cls = 'bg-red-50 border-red-400 text-red-800';
+                if (isCorrect) cls = 'bg-violet-50 border-primary text-violet-900 font-bold';
+                else if (isSelected && !isCorrect) cls = 'bg-neutral-100 border-neutral-500 text-neutral-800';
                 else cls = 'bg-muted/30 border-border text-muted-foreground';
               } else if (isSelected) {
                 cls = 'bg-primary/10 border-primary text-foreground';
@@ -604,8 +606,8 @@ export default function LevelQuiz({ open, onClose, onRegister }: LevelQuizProps)
                 >
                   <div className={`w-5 h-5 rounded-full shrink-0 border-2 flex items-center justify-center text-white text-xs font-bold ${
                     answered
-                      ? isCorrect ? 'bg-green-500 border-green-500'
-                        : isSelected ? 'bg-red-400 border-red-400'
+                      ? isCorrect ? 'bg-primary border-primary'
+                        : isSelected ? 'bg-neutral-700 border-neutral-700'
                         : 'border-muted-foreground/40 bg-transparent'
                       : isSelected ? 'bg-primary border-primary'
                       : 'border-muted-foreground/40'
@@ -613,7 +615,7 @@ export default function LevelQuiz({ open, onClose, onRegister }: LevelQuizProps)
                     {answered && isCorrect ? '✓' : answered && isSelected && !isCorrect ? '✗' : ''}
                   </div>
                   <span>{opt}</span>
-                  {answered && isCorrect && <span className="ml-auto text-green-600 text-xs font-bold shrink-0">Correcto</span>}
+                  {answered && isCorrect && <span className="ml-auto text-primary text-xs font-bold shrink-0">Correcto</span>}
                 </button>
               );
             })}
@@ -622,7 +624,7 @@ export default function LevelQuiz({ open, onClose, onRegister }: LevelQuizProps)
           {/* Feedback */}
           {answered && (
             <div className={`rounded-xl px-4 py-3 text-sm font-semibold flex items-center gap-2 ${
-              selected === q.answer ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
+              selected === q.answer ? 'bg-violet-50 text-primary border border-violet-200' : 'bg-neutral-100 text-neutral-800 border border-neutral-300'
             }`}>
               {selected === q.answer ? '✅ ¡Correcto!' : `❌ La respuesta correcta era: "${q.options[q.answer]}"`}
             </div>

@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
+// Paleta limitada a blanco/negro/morado (Parte 7): cada módulo se diferencia por
+// tono e intensidad dentro de esas 3 familias, no por colores distintos.
 const MODULES = [
   {
     slug: 'fonetica',
@@ -11,10 +13,10 @@ const MODULES = [
     description: 'Domina los sonidos del inglés, mejora tu pronunciación y habla con confianza desde el primer día.',
     category: 'Pronunciación',
     emoji: '🔊',
-    gradient: 'from-blue-500 via-blue-400 to-cyan-400',
-    cardBg: 'from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30',
-    badge: 'bg-blue-100 text-blue-700',
-    ring: 'ring-blue-200',
+    gradient: 'from-violet-300 via-violet-400 to-purple-400',
+    cardBg: 'from-violet-50 to-purple-50 dark:from-violet-950/30 dark:to-purple-950/30',
+    badge: 'bg-violet-100 text-violet-700',
+    ring: 'ring-violet-200',
   },
   {
     slug: 'mundo-real',
@@ -22,10 +24,10 @@ const MODULES = [
     description: 'Situaciones cotidianas: compras, salud, transporte y más. Inglés que realmente usas cada día.',
     category: 'Contextos',
     emoji: '🌍',
-    gradient: 'from-emerald-500 via-green-400 to-teal-400',
-    cardBg: 'from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30',
-    badge: 'bg-emerald-100 text-emerald-700',
-    ring: 'ring-emerald-200',
+    gradient: 'from-purple-400 via-purple-500 to-violet-600',
+    cardBg: 'from-purple-50 to-violet-50 dark:from-purple-950/30 dark:to-violet-950/30',
+    badge: 'bg-purple-100 text-purple-700',
+    ring: 'ring-purple-200',
   },
   {
     slug: 'escritura',
@@ -33,10 +35,10 @@ const MODULES = [
     description: 'Redacta textos claros, emails profesionales y mensajes naturales en inglés.',
     category: 'Habilidades',
     emoji: '✍️',
-    gradient: 'from-violet-500 via-purple-400 to-fuchsia-400',
-    cardBg: 'from-violet-50 to-fuchsia-50 dark:from-violet-950/30 dark:to-fuchsia-950/30',
-    badge: 'bg-violet-100 text-violet-700',
-    ring: 'ring-violet-200',
+    gradient: 'from-violet-500 via-purple-600 to-violet-700',
+    cardBg: 'from-violet-100 to-purple-100 dark:from-violet-950/40 dark:to-purple-950/40',
+    badge: 'bg-violet-200 text-violet-800',
+    ring: 'ring-violet-300',
   },
   {
     slug: 'lectura',
@@ -44,10 +46,10 @@ const MODULES = [
     description: 'Comprende textos, artículos y materiales auténticos en inglés con técnicas efectivas.',
     category: 'Habilidades',
     emoji: '📖',
-    gradient: 'from-amber-500 via-yellow-400 to-orange-400',
-    cardBg: 'from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30',
-    badge: 'bg-amber-100 text-amber-700',
-    ring: 'ring-amber-200',
+    gradient: 'from-neutral-400 via-neutral-500 to-neutral-600',
+    cardBg: 'from-neutral-50 to-gray-100 dark:from-neutral-900/40 dark:to-neutral-800/40',
+    badge: 'bg-neutral-200 text-neutral-800',
+    ring: 'ring-neutral-300',
   },
   {
     slug: 'gramatica',
@@ -55,10 +57,10 @@ const MODULES = [
     description: 'Refuerza las estructuras del inglés con ejercicios prácticos y explicaciones claras.',
     category: 'Habilidades',
     emoji: '📝',
-    gradient: 'from-pink-500 via-rose-400 to-red-400',
-    cardBg: 'from-pink-50 to-rose-50 dark:from-pink-950/30 dark:to-rose-950/30',
-    badge: 'bg-pink-100 text-pink-700',
-    ring: 'ring-pink-200',
+    gradient: 'from-purple-600 via-violet-700 to-purple-800',
+    cardBg: 'from-purple-100 to-violet-100 dark:from-purple-950/40 dark:to-violet-950/40',
+    badge: 'bg-purple-200 text-purple-900',
+    ring: 'ring-purple-300',
   },
   {
     slug: 'listening',
@@ -66,10 +68,10 @@ const MODULES = [
     description: 'Entrena tu oído con audios y conversaciones reales para entender el inglés como nativo.',
     category: 'Habilidades',
     emoji: '🎧',
-    gradient: 'from-orange-500 via-amber-400 to-yellow-400',
-    cardBg: 'from-orange-50 to-yellow-50 dark:from-orange-950/30 dark:to-yellow-950/30',
-    badge: 'bg-orange-100 text-orange-700',
-    ring: 'ring-orange-200',
+    gradient: 'from-neutral-600 via-neutral-700 to-neutral-900',
+    cardBg: 'from-neutral-100 to-neutral-200 dark:from-neutral-900/50 dark:to-neutral-800/50',
+    badge: 'bg-neutral-300 text-neutral-900',
+    ring: 'ring-neutral-400',
   },
   {
     slug: 'clases-en-vivo',
@@ -77,10 +79,10 @@ const MODULES = [
     description: 'Practica el habla con instructores en tiempo real y mejora tu fluidez en conversación real.',
     category: 'En Vivo',
     emoji: '🎙️',
-    gradient: 'from-red-500 via-rose-500 to-pink-500',
-    cardBg: 'from-red-50 to-pink-50 dark:from-red-950/30 dark:to-pink-950/30',
-    badge: 'bg-red-100 text-red-700',
-    ring: 'ring-red-200',
+    gradient: 'from-violet-700 via-purple-800 to-black',
+    cardBg: 'from-violet-100 to-neutral-100 dark:from-violet-950/50 dark:to-neutral-900/50',
+    badge: 'bg-neutral-800 text-white',
+    ring: 'ring-neutral-500',
   },
   {
     slug: 'vocabulario',
@@ -88,10 +90,10 @@ const MODULES = [
     description: 'Expande tus palabras con ejercicios interactivos y aprende las más usadas en el inglés real.',
     category: 'Vocabulario',
     emoji: '📚',
-    gradient: 'from-teal-500 via-cyan-400 to-sky-400',
-    cardBg: 'from-teal-50 to-sky-50 dark:from-teal-950/30 dark:to-sky-950/30',
-    badge: 'bg-teal-100 text-teal-700',
-    ring: 'ring-teal-200',
+    gradient: 'from-neutral-800 via-neutral-900 to-black',
+    cardBg: 'from-neutral-200 to-neutral-300 dark:from-neutral-900/60 dark:to-black/40',
+    badge: 'bg-black text-white',
+    ring: 'ring-neutral-600',
   },
 ];
 

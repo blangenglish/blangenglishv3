@@ -51,22 +51,24 @@ interface EnglishProgramProps {
   isLoggedIn?: boolean;
 }
 
+// Paleta limitada a blanco/negro/morado (Parte 7): cada paso/nivel se diferencia
+// por tono e intensidad dentro de esas 3 familias, no por colores distintos.
 const STEPS_STYLE = [
-  { number: '01', emoji: '📚', color: 'from-purple-500 to-violet-600', bg: 'from-purple-50 to-violet-50 border-purple-200', tag: 'bg-purple-100 text-purple-700' },
-  { number: '02', emoji: '📖', color: 'from-blue-500 to-indigo-600', bg: 'from-blue-50 to-indigo-50 border-blue-200', tag: 'bg-blue-100 text-blue-700' },
-  { number: '03', emoji: '📰', color: 'from-teal-500 to-cyan-600', bg: 'from-teal-50 to-cyan-50 border-teal-200', tag: 'bg-teal-100 text-teal-700' },
-  { number: '04', emoji: '🎧', color: 'from-pink-500 to-rose-600', bg: 'from-pink-50 to-rose-50 border-pink-200', tag: 'bg-pink-100 text-pink-700' },
-  { number: '05', emoji: '🤖', color: 'from-amber-500 to-orange-600', bg: 'from-amber-50 to-orange-50 border-amber-200', tag: 'bg-amber-100 text-amber-700' },
+  { number: '01', emoji: '📚', color: 'from-violet-400 to-purple-500', bg: 'from-violet-50 to-purple-50 border-violet-200', tag: 'bg-violet-100 text-violet-700' },
+  { number: '02', emoji: '📖', color: 'from-purple-500 to-violet-700', bg: 'from-purple-50 to-violet-100 border-purple-200', tag: 'bg-purple-100 text-purple-700' },
+  { number: '03', emoji: '📰', color: 'from-neutral-600 to-neutral-800', bg: 'from-neutral-50 to-gray-100 border-neutral-300', tag: 'bg-neutral-200 text-neutral-800' },
+  { number: '04', emoji: '🎧', color: 'from-violet-600 to-purple-800', bg: 'from-violet-100 to-purple-100 border-violet-300', tag: 'bg-violet-200 text-violet-900' },
+  { number: '05', emoji: '🤖', color: 'from-neutral-800 to-black', bg: 'from-neutral-100 to-neutral-200 border-neutral-400', tag: 'bg-neutral-900 text-white' },
 ];
 
 const UNITS_STYLE = [{ emoji: '📅' }, { emoji: '🔁' }, { emoji: '🎯' }, { emoji: '🌍' }];
 
 const LEVELS_STYLE = [
-  { level: 'A1', emoji: '🌱', units: 27, color: 'bg-green-100 text-green-700 border-green-200', langColor: 'bg-green-50 text-green-600' },
-  { level: 'A2', emoji: '📗', units: 5, color: 'bg-teal-100 text-teal-700 border-teal-200', langColor: 'bg-teal-50 text-teal-600' },
-  { level: 'B1', emoji: '📘', units: 10, color: 'bg-blue-100 text-blue-700 border-blue-200', langColor: 'bg-blue-50 text-blue-600' },
-  { level: 'B2', emoji: '📙', units: 13, color: 'bg-purple-100 text-purple-700 border-purple-200', langColor: 'bg-purple-50 text-purple-600' },
-  { level: 'C1', emoji: '🏆', units: 15, color: 'bg-amber-100 text-amber-700 border-amber-200', langColor: 'bg-amber-50 text-amber-600' },
+  { level: 'A1', emoji: '🌱', units: 27, color: 'bg-violet-50 text-violet-700 border-violet-200', langColor: 'bg-violet-50 text-violet-600' },
+  { level: 'A2', emoji: '📗', units: 5, color: 'bg-purple-100 text-purple-700 border-purple-200', langColor: 'bg-purple-50 text-purple-600' },
+  { level: 'B1', emoji: '📘', units: 10, color: 'bg-violet-200 text-violet-800 border-violet-300', langColor: 'bg-violet-100 text-violet-700' },
+  { level: 'B2', emoji: '📙', units: 13, color: 'bg-purple-300 text-purple-900 border-purple-400', langColor: 'bg-purple-100 text-purple-800' },
+  { level: 'C1', emoji: '🏆', units: 15, color: 'bg-neutral-800 text-white border-neutral-900', langColor: 'bg-neutral-200 text-neutral-900' },
 ];
 
 const VALID_AGE_GROUPS = ['kids', 'teens', 'adults'];
@@ -163,7 +165,7 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
 
       {/* ── ARMA TU PLAN (Clases 1 a 1) — PRIMER BLOQUE ── */}
       <section id="sesiones-vivo" className="py-14 sm:py-24 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-violet-50 via-purple-50 to-indigo-50" />
+        <div className="absolute inset-0 bg-gradient-to-br from-violet-50 via-purple-50 to-gray-100" />
         <div className="absolute top-0 right-0 w-96 h-96 bg-primary/8 rounded-full blur-3xl" />
         <div className="absolute bottom-0 left-0 w-72 h-72 bg-violet-300/15 rounded-full blur-3xl" />
 
@@ -218,7 +220,7 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
 
                   {/* Badge de descuento — aplica sin importar la edad elegida */}
                   <div className="absolute top-4 right-4 sm:top-5 sm:right-5 z-20">
-                    <span className="inline-flex items-center gap-1 bg-amber-400 text-black text-xs sm:text-sm font-black px-3 py-1.5 rounded-full shadow-lg rotate-3">
+                    <span className="inline-flex items-center gap-1 bg-white text-black text-xs sm:text-sm font-black px-3 py-1.5 rounded-full shadow-lg rotate-3">
                       {t.armaTuPlan.priceCard.discountBadge}
                     </span>
                   </div>
@@ -272,7 +274,7 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
       {/* ── CTA COMPACTO DE REGISTRO ── */}
       <section id="hero" className="relative py-14 sm:py-20 overflow-hidden">
         <div className="absolute top-10 left-10 w-72 h-72 bg-violet-400/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-10 right-10 w-96 h-96 bg-pink-400/8 rounded-full blur-3xl" />
+        <div className="absolute bottom-10 right-10 w-96 h-96 bg-neutral-300/20 rounded-full blur-3xl" />
 
         <div className="container mx-auto px-4 relative z-10">
           <motion.div
@@ -402,12 +404,12 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
 
             {/* Language transition note */}
             <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-8">
-              <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-full px-5 py-2">
-                <span className="text-sm font-semibold text-green-700">{t.niveles.esBadge}</span>
+              <div className="flex items-center gap-2 bg-violet-50 border border-violet-200 rounded-full px-5 py-2">
+                <span className="text-sm font-semibold text-violet-700">{t.niveles.esBadge}</span>
               </div>
               <span className="text-muted-foreground font-bold text-lg hidden sm:block">→</span>
-              <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-full px-5 py-2">
-                <span className="text-sm font-semibold text-blue-700">{t.niveles.enBadge}</span>
+              <div className="flex items-center gap-2 bg-neutral-900 border border-neutral-900 rounded-full px-5 py-2">
+                <span className="text-sm font-semibold text-white">{t.niveles.enBadge}</span>
               </div>
             </motion.div>
 
@@ -521,7 +523,7 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
                           {/* ── Primer elemento: visible (preview) ── */}
                           <div className="rounded-xl bg-background/70 border border-border/40 p-3 flex flex-col gap-1">
                             <div className="flex items-start gap-2">
-                              <span className="text-green-500 text-sm font-black mt-0.5 shrink-0">✓</span>
+                              <span className="text-primary text-sm font-black mt-0.5 shrink-0">✓</span>
                               <p className="text-sm font-semibold text-foreground leading-snug">{preview.title}</p>
                             </div>
                             {snippet && (
@@ -598,11 +600,11 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
                 {/* Level scale decorative */}
                 <div className="flex gap-2 justify-center mb-8">
                   {[
-                    { lv: 'A1', emoji: '🌱', from: 'from-green-400', to: 'to-emerald-500' },
-                    { lv: 'A2', emoji: '📗', from: 'from-teal-400', to: 'to-cyan-500' },
-                    { lv: 'B1', emoji: '📘', from: 'from-blue-400', to: 'to-indigo-500' },
-                    { lv: 'B2', emoji: '📙', from: 'from-purple-400', to: 'to-violet-500' },
-                    { lv: 'C1', emoji: '🏆', from: 'from-amber-400', to: 'to-orange-500' },
+                    { lv: 'A1', emoji: '🌱', from: 'from-violet-300', to: 'to-purple-400' },
+                    { lv: 'A2', emoji: '📗', from: 'from-violet-400', to: 'to-purple-500' },
+                    { lv: 'B1', emoji: '📘', from: 'from-purple-500', to: 'to-violet-600' },
+                    { lv: 'B2', emoji: '📙', from: 'from-violet-600', to: 'to-purple-800' },
+                    { lv: 'C1', emoji: '🏆', from: 'from-neutral-800', to: 'to-black' },
                   ].map(({ lv, emoji, from, to }) => (
                     <div key={lv} className={`flex-1 max-w-[80px] rounded-2xl bg-gradient-to-br ${from} ${to} py-3 text-center shadow-sm`}>
                       <p className="text-lg">{emoji}</p>
@@ -700,8 +702,8 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
             >
               {/* Encabezado */}
               <motion.div variants={staggerItem} className="text-center mb-10 sm:mb-14">
-                <span className="inline-flex items-center gap-2 bg-amber-100 text-amber-700 text-xs font-bold px-4 py-1.5 rounded-full mb-4 border border-amber-200">
-                  <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" /> {t.reviews.badge}
+                <span className="inline-flex items-center gap-2 bg-violet-100 text-violet-700 text-xs font-bold px-4 py-1.5 rounded-full mb-4 border border-violet-200">
+                  <Star className="w-3.5 h-3.5 fill-primary text-primary" /> {t.reviews.badge}
                 </span>
                 <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-3">
                   {t.reviews.titlePre}<span className="text-primary">{t.reviews.titleHighlight}</span>{t.reviews.titlePost}
@@ -724,7 +726,7 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
                       {[1,2,3,4,5].map(s => (
                         <Star
                           key={s}
-                          className={`w-4 h-4 ${s <= r.rating ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground/20'}`}
+                          className={`w-4 h-4 ${s <= r.rating ? 'fill-primary text-primary' : 'text-muted-foreground/20'}`}
                         />
                       ))}
                     </div>
@@ -753,7 +755,7 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
 
       {/* ── CTA FINAL ── */}
       <section className="py-20 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary via-purple-600 to-pink-500" />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary via-purple-700 to-black" />
         <div className="absolute top-0 left-0 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
         <div className="absolute bottom-0 right-0 w-80 h-80 bg-white/10 rounded-full blur-3xl" />
         <div className="container mx-auto px-4 relative z-10 text-center">

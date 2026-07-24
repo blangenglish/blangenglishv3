@@ -61,12 +61,14 @@ interface SpanishProgramProps {
 // Comprensión antes que producción: primero se entiende (leer/escuchar),
 // luego se produce (hablar/escribir) — ajustar orden/nombres si el negocio
 // define una secuencia distinta.
+// Paleta limitada a blanco/negro/morado (Parte 7): cada paso se diferencia por
+// tono e intensidad dentro de esas 3 familias, no por colores distintos.
 const STEPS_STYLE = [
-  { number: '01', emoji: '📖', color: 'from-orange-500 to-red-600', bg: 'from-orange-50 to-red-50 border-orange-200', tag: 'bg-orange-100 text-orange-700' },
-  { number: '02', emoji: '🎧', color: 'from-rose-500 to-pink-600', bg: 'from-rose-50 to-pink-50 border-rose-200', tag: 'bg-rose-100 text-rose-700' },
-  { number: '03', emoji: '🗂️', color: 'from-amber-500 to-orange-600', bg: 'from-amber-50 to-orange-50 border-amber-200', tag: 'bg-amber-100 text-amber-700' },
-  { number: '04', emoji: '🗣️', color: 'from-red-500 to-rose-600', bg: 'from-red-50 to-rose-50 border-red-200', tag: 'bg-red-100 text-red-700' },
-  { number: '05', emoji: '✍️', color: 'from-pink-500 to-fuchsia-600', bg: 'from-pink-50 to-fuchsia-50 border-pink-200', tag: 'bg-pink-100 text-pink-700' },
+  { number: '01', emoji: '📖', color: 'from-purple-500 to-violet-700', bg: 'from-purple-50 to-violet-50 border-purple-200', tag: 'bg-purple-100 text-purple-700' },
+  { number: '02', emoji: '🎧', color: 'from-violet-600 to-purple-800', bg: 'from-violet-50 to-purple-100 border-violet-300', tag: 'bg-violet-200 text-violet-900' },
+  { number: '03', emoji: '🗂️', color: 'from-neutral-600 to-neutral-800', bg: 'from-neutral-50 to-gray-100 border-neutral-300', tag: 'bg-neutral-200 text-neutral-800' },
+  { number: '04', emoji: '🗣️', color: 'from-purple-700 to-black', bg: 'from-purple-100 to-neutral-100 border-purple-400', tag: 'bg-purple-900 text-white' },
+  { number: '05', emoji: '✍️', color: 'from-neutral-800 to-black', bg: 'from-neutral-100 to-neutral-200 border-neutral-400', tag: 'bg-black text-white' },
 ];
 
 export default function SpanishProgram({ onOpenAuth, isLoggedIn }: SpanishProgramProps) {
@@ -89,7 +91,7 @@ export default function SpanishProgram({ onOpenAuth, isLoggedIn }: SpanishProgra
     <Layout onOpenAuth={onOpenAuth} navMode="back">
 
       {/* PAGE BG */}
-      <div className="fixed inset-0 -z-10 bg-gradient-to-br from-orange-50 via-rose-50/60 to-background pointer-events-none" />
+      <div className="fixed inset-0 -z-10 bg-gradient-to-br from-violet-50 via-purple-50/60 to-background pointer-events-none" />
 
       {/* ── ENCABEZADO ── */}
       <section className="pt-12 sm:pt-16 pb-4">
@@ -99,7 +101,7 @@ export default function SpanishProgram({ onOpenAuth, isLoggedIn }: SpanishProgra
             initial="hidden" animate="visible" variants={staggerContainer}
           >
             <motion.div variants={staggerItem} className="mb-4">
-              <span className="inline-flex items-center gap-2 bg-orange-100 text-orange-700 text-xs sm:text-sm font-bold px-4 sm:px-5 py-2 rounded-full border border-orange-200">
+              <span className="inline-flex items-center gap-2 bg-violet-100 text-violet-700 text-xs sm:text-sm font-bold px-4 sm:px-5 py-2 rounded-full border border-violet-200">
                 {t.header.badge}
               </span>
             </motion.div>
@@ -107,7 +109,7 @@ export default function SpanishProgram({ onOpenAuth, isLoggedIn }: SpanishProgra
                 (mismo patrón que "Bienvenido/a / Welcome" en Home) — se mantiene
                 siempre igual, sin importar el idioma de interfaz elegido. */}
             <motion.h1 variants={staggerItem} className="text-3xl sm:text-5xl font-black text-foreground leading-tight">
-              Aprende <span className="text-orange-600">español</span>
+              Aprende <span className="text-violet-600">español</span>
               <span className="text-muted-foreground"> / </span>
               <span className="italic text-muted-foreground">Learn Spanish</span>
             </motion.h1>
@@ -120,9 +122,9 @@ export default function SpanishProgram({ onOpenAuth, isLoggedIn }: SpanishProgra
 
       {/* ── ARMA TU PLAN — PRIMER BLOQUE DE CONTENIDO ── */}
       <section className="py-10 sm:py-16 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-orange-50 via-rose-50 to-amber-50" />
-        <div className="absolute top-0 right-0 w-96 h-96 bg-orange-300/15 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-72 h-72 bg-rose-300/15 rounded-full blur-3xl" />
+        <div className="absolute inset-0 bg-gradient-to-br from-violet-50 via-purple-50 to-neutral-100" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-violet-300/15 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-72 h-72 bg-purple-300/15 rounded-full blur-3xl" />
 
         <div className="container mx-auto px-4 relative z-10">
           <motion.div
@@ -130,11 +132,11 @@ export default function SpanishProgram({ onOpenAuth, isLoggedIn }: SpanishProgra
             initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-80px' }} variants={staggerContainer}
           >
             <motion.div variants={fadeInUp} className="text-center mb-10 sm:mb-14">
-              <span className="inline-flex items-center gap-2 bg-orange-100 text-orange-700 text-xs sm:text-sm font-bold px-4 sm:px-5 py-2 rounded-full mb-4 sm:mb-5 border border-orange-200">
+              <span className="inline-flex items-center gap-2 bg-violet-100 text-violet-700 text-xs sm:text-sm font-bold px-4 sm:px-5 py-2 rounded-full mb-4 sm:mb-5 border border-violet-200">
                 {t.armaTuPlan.badge}
               </span>
               <h2 className="text-3xl sm:text-5xl md:text-6xl font-black text-foreground leading-tight mb-3 sm:mb-4">
-                {t.armaTuPlan.titlePre} <span className="text-orange-600">{t.armaTuPlan.titleHighlight}</span> {t.armaTuPlan.titlePost}
+                {t.armaTuPlan.titlePre} <span className="text-violet-600">{t.armaTuPlan.titleHighlight}</span> {t.armaTuPlan.titlePost}
               </h2>
               <p className="text-base sm:text-xl text-muted-foreground max-w-xl mx-auto">
                 {t.armaTuPlan.subtitle}
@@ -151,7 +153,7 @@ export default function SpanishProgram({ onOpenAuth, isLoggedIn }: SpanishProgra
                     variants={staggerItem}
                     className="flex items-start gap-4 sm:gap-5 bg-white/80 backdrop-blur border border-border/50 rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow"
                   >
-                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-orange-100 flex items-center justify-center text-2xl sm:text-3xl flex-shrink-0">
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-violet-100 flex items-center justify-center text-2xl sm:text-3xl flex-shrink-0">
                       {item.icon}
                     </div>
                     <div>
@@ -164,13 +166,13 @@ export default function SpanishProgram({ onOpenAuth, isLoggedIn }: SpanishProgra
 
               {/* Columna derecha: tarjeta precio (placeholder) + CTA */}
               <motion.div variants={staggerItem} className="flex flex-col gap-4 sm:gap-6">
-                <div className="relative bg-gradient-to-br from-orange-500 via-red-500 to-rose-600 rounded-3xl p-5 sm:p-8 text-white shadow-2xl shadow-orange-500/30 overflow-hidden">
+                <div className="relative bg-gradient-to-br from-violet-500 via-violet-700 to-purple-700 rounded-3xl p-5 sm:p-8 text-white shadow-2xl shadow-violet-500/30 overflow-hidden">
                   <div className="absolute -top-6 -right-6 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
                   <div className="absolute -bottom-6 -left-6 w-24 h-24 bg-white/10 rounded-full blur-xl" />
 
                   {/* Badge de descuento — precio base aún por definir, ver nota al inicio del archivo */}
                   <div className="absolute top-4 right-4 sm:top-5 sm:right-5 z-20">
-                    <span className="inline-flex items-center gap-1 bg-amber-400 text-black text-xs sm:text-sm font-black px-3 py-1.5 rounded-full shadow-lg rotate-3">
+                    <span className="inline-flex items-center gap-1 bg-white text-black text-xs sm:text-sm font-black px-3 py-1.5 rounded-full shadow-lg rotate-3">
                       {t.armaTuPlan.priceCard.discountBadge}
                     </span>
                   </div>
@@ -194,7 +196,7 @@ export default function SpanishProgram({ onOpenAuth, isLoggedIn }: SpanishProgra
                     </ul>
                     <Button
                       size="lg"
-                      className="w-full bg-white text-orange-600 hover:bg-white/90 font-extrabold text-base sm:text-lg py-5 sm:py-6 rounded-2xl shadow-xl transition-all active:scale-[0.98]"
+                      className="w-full bg-white text-violet-600 hover:bg-white/90 font-extrabold text-base sm:text-lg py-5 sm:py-6 rounded-2xl shadow-xl transition-all active:scale-[0.98]"
                       onClick={contactWhatsApp}
                     >
                       {t.armaTuPlan.priceCard.cta}
@@ -223,7 +225,7 @@ export default function SpanishProgram({ onOpenAuth, isLoggedIn }: SpanishProgra
             initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger}
           >
             <motion.div variants={fadeUp} className="text-center mb-14">
-              <span className="inline-block bg-orange-100 text-orange-700 text-sm font-semibold px-4 py-1.5 rounded-full mb-3">
+              <span className="inline-block bg-violet-100 text-violet-700 text-sm font-semibold px-4 py-1.5 rounded-full mb-3">
                 {t.cincoPasos.badge}
               </span>
               <h2 className="text-3xl md:text-4xl font-extrabold mb-3">{t.cincoPasos.title}</h2>
@@ -252,8 +254,8 @@ export default function SpanishProgram({ onOpenAuth, isLoggedIn }: SpanishProgra
                     <ul className="grid sm:grid-cols-2 gap-2">
                       {step.details.map((d, j) => (
                         <li key={j} className="flex items-start gap-2">
-                          <span className="mt-1 w-4 h-4 rounded-full bg-orange-500/15 flex items-center justify-center flex-shrink-0">
-                            <span className="w-1.5 h-1.5 rounded-full bg-orange-500 block" />
+                          <span className="mt-1 w-4 h-4 rounded-full bg-violet-500/15 flex items-center justify-center flex-shrink-0">
+                            <span className="w-1.5 h-1.5 rounded-full bg-violet-500 block" />
                           </span>
                           <span className="text-sm text-foreground/80">{d}</span>
                         </li>
@@ -268,13 +270,13 @@ export default function SpanishProgram({ onOpenAuth, isLoggedIn }: SpanishProgra
       </section>
 
       {/* ── NIVELES (placeholder — aún no definidos) ── */}
-      <section className="py-16 bg-orange-50/60">
+      <section className="py-16 bg-violet-50/60">
         <div className="container mx-auto px-4">
           <motion.div
             className="max-w-2xl mx-auto text-center"
             initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}
           >
-            <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-orange-500 to-rose-600 flex items-center justify-center text-3xl shadow-lg mb-4">
+            <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-violet-500 to-purple-700 flex items-center justify-center text-3xl shadow-lg mb-4">
               📊
             </div>
             <h2 className="text-2xl md:text-3xl font-extrabold mb-3">{t.niveles.title}</h2>
@@ -287,7 +289,7 @@ export default function SpanishProgram({ onOpenAuth, isLoggedIn }: SpanishProgra
 
       {/* ── CTA FINAL ── */}
       <section className="py-16 sm:py-20 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-orange-500 via-red-500 to-rose-600" />
+        <div className="absolute inset-0 bg-gradient-to-br from-violet-500 via-violet-700 to-purple-700" />
         <div className="absolute top-0 left-0 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
         <div className="absolute bottom-0 right-0 w-80 h-80 bg-white/10 rounded-full blur-3xl" />
         <div className="container mx-auto px-4 relative z-10 text-center">
@@ -305,7 +307,7 @@ export default function SpanishProgram({ onOpenAuth, isLoggedIn }: SpanishProgra
             <motion.div variants={fadeUp}>
               <Button
                 size="lg"
-                className="bg-white text-orange-600 hover:bg-white/90 rounded-full font-bold px-10 py-6 text-lg"
+                className="bg-white text-violet-600 hover:bg-white/90 rounded-full font-bold px-10 py-6 text-lg"
                 onClick={contactWhatsApp}
               >
                 {t.ctaFinal.cta}

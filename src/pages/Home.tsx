@@ -24,11 +24,13 @@ interface HomeProps {
   isLoggedIn?: boolean;
 }
 
+// Paleta limitada a blanco/negro/morado (Parte 7): cada tarjeta se diferencia
+// por tono e intensidad dentro de esas 3 familias, no por colores distintos.
 const PROGRAMS_STYLE = [
-  { id: 'spanish', emoji: '🇪🇸', gradient: 'from-orange-500 via-red-500 to-rose-600', softBg: 'from-orange-50 to-rose-50 border-orange-200', route: ROUTE_PATHS.SPANISH },
-  { id: 'kids', emoji: '🧒', gradient: 'from-teal-500 via-cyan-500 to-sky-600', softBg: 'from-teal-50 to-sky-50 border-teal-200', route: ROUTE_PATHS.ENGLISH },
-  { id: 'teens', emoji: '🧑', gradient: 'from-fuchsia-500 via-purple-500 to-violet-600', softBg: 'from-fuchsia-50 to-violet-50 border-fuchsia-200', route: ROUTE_PATHS.ENGLISH },
-  { id: 'adults', emoji: '🎓', gradient: 'from-primary via-violet-600 to-purple-700', softBg: 'from-primary/5 to-purple-50 border-primary/30', route: ROUTE_PATHS.ENGLISH },
+  { id: 'spanish', emoji: '🇪🇸', gradient: 'from-neutral-700 via-neutral-800 to-black', softBg: 'from-neutral-50 to-gray-100 border-neutral-300', route: ROUTE_PATHS.SPANISH },
+  { id: 'kids', emoji: '🧒', gradient: 'from-violet-400 via-purple-500 to-violet-600', softBg: 'from-violet-50 to-purple-50 border-violet-200', route: ROUTE_PATHS.ENGLISH },
+  { id: 'teens', emoji: '🧑', gradient: 'from-purple-600 via-violet-700 to-purple-800', softBg: 'from-purple-50 to-violet-100 border-purple-300', route: ROUTE_PATHS.ENGLISH },
+  { id: 'adults', emoji: '🎓', gradient: 'from-primary via-violet-800 to-black', softBg: 'from-primary/5 to-purple-50 border-primary/30', route: ROUTE_PATHS.ENGLISH },
 ];
 
 export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
@@ -52,8 +54,8 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
       {/* ── HERO ── */}
       <section className="relative overflow-hidden py-16 sm:py-24 md:py-28">
         <div className="absolute inset-0 bg-gradient-to-br from-violet-900 via-purple-800 to-primary" />
-        <div className="absolute top-0 left-0 w-[300px] sm:w-[550px] h-[300px] sm:h-[550px] bg-pink-500/20 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 right-0 w-[250px] sm:w-[450px] h-[250px] sm:h-[450px] bg-amber-400/15 rounded-full blur-3xl" />
+        <div className="absolute top-0 left-0 w-[300px] sm:w-[550px] h-[300px] sm:h-[550px] bg-violet-400/20 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 right-0 w-[250px] sm:w-[450px] h-[250px] sm:h-[450px] bg-white/10 rounded-full blur-3xl" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary/20 via-transparent to-transparent" />
 
         <div className="container mx-auto px-4 relative z-10">
@@ -74,7 +76,7 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
               </h1>
               <span className="hidden sm:block text-white/30 text-4xl md:text-5xl font-light">/</span>
               <h1 className="text-4xl sm:text-6xl md:text-7xl font-black leading-none tracking-tight">
-                <span className="text-amber-400">Welcome</span>
+                <span className="text-violet-200">Welcome</span>
               </h1>
             </motion.div>
             <motion.p variants={staggerItem} className="text-base sm:text-xl text-white/80 max-w-xl mx-auto mt-5 sm:mt-6">

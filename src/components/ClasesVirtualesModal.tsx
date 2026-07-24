@@ -264,7 +264,7 @@ export function ClasesVirtualesModal({
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       >
         {/* Header */}
-        <div className="sticky top-0 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 text-white px-6 py-5 rounded-t-3xl z-10">
+        <div className="sticky top-0 bg-gradient-to-r from-violet-600 via-purple-700 to-black text-white px-6 py-5 rounded-t-3xl z-10">
           <button
             onClick={onClose}
             className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white hover:bg-white/30 transition-colors"
@@ -288,8 +288,8 @@ export function ClasesVirtualesModal({
           {sent ? (
             /* ── Éxito ── */
             <div className="text-center py-8">
-              <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
-                <Check className="w-8 h-8 text-green-600" />
+              <div className="w-16 h-16 rounded-full bg-violet-100 flex items-center justify-center mx-auto mb-4">
+                <Check className="w-8 h-8 text-primary" />
               </div>
               <h4 className="text-xl font-bold mb-3">{t.success.title}</h4>
               <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
@@ -473,7 +473,7 @@ export function ClasesVirtualesModal({
                       {t.diasLabel}{' '}
                       <span
                         className={`text-xs font-normal ml-1 ${
-                          diasMatch ? 'text-green-600 font-semibold' : 'text-muted-foreground'
+                          diasMatch ? 'text-primary font-semibold' : 'text-muted-foreground'
                         }`}
                       >
                         {t.diasHint(diasSel.length, diasSemana)}
@@ -503,7 +503,7 @@ export function ClasesVirtualesModal({
                       })}
                     </div>
                     {diasSel.length > 0 && !diasMatch && (
-                      <p className="text-xs text-amber-600">
+                      <p className="text-xs text-neutral-800 font-semibold">
                         {t.diasFaltan(diasSemana - diasSel.length)}
                       </p>
                     )}
@@ -546,14 +546,14 @@ export function ClasesVirtualesModal({
                       onClick={() => setIaPlatform('mensual')}
                       className={`rounded-xl border-2 p-3 text-left transition-all ${
                         iaPlatform === 'mensual'
-                          ? 'border-green-500 bg-green-50 shadow-sm'
-                          : 'border-border/50 hover:border-green-300 hover:bg-green-50/50'
+                          ? 'border-primary bg-violet-50 shadow-sm'
+                          : 'border-border/50 hover:border-violet-300 hover:bg-violet-50/50'
                       }`}
                     >
                       <p className="text-sm font-bold leading-tight">{t.iaMensual.title}</p>
                       <p className="text-[11px] text-muted-foreground mt-0.5">{t.iaMensual.desc}</p>
                       {iaPlatform === 'mensual' && (
-                        <span className="inline-block mt-1.5 text-[10px] font-bold text-green-700 bg-green-100 rounded-full px-2 py-0.5">{t.selected}</span>
+                        <span className="inline-block mt-1.5 text-[10px] font-bold text-violet-700 bg-violet-100 rounded-full px-2 py-0.5">{t.selected}</span>
                       )}
                     </button>
                     <button
@@ -561,19 +561,19 @@ export function ClasesVirtualesModal({
                       onClick={() => setIaPlatform('trimestral')}
                       className={`rounded-xl border-2 p-3 text-left transition-all ${
                         iaPlatform === 'trimestral'
-                          ? 'border-amber-500 bg-amber-50 shadow-sm'
-                          : 'border-border/50 hover:border-amber-300 hover:bg-amber-50/50'
+                          ? 'border-neutral-800 bg-neutral-100 shadow-sm'
+                          : 'border-border/50 hover:border-neutral-400 hover:bg-neutral-50'
                       }`}
                     >
                       <p className="text-sm font-bold leading-tight">{t.iaTrimestral.title}</p>
                       <p className="text-[11px] text-muted-foreground mt-0.5">{t.iaTrimestral.desc(formatCOP(SPEAKOLOGY_FEE))}</p>
                       {iaPlatform === 'trimestral' && (
-                        <span className="inline-block mt-1.5 text-[10px] font-bold text-amber-700 bg-amber-100 rounded-full px-2 py-0.5">{t.selected}</span>
+                        <span className="inline-block mt-1.5 text-[10px] font-bold text-white bg-neutral-800 rounded-full px-2 py-0.5">{t.selected}</span>
                       )}
                     </button>
                   </div>
                   {iaPlatform === 'trimestral' && (
-                    <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 leading-relaxed">
+                    <p className="text-xs text-neutral-800 bg-neutral-100 border border-neutral-300 rounded-xl px-3 py-2 leading-relaxed">
                       {t.iaTrimestralNote(formatCOP(SPEAKOLOGY_FEE))}
                     </p>
                   )}
@@ -582,7 +582,7 @@ export function ClasesVirtualesModal({
 
               {/* ── Resumen de precio dinámico ── */}
               {isAutoestudio ? (
-                <div key={planAutoestudio} className="rounded-2xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 to-indigo-50 overflow-hidden">
+                <div key={planAutoestudio} className="rounded-2xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 to-purple-50 overflow-hidden">
                   <div className="bg-violet-600 px-4 py-2.5 flex items-center gap-2">
                     <span className="text-base">💰</span>
                     <p className="text-white text-sm font-bold">{t.resumenTitle}</p>
@@ -598,7 +598,7 @@ export function ClasesVirtualesModal({
                         </p>
                         <p className="text-xs text-muted-foreground mt-0.5">{formatUSD(effectiveTotal)}</p>
                         {payMethod === 'bold' && (
-                          <p className="text-[11px] text-orange-600 font-medium mt-0.5">{t.surchargeNote(formatCOP(PSE_SURCHARGE))}</p>
+                          <p className="text-[11px] text-neutral-800 font-semibold mt-0.5">{t.surchargeNote(formatCOP(PSE_SURCHARGE))}</p>
                         )}
                       </>
                     ) : (
@@ -618,7 +618,7 @@ export function ClasesVirtualesModal({
                   </div>
                 </div>
               ) : (
-                <div key={`${horasDia}-${diasSemana}`} className="rounded-2xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 to-indigo-50 overflow-hidden">
+                <div key={`${horasDia}-${diasSemana}`} className="rounded-2xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 to-purple-50 overflow-hidden">
                   {/* Cabecera */}
                   <div className="bg-violet-600 px-4 py-2.5 flex items-center gap-2">
                     <span className="text-base">💰</span>
@@ -642,7 +642,7 @@ export function ClasesVirtualesModal({
                       </p>
                       {/* Cargo Speakology */}
                       {iaFee > 0 && (
-                        <p className="text-xs text-amber-600 font-semibold mt-1">
+                        <p className="text-xs text-neutral-800 font-semibold mt-1">
                           {t.speakologyChargeNote(formatCOP(iaFee))}
                         </p>
                       )}
@@ -656,7 +656,7 @@ export function ClasesVirtualesModal({
                           </p>
                           <p className="text-xs text-muted-foreground mt-0.5">{formatUSD(effectiveTotal)}</p>
                           {payMethod === 'bold' && (
-                            <p className="text-[11px] text-orange-600 font-medium mt-0.5">{t.surchargeNote(formatCOP(PSE_SURCHARGE))}</p>
+                            <p className="text-[11px] text-neutral-800 font-semibold mt-0.5">{t.surchargeNote(formatCOP(PSE_SURCHARGE))}</p>
                           )}
                         </>
                       ) : (
@@ -690,7 +690,7 @@ export function ClasesVirtualesModal({
                       </div>
                       {/* Ahorro */}
                       {precio.final < precio.regular && (
-                        <p className="text-xs text-green-600 font-bold mt-1.5">
+                        <p className="text-xs text-primary font-bold mt-1.5">
                           {t.ahorras(formatCOP(precio.regular - precio.final))}
                         </p>
                       )}
@@ -716,15 +716,15 @@ export function ClasesVirtualesModal({
                     onClick={() => setPayMethod('paypal')}
                     className={`rounded-xl border-2 p-3 text-left transition-all ${
                       payMethod === 'paypal'
-                        ? 'border-blue-500 bg-blue-50 shadow-sm'
-                        : 'border-border/50 hover:border-blue-300 hover:bg-blue-50/50'
+                        ? 'border-violet-300 bg-violet-50 shadow-sm'
+                        : 'border-border/50 hover:border-violet-200 hover:bg-violet-50/50'
                     }`}
                   >
                     <p className="text-base mb-0.5">🌐</p>
                     <p className="text-sm font-bold leading-tight">{t.metodos.paypal.title}</p>
                     <p className="text-[11px] text-muted-foreground mt-0.5">{t.metodos.paypal.desc}</p>
                     {payMethod === 'paypal' && (
-                      <span className="inline-block mt-1.5 text-[10px] font-bold text-blue-700 bg-blue-100 rounded-full px-2 py-0.5">{t.selected}</span>
+                      <span className="inline-block mt-1.5 text-[10px] font-bold text-violet-700 bg-violet-100 rounded-full px-2 py-0.5">{t.selected}</span>
                     )}
                   </button>
 
@@ -741,7 +741,7 @@ export function ClasesVirtualesModal({
                     <p className="text-base mb-0.5">💳</p>
                     <p className="text-sm font-bold leading-tight">{t.metodos.bold.title}</p>
                     <p className="text-[11px] text-muted-foreground mt-0.5">{t.metodos.bold.desc}</p>
-                    <p className="text-[10px] text-orange-600 font-medium mt-0.5">{t.metodos.bold.note}</p>
+                    <p className="text-[10px] text-neutral-700 font-medium mt-0.5">{t.metodos.bold.note}</p>
                     {payMethod === 'bold' && (
                       <span className="inline-block mt-1 text-[10px] font-bold text-violet-700 bg-violet-100 rounded-full px-2 py-0.5">{t.selected}</span>
                     )}
@@ -753,8 +753,8 @@ export function ClasesVirtualesModal({
                     onClick={() => setPayMethod('bancolombia')}
                     className={`rounded-xl border-2 p-3 text-left transition-all ${
                       payMethod === 'bancolombia'
-                        ? 'border-yellow-400 bg-yellow-50 shadow-sm'
-                        : 'border-border/50 hover:border-yellow-300 hover:bg-yellow-50/50'
+                        ? 'border-purple-400 bg-purple-50 shadow-sm'
+                        : 'border-border/50 hover:border-purple-300 hover:bg-purple-50/50'
                     }`}
                   >
                     <p className="text-base mb-0.5">🟡</p>
@@ -762,7 +762,7 @@ export function ClasesVirtualesModal({
                     <p className="text-[11px] text-muted-foreground mt-0.5">{t.metodos.bancolombia.desc}</p>
                     <p className="text-[10px] text-muted-foreground mt-0.5">{t.metodos.bancolombia.note}</p>
                     {payMethod === 'bancolombia' && (
-                      <span className="inline-block mt-1 text-[10px] font-bold text-yellow-800 bg-yellow-100 rounded-full px-2 py-0.5">{t.selected}</span>
+                      <span className="inline-block mt-1 text-[10px] font-bold text-purple-800 bg-purple-100 rounded-full px-2 py-0.5">{t.selected}</span>
                     )}
                   </button>
 
@@ -772,8 +772,8 @@ export function ClasesVirtualesModal({
                     onClick={() => setPayMethod('breb')}
                     className={`rounded-xl border-2 p-3 text-left transition-all ${
                       payMethod === 'breb'
-                        ? 'border-teal-500 bg-teal-50 shadow-sm'
-                        : 'border-border/50 hover:border-teal-300 hover:bg-teal-50/50'
+                        ? 'border-neutral-500 bg-neutral-100 shadow-sm'
+                        : 'border-border/50 hover:border-neutral-400 hover:bg-neutral-50'
                     }`}
                   >
                     <p className="text-base mb-0.5">🔑</p>
@@ -781,7 +781,7 @@ export function ClasesVirtualesModal({
                     <p className="text-[11px] text-muted-foreground mt-0.5">{t.metodos.breb.desc}</p>
                     <p className="text-[10px] text-muted-foreground mt-0.5">{t.metodos.breb.note}</p>
                     {payMethod === 'breb' && (
-                      <span className="inline-block mt-1 text-[10px] font-bold text-teal-700 bg-teal-100 rounded-full px-2 py-0.5">{t.selected}</span>
+                      <span className="inline-block mt-1 text-[10px] font-bold text-white bg-neutral-800 rounded-full px-2 py-0.5">{t.selected}</span>
                     )}
                   </button>
                 </div>
