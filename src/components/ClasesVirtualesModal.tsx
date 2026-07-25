@@ -353,11 +353,11 @@ export function ClasesVirtualesModal({
         <div className="sticky top-0 bg-gradient-to-r from-violet-600 via-purple-700 to-black text-white px-6 py-5 rounded-t-3xl z-10">
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white hover:bg-white/30 transition-colors"
+            className="absolute top-3 right-3 w-11 h-11 rounded-full bg-white/20 flex items-center justify-center text-white hover:bg-white/30 transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
-          <div className="flex items-center gap-3 pr-10">
+          <div className="flex items-center gap-3 pr-12">
             <span className="text-3xl">📅</span>
             <div>
               <h3 className="font-extrabold text-lg leading-tight">
@@ -537,13 +537,13 @@ export function ClasesVirtualesModal({
                   {/* ── Clases a la semana ── */}
                   <div className="space-y-2">
                     <Label className="text-sm font-semibold">{t.diasSemanaLabel}</Label>
-                    <div className="grid grid-cols-5 gap-2">
+                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                       {[1, 2, 3, 4, 5].map(n => (
                         <button
                           key={n}
                           type="button"
                           onClick={() => setDiasSemana(n)}
-                          className={`py-3 rounded-xl font-bold text-sm border-2 transition-all ${
+                          className={`py-3 rounded-xl font-bold text-xs sm:text-sm border-2 transition-all whitespace-nowrap ${
                             diasSemana === n
                               ? 'border-primary bg-primary/10 text-primary shadow-sm'
                               : 'border-border/50 text-muted-foreground hover:border-primary/40 hover:text-foreground'
@@ -567,7 +567,7 @@ export function ClasesVirtualesModal({
                         {t.diasHint(diasSel.length, diasSemana)}
                       </span>
                     </Label>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2.5">
                       {DIAS.map(({ key, label }) => {
                         const sel = diasSel.includes(key);
                         const maxed = !sel && diasSel.length >= diasSemana;
@@ -577,7 +577,7 @@ export function ClasesVirtualesModal({
                             type="button"
                             disabled={maxed}
                             onClick={() => toggleDia(key)}
-                            className={`px-4 py-2 rounded-xl text-xs font-bold border-2 transition-all ${
+                            className={`px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-bold border-2 transition-all ${
                               sel
                                 ? 'border-primary bg-primary/10 text-primary shadow-sm'
                                 : maxed
