@@ -89,7 +89,9 @@ function formatUSD(cop: number) {
   return '≈ $' + (cop / TRM).toFixed(2) + ' USD';
 }
 
-const FRANJAS_1H = [
+// Exportados para reusarlos en PlanEspanolModal.tsx (Parte 17) — mismos rangos
+// horarios para ambos cursos, sin duplicar el arreglo.
+export const FRANJAS_1H = [
   '6:00 AM – 7:00 AM',
   '7:00 AM – 8:00 AM',
   '8:00 AM – 9:00 AM',
@@ -106,7 +108,7 @@ const FRANJAS_1H = [
   '7:00 PM – 8:00 PM',
 ];
 
-const FRANJAS_2H = [
+export const FRANJAS_2H = [
   '6:00 AM – 8:00 AM',
   '7:00 AM – 9:00 AM',
   '8:00 AM – 10:00 AM',

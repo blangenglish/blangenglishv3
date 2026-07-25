@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { IMAGES } from '@/assets/images';
-import { ROUTE_PATHS, OPEN_PLAN_AFTER_AUTH_KEY } from '@/lib/index';
+import { ROUTE_PATHS, OPEN_PLAN_AFTER_AUTH_KEY, SPANISH_PLAN_FLAG } from '@/lib/index';
 import type { AuthModal } from '@/lib/index';
 import { getAllProgressForStudent, getUnitProgress, hasMigrated, markMigrated, mergeFromRemote } from '@/lib/localProgress';
 import { openWhatsApp } from '@/lib/whatsapp';
@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { EnglishForYou } from '@/components/EnglishForYou';
 import { ClasesVirtualesModal } from '@/components/ClasesVirtualesModal';
+import { PlanEspanolModal } from '@/components/PlanEspanolModal';
 import { MUNDO_REAL_TOPICS, MR_CATEGORIES } from '@/pages/MundoRealData';
 
 interface DashboardProps {
@@ -865,6 +866,9 @@ const [loadingUnits, setLoadingUnits] = useState<string | null>(null);
   const [modalCopied, setModalCopied] = useState(false);
 
   const [showClasesModal, setShowClasesModal] = useState(false);
+  // Parte 17: "Arma tu plan" de Español para Extranjeros — modal separado,
+  // sin relación con ClasesVirtualesModal (reglas de precio/opciones distintas).
+  const [showPlanEspanolModal, setShowPlanEspanolModal] = useState(false);
   // Grupo de edad que venía preseleccionado desde la tarjeta de la pantalla de
   // bienvenida (Parte 3), pasado a través del CTA "Regístrate e inicia sesión"
   // del primer bloque de EnglishProgram.tsx (Parte 8).
@@ -882,6 +886,12 @@ const [loadingUnits, setLoadingUnits] = useState<string | null>(null);
     const flag = sessionStorage.getItem(OPEN_PLAN_AFTER_AUTH_KEY);
     if (!flag) return;
     sessionStorage.removeItem(OPEN_PLAN_AFTER_AUTH_KEY);
+    // Parte 17: si el CTA de origen fue el de español, abrir su propio
+    // armador de plan en vez del de inglés.
+    if (flag === SPANISH_PLAN_FLAG) {
+      setShowPlanEspanolModal(true);
+      return;
+    }
     if (flag === 'kids' || flag === 'teens' || flag === 'adults') setPendingAgeGroup(flag);
     setShowClasesModal(true);
   }, [isLoggedIn]);
@@ -3689,6 +3699,14 @@ useEffect(() => {
         userId={currentUserId}
         discountEligible={planModalOptions ? !!planModalOptions.discountEligible : !studentProfile?.first_month_discount_used}
         onDiscountUsed={() => { if (currentUserId) refreshProfile(currentUserId); }}
+      />
+
+      {/* ── MODAL: ARMA TU PLAN — ESPAÑOL PARA EXTRANJEROS (Parte 17) ── */}
+      <PlanEspanolModal
+        open={showPlanEspanolModal}
+        onClose={() => setShowPlanEspanolModal(false)}
+        defaultName={profileForm.name || userName || ''}
+        defaultEmail={currentEmail || ''}
       />
     </div>
   );

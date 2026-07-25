@@ -4,25 +4,28 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
-import { ROUTE_PATHS } from '@/lib/index';
+import { ROUTE_PATHS, OPEN_PLAN_AFTER_AUTH_KEY, SPANISH_PLAN_FLAG } from '@/lib/index';
 import type { AuthModal } from '@/lib/index';
 import { openWhatsApp } from '@/lib/whatsapp';
 import { useLanguage } from '@/lib/language';
 import { translations } from '@/lib/translations';
 
 // ── PENDIENTE POR DEFINIR (no inventar, solo dejar nota) ──────────────────────
-// 1. Precios reales del curso de Español para Extranjeros — por ahora el
-//    bloque "Arma tu plan" muestra "Consultar" y el CTA lleva a WhatsApp.
+// 1. Esta tarjeta de precio pública sigue mostrando "Consultar" como copy de
+//    marketing — desde la Parte 17 el precio real (USD, con profesor) sí
+//    existe dentro de PlanEspanolModal.tsx, que se abre desde Dashboard tras
+//    iniciar sesión/registrarse (ver botones del CTA abajo). No se actualizó
+//    el copy de esta tarjeta porque la Parte 17 no lo pidió — solo el
+//    comportamiento del formulario.
 // 2. Niveles reales del curso (¿misma escala A1–C1 que inglés, o una escala
 //    propia?) — por ahora la sección de niveles queda en placeholder.
 // 3. Si existen módulos especiales equivalentes a "English for you"
 //    (Pronunciación, Contextos, Mundo Real, etc.) para español — por ahora
 //    esta página no incluye esa sección.
-// 4. Desde la Parte 8, el 50% de descuento del primer mes ya no se muestra de
-//    forma pública en esta tarjeta — se convirtió en un botón gateado por
-//    cuenta dentro de "Arma tu plan" (ver ClasesVirtualesModal.tsx). Español
-//    todavía no tiene un armador de plan propio, así que ese botón no aplica
-//    acá todavía; cuando exista, debería vivir en la misma pantalla.
+// 4. El 50% de descuento del primer mes (Parte 8) es exclusivo del curso de
+//    inglés — confirmado en la Parte 17 que NUNCA aplica a español, bajo
+//    ninguna circunstancia (no hay botón ni badge de descuento en
+//    PlanEspanolModal.tsx).
 
 const staggerContainer = {
   hidden: { opacity: 0 },
@@ -187,15 +190,19 @@ export default function SpanishProgram({ onOpenAuth, isLoggedIn }: SpanishProgra
                         <li key={i} className="text-white/90 font-medium text-xs sm:text-sm">✓  {f}</li>
                       ))}
                     </ul>
-                    {/* No hay todavía un armador de plan real para español (ver nota al
-                        inicio del archivo) — a diferencia de inglés, registrarse/iniciar
-                        sesión no lleva a una pantalla de "Arma tu plan" propia, solo
-                        desbloquea el contacto por WhatsApp. */}
+                    {/* Parte 17: registrarse/iniciar sesión ahora sí lleva directo al
+                        armador de plan de español (PlanEspanolModal, abierto desde
+                        Dashboard tras la autenticación) — mismo mecanismo que inglés
+                        (Parte 8), señalizado con SPANISH_PLAN_FLAG en vez de un grupo
+                        de edad. */}
                     <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                       <Button
                         size="lg"
                         className="flex-1 bg-[#111111] hover:bg-[#111111]/90 text-white font-extrabold text-sm sm:text-base py-5 sm:py-6 rounded-2xl shadow-xl transition-colors active:scale-[0.98]"
-                        onClick={() => onOpenAuth?.('register')}
+                        onClick={() => {
+                          sessionStorage.setItem(OPEN_PLAN_AFTER_AUTH_KEY, SPANISH_PLAN_FLAG);
+                          onOpenAuth?.('register');
+                        }}
                       >
                         {t.armaTuPlan.priceCard.cta}
                       </Button>
@@ -203,7 +210,10 @@ export default function SpanishProgram({ onOpenAuth, isLoggedIn }: SpanishProgra
                         size="lg"
                         variant="outline"
                         className="flex-1 border-white/40 text-white hover:bg-white/10 font-bold text-sm sm:text-base py-5 sm:py-6 rounded-2xl"
-                        onClick={() => onOpenAuth?.('login')}
+                        onClick={() => {
+                          sessionStorage.setItem(OPEN_PLAN_AFTER_AUTH_KEY, SPANISH_PLAN_FLAG);
+                          onOpenAuth?.('login');
+                        }}
                       >
                         {t.armaTuPlan.priceCard.loginCta}
                       </Button>
