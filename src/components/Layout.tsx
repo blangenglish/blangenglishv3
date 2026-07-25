@@ -12,7 +12,10 @@ import { useLanguage } from '@/lib/language';
 import { translations } from '@/lib/translations';
 import { Globe } from 'lucide-react';
 
-// ── Parte 15: barra fina de mensajes rotativos, encima del header ──────────
+// ── Parte 16: mensajes rotativos DENTRO de la barra blanca del header ──────
+// (corrige la Parte 15, que lo puso como una franja morada separada arriba
+// del header). Vive como un renglón propio dentro del mismo <header> blanco,
+// sin fondo ni color nuevos — texto en --primary (morado) sobre blanco.
 // Componente de nivel de módulo (no anidado dentro de Layout) para que no se
 // remonte -y pierda el intervalo- cada vez que Layout se re-renderiza por
 // motivos ajenos (abrir el menú mobile, etc.). Solo reinicia la rotación
@@ -29,16 +32,16 @@ function TopMessageBar({ messages }: { messages: string[] }) {
   }, [messages]);
 
   return (
-    <div className="bg-primary text-white overflow-hidden">
-      <div className="container mx-auto px-4 h-7 sm:h-8 flex items-center justify-center">
+    <div className="overflow-hidden">
+      <div className="container mx-auto px-4 h-6 sm:h-7 flex items-center justify-center">
         <AnimatePresence mode="wait">
           <motion.p
             key={idx}
-            initial={{ opacity: 0, y: 6 }}
+            initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
+            exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.35 }}
-            className="text-[11px] sm:text-xs font-semibold tracking-wide text-center truncate max-w-full"
+            className="text-[11px] sm:text-xs font-bold text-primary tracking-wide text-center truncate max-w-full"
           >
             {messages[idx]}
           </motion.p>
@@ -118,9 +121,7 @@ export function Layout({ children, isLoggedIn = false, onOpenAuth, onLogout, use
 
   return (
     <div className="min-h-screen flex flex-col">
-      <div className="sticky top-0 z-50">
-        <TopMessageBar messages={t.topBar.messages} />
-        <header className="w-full bg-background/95 backdrop-blur border-b border-border shadow-sm">
+      <header className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur border-b border-border shadow-sm">
         <div className="container mx-auto px-3 sm:px-4">
           <div className="flex h-14 sm:h-16 items-center justify-between gap-2">
             <div className="flex items-center gap-3 sm:gap-5 min-w-0">
@@ -227,6 +228,8 @@ export function Layout({ children, isLoggedIn = false, onOpenAuth, onLogout, use
           </div>
         </div>
 
+        <TopMessageBar messages={t.topBar.messages} />
+
         {/* Mobile Menu (solo navMode 'full') */}
         {navMode === 'full' && mobileMenuOpen && (
           <div className="md:hidden border-t border-border bg-background/98">
@@ -257,8 +260,7 @@ export function Layout({ children, isLoggedIn = false, onOpenAuth, onLogout, use
             </nav>
           </div>
         )}
-        </header>
-      </div>
+      </header>
 
       <main className="flex-1">{children}</main>
 
