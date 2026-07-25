@@ -172,7 +172,6 @@ export function ClasesVirtualesModal({
   const [termsAccepted, setTermsAccepted] = useState(false);
   // Parte 8: descuento de primer mes, gateado por cuenta (no por sesión/navegador).
   const [discountApplied, setDiscountApplied] = useState(false);
-  const showDiscountToggle = !!userId && discountEligible;
   // Parte 12: reviewOnly arranca mostrando solo el resumen; "Modificar detalles" revela el formulario completo.
   const [showFullForm, setShowFullForm] = useState(!reviewOnly);
   const skipFranjaReset = useRef(true);
@@ -231,9 +230,15 @@ export function ClasesVirtualesModal({
   const autoestudioPlan = AUTOESTUDIO_PRECIOS[planAutoestudio];
   const iaFee = !isAutoestudio && iaPlatform === 'trimestral' ? SPEAKOLOGY_FEE : 0;
   const precioSinDescuento = isAutoestudio ? autoestudioPlan.cop : precio.final;
-  // Primer mes 50% (Parte 8): solo se aplica si el usuario activó el botón,
-  // disponible una única vez por cuenta (ver EDAD_CONFIG comment / discountEligible).
-  const baseFinal = discountApplied ? Math.round(precioSinDescuento / 2) : precioSinDescuento;
+  // Parte 13: el descuento de primer mes es exclusivo del Plan Mensual — el
+  // modo con profesor se factura mensual siempre, así que solo el autoestudio
+  // trimestral queda excluido. Se deriva de discountApplied + el plan vigente
+  // en vez de solo leer el estado, para que nunca quede "pegado" si el usuario
+  // cambia de plan después de haber activado el descuento.
+  const discountApplicablePlan = !isAutoestudio || planAutoestudio === 'mensual';
+  const showDiscountToggle = !!userId && discountEligible && discountApplicablePlan;
+  const discountActive = discountApplied && discountApplicablePlan;
+  const baseFinal = discountActive ? Math.round(precioSinDescuento / 2) : precioSinDescuento;
   const totalFinal = baseFinal + iaFee;
   const PSE_SURCHARGE = 10_000;
   const effectiveTotal = payMethod === 'bold' ? totalFinal + PSE_SURCHARGE : totalFinal;
@@ -284,7 +289,7 @@ export function ClasesVirtualesModal({
       ``,
       t.whatsapp.precio,
       isAutoestudio ? null : `• ${t.whatsapp.clasesAlMes(precio.unidades, unitLabel)}`,
-      discountApplied ? `• ${t.whatsapp.discountApplied}` : null,
+      discountActive ? `• ${t.whatsapp.discountApplied}` : null,
       `• ${isAutoestudio ? t.whatsapp.precioLabel : t.whatsapp.precioConDescuento}: ${formatCOP(baseFinal)} COP (${formatUSD(baseFinal)})`,
       iaFee > 0 ? `• ${t.whatsapp.activacionSpeakology(formatCOP(iaFee))}` : null,
       payMethod === 'bold' ? `• ${t.whatsapp.recargoBold(formatCOP(PSE_SURCHARGE))}` : null,
@@ -318,13 +323,15 @@ export function ClasesVirtualesModal({
         },
       };
       // Marca el descuento como usado para esta cuenta — para siempre, sin importar
-      // sesión/navegador. Se hace al enviar, no al solo activar el botón.
-      if (discountApplied) update.first_month_discount_used = true;
+      // sesión/navegador. Se hace al enviar, no al solo activar el botón. Usa
+      // discountActive (no el raw discountApplied) para no quemar el descuento
+      // de una cuenta si terminó enviando el Plan Trimestral (Parte 13).
+      if (discountActive) update.first_month_discount_used = true;
       supabase
         .from('student_profiles')
         .update(update)
         .eq('id', userId)
-        .then(() => { if (discountApplied) onDiscountUsed?.(); });
+        .then(() => { if (discountActive) onDiscountUsed?.(); });
     }
   };
 
@@ -721,7 +728,7 @@ export function ClasesVirtualesModal({
                   </div>
                   <div className="px-5 py-4">
                     <p className="text-xs text-violet-700 font-semibold mb-0.5">{t.totalAPagar}</p>
-                    {discountApplied && (
+                    {discountActive && (
                       <p className="text-sm text-muted-foreground line-through mb-0.5">{formatCOP(precioSinDescuento)} COP</p>
                     )}
                     {payMethod !== 'paypal' ? (
