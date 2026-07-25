@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { IMAGES } from '@/assets/images';
-import { ROUTE_PATHS } from '@/lib/index';
+import { ROUTE_PATHS, OPEN_PLAN_AFTER_AUTH_KEY } from '@/lib/index';
 import type { AuthModal } from '@/lib/index';
 import { getAllProgressForStudent, getUnitProgress, hasMigrated, markMigrated, mergeFromRemote } from '@/lib/localProgress';
 import { openWhatsApp } from '@/lib/whatsapp';
@@ -1709,6 +1709,7 @@ const [showPaypalModal, setShowPaypalModal] = useState(false);
     trial_start_date?: string;
     trial_end_date?: string;
     created_at?: string;
+    first_month_discount_used?: boolean;
   } | null>(null);
   // IDs de cursos/unidades con acceso explícito habilitado por admin
   const [grantedModuleIds, setGrantedModuleIds] = useState<string[]>([]);
@@ -1754,6 +1755,22 @@ const [loadingUnits, setLoadingUnits] = useState<string | null>(null);
   const [modalCopied, setModalCopied] = useState(false);
 
   const [showClasesModal, setShowClasesModal] = useState(false);
+  // Grupo de edad que venía preseleccionado desde la tarjeta de la pantalla de
+  // bienvenida (Parte 3), pasado a través del CTA "Regístrate e inicia sesión"
+  // del primer bloque de EnglishProgram.tsx (Parte 8).
+  const [pendingAgeGroup, setPendingAgeGroup] = useState<'kids' | 'teens' | 'adults' | undefined>(undefined);
+
+  // Parte 8: si el usuario se registró/inició sesión desde el CTA "Regístrate
+  // e inicia sesión" de "Arma tu plan" (inglés), lo llevamos directo a esa
+  // pantalla en vez de dejarlo en un dashboard genérico.
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    const flag = sessionStorage.getItem(OPEN_PLAN_AFTER_AUTH_KEY);
+    if (!flag) return;
+    sessionStorage.removeItem(OPEN_PLAN_AFTER_AUTH_KEY);
+    if (flag === 'kids' || flag === 'teens' || flag === 'adults') setPendingAgeGroup(flag);
+    setShowClasesModal(true);
+  }, [isLoggedIn]);
 
   // Mundo Real state
   const [showMundoReal, setShowMundoReal] = useState(false);
@@ -1964,7 +1981,7 @@ useEffect(() => {
       Promise.all([
         supabase
           .from('student_profiles')
-          .select('full_name, english_level, onboarding_step, is_admin_only, birthday, country, city, education_level, education_other, account_enabled, account_status, trial_active, trial_start_date, trial_end_date, created_at')
+          .select('full_name, english_level, onboarding_step, is_admin_only, birthday, country, city, education_level, education_other, account_enabled, account_status, trial_active, trial_start_date, trial_end_date, created_at, first_month_discount_used')
           .eq('id', userId)
           .maybeSingle(),
         supabase
@@ -4587,9 +4604,13 @@ useEffect(() => {
       {/* ── MODAL: CLASES VIRTUALES PERSONALIZADAS MENSUALES ── */}
       <ClasesVirtualesModal
         open={showClasesModal}
-        onClose={() => setShowClasesModal(false)}
+        onClose={() => { setShowClasesModal(false); setPendingAgeGroup(undefined); }}
         defaultName={profileForm.name || userName || ''}
         defaultEmail={currentEmail || ''}
+        defaultAgeGroup={pendingAgeGroup}
+        userId={currentUserId}
+        discountEligible={!studentProfile?.first_month_discount_used}
+        onDiscountUsed={() => { if (currentUserId) refreshProfile(currentUserId); }}
       />
     </div>
   );

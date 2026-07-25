@@ -6,12 +6,11 @@ import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { ChevronRight, Star, Lock, Sparkles } from 'lucide-react';
-import { ROUTE_PATHS } from '@/lib/index';
+import { ROUTE_PATHS, OPEN_PLAN_AFTER_AUTH_KEY } from '@/lib/index';
 import type { AuthModal } from '@/lib/index';
 import { supabase } from '@/integrations/supabase/client';
 import { MODULES } from '@/components/EnglishForYou';
 import { MUNDO_REAL_TOPICS } from '@/pages/MundoRealData';
-import { ClasesVirtualesModal } from '@/components/ClasesVirtualesModal';
 import LevelQuiz from '@/components/LevelQuiz';
 import { useLanguage } from '@/lib/language';
 import { translations } from '@/lib/translations';
@@ -73,19 +72,20 @@ const LEVELS_STYLE = [
 
 const VALID_AGE_GROUPS = ['kids', 'teens', 'adults'];
 
-// ── Promoción: 50% de descuento en el primer mes (reemplaza la prueba gratis) ──
-// PENDIENTE POR DEFINIR: si este descuento aplica también al precio del plan de
-// "Clases en vivo" (Arma tu plan / ClasesVirtualesModal) o solo al plan base/
-// estándar de cursos. Por ahora solo se muestra como promoción visual en esta
-// página — no se modifica el cálculo de precios dentro del modal (Parte 3).
+// ── Promoción: 50% de descuento en el primer mes del plan de cursos ──────────
+// (reemplaza la prueba gratis; Parte 8 no la modifica — sigue siendo la promo
+// de registro para el plan base de cursos, mostrada en el CTA final).
 const PRECIO_MENSUAL_COP = 60000;
 const PRECIO_MENSUAL_USD = 16;
 const PRECIO_MENSUAL_COP_DESC = PRECIO_MENSUAL_COP / 2;
 const PRECIO_MENSUAL_USD_DESC = PRECIO_MENSUAL_USD / 2;
 // "Desde $37,500 COP/clase" es el mismo precio de referencia que ya se mostraba
-// en esta tarjeta antes de la promoción — no es un precio nuevo inventado.
+// en esta tarjeta antes de la promoción — no es un precio nuevo inventado. Desde
+// la Parte 8, el 50% de descuento del primer mes de "Arma tu plan" (clases en
+// vivo) ya no se muestra acá de forma pública: se convirtió en el botón
+// "Primer mes 50%" dentro del modal, disponible solo una vez por cuenta
+// (ver ClasesVirtualesModal.tsx).
 const PRECIO_CLASE_BASE = 37500;
-const PRECIO_CLASE_DESC = PRECIO_CLASE_BASE / 2;
 
 export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgramProps) {
   const navigate = useNavigate();
@@ -100,7 +100,6 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
   // Si llega por otro medio (link directo, etc.) queda sin preseleccionar y el modal usa 'adults' por defecto.
   const ageParam = searchParams.get('age');
   const initialAgeGroup = VALID_AGE_GROUPS.includes(ageParam) ? (ageParam as 'kids' | 'teens' | 'adults') : undefined;
-  const [showClasesModal, setShowClasesModal] = useState(false);
   const [quizOpen, setQuizOpen] = useState(false);
   const [reviews, setReviews] = useState<{ full_name: string; rating: number; comment: string }[]>([]);
   const [moduleContent, setModuleContent] = useState<Record<string, { id: string; title: string; rich_text: string; sort_order: number }[]>>({});
@@ -218,42 +217,51 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
                   <div className="absolute -top-6 -right-6 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
                   <div className="absolute -bottom-6 -left-6 w-24 h-24 bg-white/10 rounded-full blur-xl" />
 
-                  {/* Badge de descuento — aplica sin importar la edad elegida */}
-                  <div className="absolute top-4 right-4 sm:top-5 sm:right-5 z-20">
-                    <span className="inline-flex items-center gap-1 bg-white text-black text-xs sm:text-sm font-black px-3 py-1.5 rounded-full shadow-lg rotate-3">
-                      {t.armaTuPlan.priceCard.discountBadge}
-                    </span>
-                  </div>
-
                   <div className="relative z-10">
                     <div className="flex items-center gap-3 mb-4 sm:mb-6">
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white/20 flex items-center justify-center text-xl sm:text-2xl">👨‍🏫</div>
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white/20 flex items-center justify-center text-xl sm:text-2xl">🔒</div>
                       <div>
-                        <p className="font-extrabold text-base sm:text-lg">{t.armaTuPlan.priceCard.role}</p>
-                        <p className="text-white/70 text-xs sm:text-sm">{t.armaTuPlan.priceCard.sub}</p>
+                        <p className="font-extrabold text-base sm:text-lg">{t.armaTuPlan.priceCard.lockedTitle}</p>
+                        <p className="text-white/70 text-xs sm:text-sm">{t.armaTuPlan.priceCard.lockedDesc}</p>
                       </div>
                     </div>
                     <div className="flex items-end gap-3 mb-2 flex-wrap">
-                      <span className="text-lg sm:text-2xl font-bold text-white/50 line-through leading-none">
-                        ${PRECIO_CLASE_BASE.toLocaleString('es-CO')}
-                      </span>
                       <span className="text-5xl sm:text-7xl font-black leading-none">
-                        ${PRECIO_CLASE_DESC.toLocaleString('es-CO')}
+                        ${PRECIO_CLASE_BASE.toLocaleString('es-CO')}
                       </span>
                     </div>
                     <p className="text-white/70 text-xs sm:text-sm mb-4 sm:mb-6">{t.armaTuPlan.priceCard.per}</p>
-                    <ul className="space-y-2 sm:space-y-2.5 mb-6 sm:mb-8">
+                    <ul className="space-y-2 sm:space-y-2.5 mb-4 sm:mb-6">
                       {t.armaTuPlan.priceCard.bullets.map((f, i) => (
                         <li key={i} className="text-white/90 font-medium text-xs sm:text-sm">✓  {f}</li>
                       ))}
                     </ul>
-                    <Button
-                      size="lg"
-                      className="w-full bg-white text-primary hover:bg-white/90 font-extrabold text-base sm:text-lg py-5 sm:py-6 rounded-2xl shadow-xl transition-all active:scale-[0.98]"
-                      onClick={() => setShowClasesModal(true)}
-                    >
-                      {t.armaTuPlan.priceCard.cta}
-                    </Button>
+                    <p className="bg-white/15 text-white rounded-xl px-3 py-2 text-xs sm:text-sm font-semibold mb-4 sm:mb-6">
+                      {t.armaTuPlan.priceCard.discountTeaser}
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                      <Button
+                        size="lg"
+                        className="flex-1 bg-white text-primary hover:bg-white/90 font-extrabold text-sm sm:text-base py-5 sm:py-6 rounded-2xl shadow-xl transition-all active:scale-[0.98]"
+                        onClick={() => {
+                          sessionStorage.setItem(OPEN_PLAN_AFTER_AUTH_KEY, initialAgeGroup || '1');
+                          onOpenAuth?.('register');
+                        }}
+                      >
+                        {t.armaTuPlan.priceCard.cta}
+                      </Button>
+                      <Button
+                        size="lg"
+                        variant="outline"
+                        className="flex-1 border-white/40 text-white hover:bg-white/10 font-bold text-sm sm:text-base py-5 sm:py-6 rounded-2xl"
+                        onClick={() => {
+                          sessionStorage.setItem(OPEN_PLAN_AFTER_AUTH_KEY, initialAgeGroup || '1');
+                          onOpenAuth?.('login');
+                        }}
+                      >
+                        {t.armaTuPlan.priceCard.loginCta}
+                      </Button>
+                    </div>
                   </div>
                 </div>
 
@@ -787,12 +795,6 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
           </motion.div>
         </div>
       </section>
-
-      <ClasesVirtualesModal
-        open={showClasesModal}
-        onClose={() => setShowClasesModal(false)}
-        defaultAgeGroup={initialAgeGroup}
-      />
 
       <LevelQuiz
         open={quizOpen}

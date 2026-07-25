@@ -19,6 +19,12 @@ export const ROUTE_PATHS = {
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 export type AuthModal = 'login' | 'register' | null;
 
+// Parte 8: se guarda en sessionStorage justo antes de abrir el modal de auth
+// desde el CTA "Regístrate e inicia sesión" de Arma tu plan (inglés/español).
+// Dashboard lo lee al montar para abrir "Arma tu plan" automáticamente y
+// evitar que el usuario se quede en un dashboard genérico tras registrarse.
+export const OPEN_PLAN_AFTER_AUTH_KEY = 'blang_open_plan_after_auth';
+
 // ─── Domain Types ─────────────────────────────────────────────────────────────
 export interface Lesson {
   id: string;

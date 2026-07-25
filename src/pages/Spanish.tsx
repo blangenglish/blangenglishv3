@@ -18,11 +18,11 @@ import { translations } from '@/lib/translations';
 // 3. Si existen módulos especiales equivalentes a "English for you"
 //    (Pronunciación, Contextos, Mundo Real, etc.) para español — por ahora
 //    esta página no incluye esa sección.
-// 4. Precio original sobre el cual calcular el 50% de descuento del primer
-//    mes — como todavía no hay un precio base definido para español, la
-//    tarjeta de "Arma tu plan" solo muestra el badge "-50% primer mes" sin
-//    montos (a diferencia de inglés, que sí calcula el precio con descuento
-//    porque ya tenía un precio de referencia definido).
+// 4. Desde la Parte 8, el 50% de descuento del primer mes ya no se muestra de
+//    forma pública en esta tarjeta — se convirtió en un botón gateado por
+//    cuenta dentro de "Arma tu plan" (ver ClasesVirtualesModal.tsx). Español
+//    todavía no tiene un armador de plan propio, así que ese botón no aplica
+//    acá todavía; cuando exista, debería vivir en la misma pantalla.
 
 const staggerContainer = {
   hidden: { opacity: 0 },
@@ -170,19 +170,12 @@ export default function SpanishProgram({ onOpenAuth, isLoggedIn }: SpanishProgra
                   <div className="absolute -top-6 -right-6 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
                   <div className="absolute -bottom-6 -left-6 w-24 h-24 bg-white/10 rounded-full blur-xl" />
 
-                  {/* Badge de descuento — precio base aún por definir, ver nota al inicio del archivo */}
-                  <div className="absolute top-4 right-4 sm:top-5 sm:right-5 z-20">
-                    <span className="inline-flex items-center gap-1 bg-white text-black text-xs sm:text-sm font-black px-3 py-1.5 rounded-full shadow-lg rotate-3">
-                      {t.armaTuPlan.priceCard.discountBadge}
-                    </span>
-                  </div>
-
                   <div className="relative z-10">
                     <div className="flex items-center gap-3 mb-4 sm:mb-6">
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white/20 flex items-center justify-center text-xl sm:text-2xl">👩‍🏫</div>
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white/20 flex items-center justify-center text-xl sm:text-2xl">🔒</div>
                       <div>
-                        <p className="font-extrabold text-base sm:text-lg">{t.armaTuPlan.priceCard.role}</p>
-                        <p className="text-white/70 text-xs sm:text-sm">{t.armaTuPlan.priceCard.sub}</p>
+                        <p className="font-extrabold text-base sm:text-lg">{t.armaTuPlan.priceCard.lockedTitle}</p>
+                        <p className="text-white/70 text-xs sm:text-sm">{t.armaTuPlan.priceCard.lockedDesc}</p>
                       </div>
                     </div>
                     <div className="flex items-end gap-2 mb-2">
@@ -194,13 +187,27 @@ export default function SpanishProgram({ onOpenAuth, isLoggedIn }: SpanishProgra
                         <li key={i} className="text-white/90 font-medium text-xs sm:text-sm">✓  {f}</li>
                       ))}
                     </ul>
-                    <Button
-                      size="lg"
-                      className="w-full bg-white text-violet-600 hover:bg-white/90 font-extrabold text-base sm:text-lg py-5 sm:py-6 rounded-2xl shadow-xl transition-all active:scale-[0.98]"
-                      onClick={contactWhatsApp}
-                    >
-                      {t.armaTuPlan.priceCard.cta}
-                    </Button>
+                    {/* No hay todavía un armador de plan real para español (ver nota al
+                        inicio del archivo) — a diferencia de inglés, registrarse/iniciar
+                        sesión no lleva a una pantalla de "Arma tu plan" propia, solo
+                        desbloquea el contacto por WhatsApp. */}
+                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                      <Button
+                        size="lg"
+                        className="flex-1 bg-white text-violet-600 hover:bg-white/90 font-extrabold text-sm sm:text-base py-5 sm:py-6 rounded-2xl shadow-xl transition-all active:scale-[0.98]"
+                        onClick={() => onOpenAuth?.('register')}
+                      >
+                        {t.armaTuPlan.priceCard.cta}
+                      </Button>
+                      <Button
+                        size="lg"
+                        variant="outline"
+                        className="flex-1 border-white/40 text-white hover:bg-white/10 font-bold text-sm sm:text-base py-5 sm:py-6 rounded-2xl"
+                        onClick={() => onOpenAuth?.('login')}
+                      >
+                        {t.armaTuPlan.priceCard.loginCta}
+                      </Button>
+                    </div>
                   </div>
                 </div>
 

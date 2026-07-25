@@ -9,6 +9,7 @@ import { openWhatsApp } from '@/lib/whatsapp';
 import { TermsAcceptBox } from '@/components/TermsAcceptBox';
 import { useLanguage } from '@/lib/language';
 import { translations } from '@/lib/translations';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ClasesVirtualesModalProps {
   open: boolean;
@@ -17,6 +18,12 @@ interface ClasesVirtualesModalProps {
   defaultEmail?: string;
   /** Grupo de edad preseleccionado (ej. desde la tarjeta de la pantalla de bienvenida) */
   defaultAgeGroup?: 'kids' | 'teens' | 'adults';
+  /** ID de la cuenta logueada — requerido para mostrar y marcar el descuento de primer mes (Parte 8) */
+  userId?: string;
+  /** true si esta cuenta todavía no usó el descuento de primer mes */
+  discountEligible?: boolean;
+  /** Se llama tras enviar la solicitud con el descuento aplicado, para refrescar el perfil */
+  onDiscountUsed?: () => void;
 }
 
 // Claves invariantes (no dependen del idioma) para que la selección de días
@@ -105,6 +112,9 @@ export function ClasesVirtualesModal({
   defaultName = '',
   defaultEmail = '',
   defaultAgeGroup,
+  userId,
+  discountEligible = false,
+  onDiscountUsed,
 }: ClasesVirtualesModalProps) {
   const { lang } = useLanguage();
   const t = translations[lang].modal;
@@ -135,6 +145,9 @@ export function ClasesVirtualesModal({
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
+  // Parte 8: descuento de primer mes, gateado por cuenta (no por sesión/navegador).
+  const [discountApplied, setDiscountApplied] = useState(false);
+  const showDiscountToggle = !!userId && discountEligible;
 
   useEffect(() => { setNombre(defaultName); }, [defaultName]);
   useEffect(() => { setCorreo(defaultEmail); }, [defaultEmail]);
@@ -158,6 +171,7 @@ export function ClasesVirtualesModal({
       setSent(false);
       setError('');
       setTermsAccepted(false);
+      setDiscountApplied(false);
     }
   }, [open]);
 
@@ -183,7 +197,10 @@ export function ClasesVirtualesModal({
   const precio = PRECIOS[horasDia][diasSemana as 1 | 2 | 3 | 4 | 5];
   const autoestudioPlan = AUTOESTUDIO_PRECIOS[planAutoestudio];
   const iaFee = !isAutoestudio && iaPlatform === 'trimestral' ? SPEAKOLOGY_FEE : 0;
-  const baseFinal = isAutoestudio ? autoestudioPlan.cop : precio.final;
+  const precioSinDescuento = isAutoestudio ? autoestudioPlan.cop : precio.final;
+  // Primer mes 50% (Parte 8): solo se aplica si el usuario activó el botón,
+  // disponible una única vez por cuenta (ver EDAD_CONFIG comment / discountEligible).
+  const baseFinal = discountApplied ? Math.round(precioSinDescuento / 2) : precioSinDescuento;
   const totalFinal = baseFinal + iaFee;
   const PSE_SURCHARGE = 10_000;
   const effectiveTotal = payMethod === 'bold' ? totalFinal + PSE_SURCHARGE : totalFinal;
@@ -234,6 +251,7 @@ export function ClasesVirtualesModal({
       ``,
       t.whatsapp.precio,
       isAutoestudio ? null : `• ${t.whatsapp.clasesAlMes(precio.unidades, unitLabel)}`,
+      discountApplied ? `• ${t.whatsapp.discountApplied}` : null,
       `• ${isAutoestudio ? t.whatsapp.precioLabel : t.whatsapp.precioConDescuento}: ${formatCOP(baseFinal)} COP (${formatUSD(baseFinal)})`,
       iaFee > 0 ? `• ${t.whatsapp.activacionSpeakology(formatCOP(iaFee))}` : null,
       payMethod === 'bold' ? `• ${t.whatsapp.recargoBold(formatCOP(PSE_SURCHARGE))}` : null,
@@ -247,6 +265,16 @@ export function ClasesVirtualesModal({
     ].filter(line => line !== null).join('\n');
     openWhatsApp(mensaje);
     setSent(true);
+
+    // Marca el descuento como usado para esta cuenta — para siempre, sin importar
+    // sesión/navegador. Se hace al enviar, no al solo activar el botón.
+    if (discountApplied && userId) {
+      supabase
+        .from('student_profiles')
+        .update({ first_month_discount_used: true })
+        .eq('id', userId)
+        .then(() => onDiscountUsed?.());
+    }
   };
 
   return (
@@ -580,6 +608,33 @@ export function ClasesVirtualesModal({
                 </div>
               )}
 
+              {/* ── Descuento de primer mes (una sola vez por cuenta) ── */}
+              {showDiscountToggle && (
+                <button
+                  type="button"
+                  onClick={() => setDiscountApplied(v => !v)}
+                  className={`w-full rounded-2xl border-2 p-3 flex items-center justify-between gap-3 text-left transition-all ${
+                    discountApplied
+                      ? 'border-primary bg-violet-50 shadow-sm'
+                      : 'border-dashed border-violet-300 bg-white hover:bg-violet-50/50'
+                  }`}
+                >
+                  <span>
+                    <span className="text-sm font-bold block">
+                      🎉 {discountApplied ? t.discountAppliedTitle : t.discountOfferTitle}
+                    </span>
+                    <span className="text-[11px] text-muted-foreground block mt-0.5">
+                      {discountApplied ? t.discountAppliedDesc : t.discountOfferDesc}
+                    </span>
+                  </span>
+                  <span className={`shrink-0 text-[10px] font-bold px-2.5 py-1 rounded-full ${
+                    discountApplied ? 'bg-primary text-white' : 'bg-violet-100 text-violet-700'
+                  }`}>
+                    {discountApplied ? t.discountActiveBadge : t.discountActivateCta}
+                  </span>
+                </button>
+              )}
+
               {/* ── Resumen de precio dinámico ── */}
               {isAutoestudio ? (
                 <div key={planAutoestudio} className="rounded-2xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 to-purple-50 overflow-hidden">
@@ -590,6 +645,9 @@ export function ClasesVirtualesModal({
                   </div>
                   <div className="px-5 py-4">
                     <p className="text-xs text-violet-700 font-semibold mb-0.5">{t.totalAPagar}</p>
+                    {discountApplied && (
+                      <p className="text-sm text-muted-foreground line-through mb-0.5">{formatCOP(precioSinDescuento)} COP</p>
+                    )}
                     {payMethod !== 'paypal' ? (
                       <>
                         <p className="text-3xl font-extrabold text-violet-700 leading-none">
@@ -689,9 +747,9 @@ export function ClasesVirtualesModal({
                         )}
                       </div>
                       {/* Ahorro */}
-                      {precio.final < precio.regular && (
+                      {baseFinal < precio.regular && (
                         <p className="text-xs text-primary font-bold mt-1.5">
-                          {t.ahorras(formatCOP(precio.regular - precio.final))}
+                          {t.ahorras(formatCOP(precio.regular - baseFinal))}
                         </p>
                       )}
                     </div>
