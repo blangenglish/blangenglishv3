@@ -10,6 +10,17 @@ export const translations = {
     common: {
       langToggleLabel: 'EN', // muestra el idioma AL QUE se puede cambiar
     },
+    // Parte 15: barra fina y angosta encima del header, con mensajes que
+    // rotan solos. El de 50% es un gancho — no dice "gratis" porque es un
+    // descuento, no un mes gratuito (y solo aplica a Plan Mensual, Parte 13).
+    topBar: {
+      messages: [
+        'Aprovecha el 50% en tu primer mes',
+        'Speak up and Stand out with Blang',
+        'Aprende otro idioma hoy',
+        'Metodología progresiva',
+      ],
+    },
     nav: {
       back: 'Volver al menú principal',
       backShort: 'Volver',
@@ -374,6 +385,14 @@ export const translations = {
   en: {
     common: {
       langToggleLabel: 'ES',
+    },
+    topBar: {
+      messages: [
+        'Get 50% off your first month',
+        'Speak up and Stand out with Blang',
+        'Learn another language today',
+        'Progressive methodology',
+      ],
     },
     nav: {
       back: 'Back to main menu',

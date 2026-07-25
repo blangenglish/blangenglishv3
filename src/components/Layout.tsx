@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, BookOpen, Video, TrendingUp, LayoutDashboard, LogIn, UserPlus, ChevronLeft } from 'lucide-react';
 import { SiWhatsapp, SiInstagram, SiTiktok } from 'react-icons/si';
 import { Button } from '@/components/ui/button';
@@ -10,6 +11,42 @@ import type { AuthModal } from '@/lib/index';
 import { useLanguage } from '@/lib/language';
 import { translations } from '@/lib/translations';
 import { Globe } from 'lucide-react';
+
+// ── Parte 15: barra fina de mensajes rotativos, encima del header ──────────
+// Componente de nivel de módulo (no anidado dentro de Layout) para que no se
+// remonte -y pierda el intervalo- cada vez que Layout se re-renderiza por
+// motivos ajenos (abrir el menú mobile, etc.). Solo reinicia la rotación
+// cuando cambia el arreglo de mensajes (cambio de idioma).
+function TopMessageBar({ messages }: { messages: string[] }) {
+  const [idx, setIdx] = useState(0);
+
+  useEffect(() => {
+    setIdx(0);
+    const id = setInterval(() => {
+      setIdx((i) => (i + 1) % messages.length);
+    }, 3500);
+    return () => clearInterval(id);
+  }, [messages]);
+
+  return (
+    <div className="bg-primary text-white overflow-hidden">
+      <div className="container mx-auto px-4 h-7 sm:h-8 flex items-center justify-center">
+        <AnimatePresence mode="wait">
+          <motion.p
+            key={idx}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.35 }}
+            className="text-[11px] sm:text-xs font-semibold tracking-wide text-center truncate max-w-full"
+          >
+            {messages[idx]}
+          </motion.p>
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -81,7 +118,9 @@ export function Layout({ children, isLoggedIn = false, onOpenAuth, onLogout, use
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur border-b border-border shadow-sm">
+      <div className="sticky top-0 z-50">
+        <TopMessageBar messages={t.topBar.messages} />
+        <header className="w-full bg-background/95 backdrop-blur border-b border-border shadow-sm">
         <div className="container mx-auto px-3 sm:px-4">
           <div className="flex h-14 sm:h-16 items-center justify-between gap-2">
             <div className="flex items-center gap-3 sm:gap-5 min-w-0">
@@ -218,7 +257,8 @@ export function Layout({ children, isLoggedIn = false, onOpenAuth, onLogout, use
             </nav>
           </div>
         )}
-      </header>
+        </header>
+      </div>
 
       <main className="flex-1">{children}</main>
 
