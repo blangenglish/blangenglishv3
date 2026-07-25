@@ -286,6 +286,9 @@ export const translations = {
       discountAppliedDesc: 'Se aplicará a tu primer mes al enviar la solicitud',
       discountActivateCta: 'Activar',
       discountActiveBadge: '✓ Activo',
+      // Parte 12: resumen condensado usado al "Renovar plan" (reviewOnly).
+      reviewSummaryTitle: 'Tu plan',
+      modifyDetailsCta: '✏️ Modificar detalles',
       planAutoestudioLabel: 'Elige tu plan *',
       autoestudio: {
         mensual: { label: 'Plan Mensual', incluye: 'Acceso completo A1–C1 + ChatGPT para practicar', periodo: 'mes' },
@@ -647,6 +650,8 @@ export const translations = {
       discountAppliedDesc: "It will be applied to your first month when you send the request",
       discountActivateCta: 'Activate',
       discountActiveBadge: '✓ Active',
+      reviewSummaryTitle: 'Your plan',
+      modifyDetailsCta: '✏️ Modify details',
       planAutoestudioLabel: 'Choose your plan *',
       autoestudio: {
         mensual: { label: 'Monthly Plan', incluye: 'Full A1–C1 access + ChatGPT for practice', periodo: 'month' },

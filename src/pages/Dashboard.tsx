@@ -138,460 +138,25 @@ function PayPalHostedButton() {
   );
 }
 
-// ── PlanSelector: 2 opciones (nuevo) o solo pago (reactivar) ──
-function PlanSelector({ currentUserId, currentEmail, onPlanSaved, onOpenPaypal, mode = 'new' }: {
-  currentUserId: string;
-  currentEmail: string;
-  onPlanSaved: () => void;
-  onOpenPaypal: () => void;
-  mode?: 'new' | 'reactivate';
-}) {
-  const [selectedPlan, setSelectedPlan] = useState<'trial' | 'full' | null>(null);
-  const trialDays = 7;
-  const [payMethod, setPayMethod] = useState<'pse' | 'paypal' | 'bancolombia' | 'breb'>('paypal');
-  const [saving, setSaving] = useState(false);
-  const [step, setStep] = useState<'select' | 'pay'>('select');
-  const [termsAccepted, setTermsAccepted] = useState(false);
-
-  const handleConfirmPlan = async () => {
-    if (!selectedPlan) return;
-    setSaving(true);
-    const { error } = await supabase.functions.invoke('save-onboarding-2026', {
-      body: { action: 'save_subscription', student_id: currentUserId, plan: selectedPlan, method: payMethod },
-    });
-    if (error) {
-      // Fallback directo
-      const today = new Date();
-      const trialEnd = new Date(today); trialEnd.setDate(today.getDate() + 7);
-      const monthEnd = new Date(today); monthEnd.setMonth(today.getMonth() + 1);
-      const isPaid = selectedPlan === 'full';
-      const subData = {
-        student_id: currentUserId,
-        plan_slug: isPaid ? 'monthly' : 'free_trial',
-        plan_name: isPaid ? 'Plan Mensual' : '7 días gratis',
-        status: isPaid ? 'pending_approval' : 'trial',
-        amount_usd: isPaid ? 15 : 0,
-        payment_method: payMethod,
-        approved_by_admin: !isPaid,
-        account_enabled: !isPaid,
-        current_period_end: isPaid ? monthEnd.toISOString() : trialEnd.toISOString(),
-        trial_ends_at: !isPaid ? trialEnd.toISOString() : null,
-      };
-      const { error: e1 } = await supabase.from('subscriptions').insert(subData);
-      if (e1) await supabase.from('subscriptions').update(subData).eq('student_id', currentUserId);
-    }
-    setSaving(false);
-    onPlanSaved();
-  };
-
-  if (step === 'pay' && selectedPlan === 'full') {
-    const amountUsd = 15;
-    const planLabel = 'Plan Mensual';
-    const waMsg = (metodo: string) => [
-      `💳 *SOLICITUD DE PAGO — BLANG ENGLISH*`,
-      ``,
-      `📋 *PLAN SELECCIONADO*`,
-      `• Plan: ${planLabel}`,
-      `• Monto: $${amountUsd} USD`,
-      ``,
-      `💳 *MÉTODO DE PAGO*`,
-      `• ${metodo}`,
-      ``,
-      `✅ _El estudiante aceptó los términos y condiciones._`,
-    ].join('\n');
-    return (
-      <div className="space-y-4">
-        <div className="rounded-2xl border-2 border-primary/20 p-5 bg-background space-y-4">
-          <div>
-            <button onClick={() => setStep('select')} className="text-xs text-muted-foreground hover:text-foreground mb-3 flex items-center gap-1">
-              ← Volver
-            </button>
-            <h3 className="font-extrabold text-lg mb-1">Elige cómo pagar</h3>
-            <p className="text-sm text-muted-foreground">{planLabel} — <strong>${amountUsd} USD</strong></p>
-          </div>
-
-          <TermsAcceptBox accepted={termsAccepted} onChange={setTermsAccepted} />
-
-          {/* PayPal */}
-          <button
-            className="w-full rounded-2xl border-2 p-4 flex items-center gap-3 border-[#003087]/30 bg-[#003087]/5 hover:border-[#003087]/60 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-            disabled={saving || !termsAccepted}
-            onClick={async () => {
-              setSaving(true);
-              const { error } = await supabase.functions.invoke('save-onboarding-2026', {
-                body: { action: 'save_subscription', student_id: currentUserId, plan: selectedPlan, method: 'paypal' },
-              });
-              if (error) {
-                const today = new Date(); const monthEnd = new Date(today); monthEnd.setMonth(today.getMonth() + 1);
-                const d = { student_id: currentUserId, plan_slug: 'monthly', plan_name: planLabel, status: 'pending_approval', amount_usd: amountUsd, payment_method: 'paypal', approved_by_admin: false, account_enabled: false, current_period_end: monthEnd.toISOString() };
-                const { error: e1 } = await supabase.from('subscriptions').insert(d);
-                if (e1) await supabase.from('subscriptions').update(d).eq('student_id', currentUserId);
-              }
-              setSaving(false);
-              onPlanSaved();
-              onOpenPaypal();
-            }}
-          >
-            <svg viewBox="0 0 24 24" className="w-7 h-7 fill-[#003087] shrink-0"><path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.106zm14.146-14.42a3.35 3.35 0 0 0-.607-.541c-.013.076-.026.175-.041.254-.59 3.025-2.566 6.082-8.558 6.082H9.928l-1.182 7.519H12c.46 0 .85-.334.922-.789l.038-.197.733-4.64.047-.257a.932.932 0 0 1 .921-.789h.58c3.76 0 6.701-1.528 7.559-5.95.36-1.85.176-3.395-.578-4.692z"/></svg>
-            <div className="text-left">
-              <p className="font-bold text-[#003087] text-sm">{saving ? 'Preparando...' : 'Pagar con PayPal 💳'}</p>
-              <p className="text-xs text-muted-foreground">Dólares (USD) — activación automática</p>
-            </div>
-          </button>
-
-          {/* PSE / Bold */}
-          <button
-            className="w-full rounded-2xl border-2 p-4 flex items-center gap-3 border-violet-300 bg-violet-50 hover:border-violet-500 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-            disabled={saving || !termsAccepted}
-            onClick={async () => {
-              setSaving(true);
-              const today = new Date(); const monthEnd = new Date(today); monthEnd.setMonth(today.getMonth() + 1);
-              const d = { student_id: currentUserId, plan_slug: 'monthly', plan_name: planLabel, status: 'pending_approval', amount_usd: amountUsd, payment_method: 'pse', approved_by_admin: false, account_enabled: false, current_period_end: monthEnd.toISOString() };
-              const { error: e1 } = await supabase.from('subscriptions').insert(d);
-              if (e1) await supabase.from('subscriptions').update(d).eq('student_id', currentUserId);
-              openWhatsApp(waMsg('💳 Bold / PSE — COP (+$10.000 recargo)'));
-              setSaving(false);
-              onPlanSaved();
-            }}
-          >
-            <span className="text-2xl">💳</span>
-            <div className="text-left">
-              <p className="font-bold text-violet-700 text-sm">{saving ? 'Preparando...' : 'Bold / PSE'}</p>
-              <p className="text-xs text-muted-foreground">Pesos (COP) — +$10.000 recargo transacción</p>
-            </div>
-          </button>
-
-          {/* Bancolombia */}
-          <button
-            className="w-full rounded-2xl border-2 p-4 flex items-center gap-3 border-yellow-300 bg-yellow-50 hover:border-yellow-500 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-            disabled={saving || !termsAccepted}
-            onClick={async () => {
-              setSaving(true);
-              const today = new Date(); const monthEnd = new Date(today); monthEnd.setMonth(today.getMonth() + 1);
-              const d = { student_id: currentUserId, plan_slug: 'monthly', plan_name: planLabel, status: 'pending_approval', amount_usd: amountUsd, payment_method: 'bancolombia', approved_by_admin: false, account_enabled: false, current_period_end: monthEnd.toISOString() };
-              const { error: e1 } = await supabase.from('subscriptions').insert(d);
-              if (e1) await supabase.from('subscriptions').update(d).eq('student_id', currentUserId);
-              openWhatsApp(waMsg('🟡 Transferencia Bancolombia — COP (cta. ahorros)'));
-              setSaving(false);
-              onPlanSaved();
-            }}
-          >
-            <span className="text-2xl">🟡</span>
-            <div className="text-left">
-              <p className="font-bold text-yellow-900 text-sm">{saving ? 'Preparando...' : 'Transferencia Bancolombia'}</p>
-              <p className="text-xs text-muted-foreground">Pesos (COP) — desde cta. Bancolombia (ahorros)</p>
-            </div>
-          </button>
-
-          {/* Bre-B */}
-          <button
-            className="w-full rounded-2xl border-2 p-4 flex items-center gap-3 border-teal-300 bg-teal-50 hover:border-teal-500 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-            disabled={saving || !termsAccepted}
-            onClick={async () => {
-              setSaving(true);
-              const today = new Date(); const monthEnd = new Date(today); monthEnd.setMonth(today.getMonth() + 1);
-              const d = { student_id: currentUserId, plan_slug: 'monthly', plan_name: planLabel, status: 'pending_approval', amount_usd: amountUsd, payment_method: 'breb', approved_by_admin: false, account_enabled: false, current_period_end: monthEnd.toISOString() };
-              const { error: e1 } = await supabase.from('subscriptions').insert(d);
-              if (e1) await supabase.from('subscriptions').update(d).eq('student_id', currentUserId);
-              openWhatsApp(waMsg('🔑 Bre-B / Llave — COP (cualquier banco colombiano)'));
-              setSaving(false);
-              onPlanSaved();
-            }}
-          >
-            <span className="text-2xl">🔑</span>
-            <div className="text-left">
-              <p className="font-bold text-teal-700 text-sm">{saving ? 'Preparando...' : 'Bre-B / Llave'}</p>
-              <p className="text-xs text-muted-foreground">Pesos (COP) — desde cualquier banco colombiano</p>
-            </div>
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // ── Modo reactivar: solo PayPal + PSE, precio normal ──
-  if (mode === 'reactivate') {
-    const waMsg = (metodo: string) => [
-      `💳 *SOLICITUD DE PAGO — BLANG ENGLISH*`,
-      ``,
-      `📋 *PLAN SELECCIONADO*`,
-      `• Plan: Plan Mensual`,
-      `• Monto: $16 USD`,
-      ``,
-      `💳 *MÉTODO DE PAGO*`,
-      `• ${metodo}`,
-      ``,
-      `✅ _El estudiante aceptó los términos y condiciones._`,
-    ].join('\n');
-    return (
-      <div className="rounded-2xl border-2 border-primary/20 p-5 bg-background space-y-4">
-        <div>
-          <h3 className="font-extrabold text-xl mb-1">Reactivar suscripción 🔄</h3>
-          <p className="text-sm text-muted-foreground">Plan Mensual — <strong>$16 USD/mes</strong></p>
-        </div>
-
-        <TermsAcceptBox accepted={termsAccepted} onChange={setTermsAccepted} />
-
-        {/* PayPal */}
-        <button
-          className="w-full rounded-2xl border-2 p-4 flex items-center gap-3 border-[#003087]/30 bg-[#003087]/5 hover:border-[#003087]/60 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-          disabled={saving || !termsAccepted}
-          onClick={async () => {
-            setSaving(true);
-            const today = new Date(); const monthEnd = new Date(today); monthEnd.setMonth(today.getMonth() + 1);
-            const d = { student_id: currentUserId, plan_slug: 'monthly', plan_name: 'Plan Mensual', status: 'pending_approval', amount_usd: 15, payment_method: 'paypal', approved_by_admin: false, account_enabled: false, current_period_end: monthEnd.toISOString() };
-            const { error: e1 } = await supabase.from('subscriptions').insert(d);
-            if (e1) await supabase.from('subscriptions').update(d).eq('student_id', currentUserId);
-            setSaving(false);
-            onPlanSaved();
-            onOpenPaypal();
-          }}
-        >
-          <svg viewBox="0 0 24 24" className="w-7 h-7 fill-[#003087] shrink-0"><path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.106zm14.146-14.42a3.35 3.35 0 0 0-.607-.541c-.013.076-.026.175-.041.254-.59 3.025-2.566 6.082-8.558 6.082H9.928l-1.182 7.519H12c.46 0 .85-.334.922-.789l.038-.197.733-4.64.047-.257a.932.932 0 0 1 .921-.789h.58c3.76 0 6.701-1.528 7.559-5.95.36-1.85.176-3.395-.578-4.692z"/></svg>
-          <div className="text-left">
-            <p className="font-bold text-[#003087] text-sm">{saving ? 'Preparando...' : 'Pagar con PayPal'}</p>
-            <p className="text-xs text-muted-foreground">Dólares (USD)</p>
-          </div>
-        </button>
-
-        {/* PSE / Bold */}
-        <button
-          className="w-full rounded-2xl border-2 p-4 flex items-center gap-3 border-violet-300 bg-violet-50 hover:border-violet-500 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-          disabled={saving || !termsAccepted}
-          onClick={async () => {
-            setSaving(true);
-            const today = new Date(); const monthEnd = new Date(today); monthEnd.setMonth(today.getMonth() + 1);
-            const d = { student_id: currentUserId, plan_slug: 'monthly', plan_name: 'Plan Mensual', status: 'pending_approval', amount_usd: 15, payment_method: 'pse', approved_by_admin: false, account_enabled: false, current_period_end: monthEnd.toISOString() };
-            const { error: e1 } = await supabase.from('subscriptions').insert(d);
-            if (e1) await supabase.from('subscriptions').update(d).eq('student_id', currentUserId);
-            openWhatsApp(waMsg('💳 Bold / PSE — COP (+$10.000 recargo)'));
-            setSaving(false);
-            onPlanSaved();
-          }}
-        >
-          <span className="text-2xl">💳</span>
-          <div className="text-left">
-            <p className="font-bold text-violet-700 text-sm">{saving ? 'Preparando...' : 'Bold / PSE'}</p>
-            <p className="text-xs text-muted-foreground">Pesos (COP) — +$10.000 recargo transacción</p>
-          </div>
-        </button>
-
-        {/* Bancolombia */}
-        <button
-          className="w-full rounded-2xl border-2 p-4 flex items-center gap-3 border-yellow-300 bg-yellow-50 hover:border-yellow-500 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-          disabled={saving || !termsAccepted}
-          onClick={async () => {
-            setSaving(true);
-            const today = new Date(); const monthEnd = new Date(today); monthEnd.setMonth(today.getMonth() + 1);
-            const d = { student_id: currentUserId, plan_slug: 'monthly', plan_name: 'Plan Mensual', status: 'pending_approval', amount_usd: 15, payment_method: 'bancolombia', approved_by_admin: false, account_enabled: false, current_period_end: monthEnd.toISOString() };
-            const { error: e1 } = await supabase.from('subscriptions').insert(d);
-            if (e1) await supabase.from('subscriptions').update(d).eq('student_id', currentUserId);
-            openWhatsApp(waMsg('🟡 Transferencia Bancolombia — COP (cta. ahorros)'));
-            setSaving(false);
-            onPlanSaved();
-          }}
-        >
-          <span className="text-2xl">🟡</span>
-          <div className="text-left">
-            <p className="font-bold text-yellow-900 text-sm">{saving ? 'Preparando...' : 'Transferencia Bancolombia'}</p>
-            <p className="text-xs text-muted-foreground">Pesos (COP) — desde cta. Bancolombia (ahorros)</p>
-          </div>
-        </button>
-
-        {/* Bre-B */}
-        <button
-          className="w-full rounded-2xl border-2 p-4 flex items-center gap-3 border-teal-300 bg-teal-50 hover:border-teal-500 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-          disabled={saving || !termsAccepted}
-          onClick={async () => {
-            setSaving(true);
-            const today = new Date(); const monthEnd = new Date(today); monthEnd.setMonth(today.getMonth() + 1);
-            const d = { student_id: currentUserId, plan_slug: 'monthly', plan_name: 'Plan Mensual', status: 'pending_approval', amount_usd: 15, payment_method: 'breb', approved_by_admin: false, account_enabled: false, current_period_end: monthEnd.toISOString() };
-            const { error: e1 } = await supabase.from('subscriptions').insert(d);
-            if (e1) await supabase.from('subscriptions').update(d).eq('student_id', currentUserId);
-            openWhatsApp(waMsg('🔑 Bre-B / Llave — COP (cualquier banco colombiano)'));
-            setSaving(false);
-            onPlanSaved();
-          }}
-        >
-          <span className="text-2xl">🔑</span>
-          <div className="text-left">
-            <p className="font-bold text-teal-700 text-sm">{saving ? 'Preparando...' : 'Bre-B / Llave'}</p>
-            <p className="text-xs text-muted-foreground">Pesos (COP) — desde cualquier banco colombiano</p>
-          </div>
-        </button>
-      </div>
-    );
-  }
-
-  // ── Modo nuevo usuario: 2 opciones ──
-  return (
-    <div className="space-y-4">
-      <div className="rounded-2xl border-2 border-border/50 p-5 bg-background">
-        <h3 className="font-extrabold text-xl mb-1">Elige tu plan 🎓</h3>
-        <p className="text-sm text-muted-foreground mb-5">Selecciona una opción para habilitar tus cursos.</p>
-        <div className="grid sm:grid-cols-2 gap-4">
-
-          {/* Opción 1: Prueba gratis */}
-          <button
-            onClick={() => setSelectedPlan('trial')}
-            className={`rounded-2xl border-2 p-5 text-left flex flex-col gap-3 transition-all ${
-              selectedPlan === 'trial'
-                ? 'border-blue-400 bg-blue-50/50 shadow-md'
-                : 'border-border/50 hover:border-blue-300 hover:bg-blue-50/20'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-3xl">🌱</span>
-              {selectedPlan === 'trial' && <span className="text-xs font-bold bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full">✓</span>}
-            </div>
-            <div>
-              <p className="font-extrabold text-base">Prueba Gratis</p>
-              <p className="text-xs text-muted-foreground mb-1">{trialDays ?? 7} días</p>
-              <p className="text-2xl font-black text-blue-600">$0</p>
-            </div>
-            <ul className="space-y-1">
-              <li className="text-xs text-foreground/70 flex items-center gap-1.5"><Check className="w-3 h-3 text-blue-500" /> Cancela cuando quieras</li>
-              <li className="text-xs text-foreground/70 flex items-center gap-1.5"><Check className="w-3 h-3 text-blue-500" /> Acceso módulo A1</li>
-              <li className="text-xs text-foreground/70 flex items-center gap-1.5"><Check className="w-3 h-3 text-blue-500" /> Después $16 USD / $60,000 COP/mes</li>
-            </ul>
-          </button>
-
-          {/* Opción 2: Plan completo */}
-          <button
-            onClick={() => setSelectedPlan('full')}
-            className={`rounded-2xl border-2 p-5 text-left flex flex-col gap-3 transition-all relative ${
-              selectedPlan === 'full'
-                ? 'border-primary bg-primary/5 shadow-md'
-                : 'border-border/50 hover:border-primary/40 hover:bg-primary/5'
-            }`}
-          >
-            <span className="absolute -top-3 left-4 bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-full">⭐ Recomendado</span>
-            <div className="flex items-center justify-between">
-              <span className="text-3xl">🚀</span>
-              {selectedPlan === 'full' && <span className="text-xs font-bold bg-primary/10 text-primary px-2.5 py-1 rounded-full">✓</span>}
-            </div>
-            <div>
-              <p className="font-extrabold text-base">Plan Mensual</p>
-              <div className="flex items-baseline gap-2">
-                <p className="text-2xl font-black text-primary">$16 USD</p>
-              </div>
-              <p className="text-xs text-muted-foreground">o $60,000 COP / mes</p>
-            </div>
-            <ul className="space-y-1">
-              <li className="text-xs text-foreground/70 flex items-center gap-1.5"><Check className="w-3 h-3 text-primary" /> Acceso completo a TODOS los cursos</li>
-              <li className="text-xs text-foreground/70 flex items-center gap-1.5"><Check className="w-3 h-3 text-primary" /> A1, A2, B1, B2, C1</li>
-              <li className="text-xs text-foreground/70 flex items-center gap-1.5"><Check className="w-3 h-3 text-primary" /> PSE o PayPal</li>
-            </ul>
-          </button>
-        </div>
-
-        {selectedPlan && (
-          <div className="mt-5">
-            {selectedPlan === 'trial' ? (
-              <Button className="w-full rounded-xl py-3 font-bold bg-blue-600 hover:bg-blue-700 text-white"
-                onClick={handleConfirmPlan} disabled={saving}>
-                {saving ? 'Activando...' : '🌱 Activar prueba gratis →'}
-              </Button>
-            ) : (
-              <Button className="w-full rounded-xl py-3 font-bold"
-                onClick={() => setStep('pay')}>
-                Continuar con Plan Mensual → $16 USD
-              </Button>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ── PlanSelectorWithDelete: selector de 2 planes + formulario + eliminar cuenta ──
-// Usado en deshabilitado y prueba_finalizada (reemplaza PagoSolicitudForm directo)
+// ── PlanSelectorWithDelete: Caso A/B (Parte 12) + formulario eliminar cuenta ──
+// Usado en prueba_finalizada, deshabilitado y activo_cancelado.
 function PlanSelectorWithDelete({
   defaultName, defaultEmail, userId,
+  hasPreviousConfig, previousConfig, onOpenPlan,
   trialView, setTrialView,
-  trialPlan, setTrialPlan,
   trialDeleteReason, setTrialDeleteReason,
   trialDeleteSent, setTrialDeleteSent,
   trialDeleteSending, setTrialDeleteSending,
-  onSuccess,
 }: {
   defaultName: string; defaultEmail: string; userId: string;
+  hasPreviousConfig: boolean;
+  previousConfig?: any;
+  onOpenPlan: (opts?: { reviewOnly?: boolean }) => void;
   trialView: string; setTrialView: (v: any) => void;
-  trialPlan: string | null; setTrialPlan: (v: any) => void;
   trialDeleteReason: string; setTrialDeleteReason: (v: string) => void;
   trialDeleteSent: boolean; setTrialDeleteSent: (v: boolean) => void;
   trialDeleteSending: boolean; setTrialDeleteSending: (v: boolean) => void;
-  onSuccess: () => void;
 }) {
-  // Vista: selector de plan (dos tarjetas + formulario)
-  if (trialView === 'plan') {
-    return (
-      <div className="space-y-4">
-        <button
-          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-          onClick={() => { setTrialView('actions'); setTrialPlan(null); }}
-        >
-          ← Volver
-        </button>
-
-        <div className="grid grid-cols-2 gap-3">
-          {/* Plan Mensual */}
-          <button
-            type="button"
-            onClick={() => setTrialPlan('mensual')}
-            className={`rounded-2xl border-2 p-4 text-left transition-all ${
-              trialPlan === 'mensual'
-                ? 'border-primary bg-primary/5 shadow-md'
-                : 'border-border/50 hover:border-primary/40 hover:bg-primary/5'
-            }`}
-          >
-            <div className="text-2xl mb-2">🚀</div>
-            <p className="font-bold text-sm">Plan Mensual</p>
-            <p className="text-xl font-extrabold text-primary mt-1">$16 USD</p>
-            <p className="text-xs text-muted-foreground">$60,000 COP / mes</p>
-            {trialPlan === 'mensual' && (
-              <span className="inline-block mt-2 text-[10px] font-bold bg-primary/10 text-primary rounded-full px-2 py-0.5">✓ Seleccionado</span>
-            )}
-          </button>
-
-          {/* Plan Trimestral */}
-          <button
-            type="button"
-            onClick={() => setTrialPlan('trimestral')}
-            className={`rounded-2xl border-2 p-4 text-left transition-all relative ${
-              trialPlan === 'trimestral'
-                ? 'border-violet-500 bg-violet-50 shadow-md'
-                : 'border-border/50 hover:border-violet-400 hover:bg-violet-50/50'
-            }`}
-          >
-            <span className="absolute top-2 right-2 text-[10px] font-extrabold bg-amber-400 text-black rounded-full px-2 py-0.5">⭐ Mejor valor</span>
-            <div className="text-2xl mb-2">💎</div>
-            <p className="font-bold text-sm">Plan Trimestral</p>
-            <p className="text-xl font-extrabold text-violet-700 mt-1">$68 USD</p>
-            <p className="text-xs text-muted-foreground">$250,000 COP / 3 meses</p>
-            {trialPlan === 'trimestral' && (
-              <span className="inline-block mt-2 text-[10px] font-bold bg-violet-100 text-violet-700 rounded-full px-2 py-0.5">✓ Seleccionado</span>
-            )}
-          </button>
-        </div>
-
-        {trialPlan && (
-          <PagoSolicitudForm
-            defaultName={defaultName}
-            defaultEmail={defaultEmail}
-            userId={userId}
-            planSlug={trialPlan === 'mensual' ? 'monthly' : 'trimestral'}
-            planName={trialPlan === 'mensual' ? 'Plan Mensual' : 'Plan Trimestral'}
-            planPrice={trialPlan === 'mensual' ? '$16 USD / $60,000 COP al mes' : '$68 USD / $250,000 COP por 3 meses'}
-            planAmount={trialPlan === 'mensual' ? 16 : 68}
-            onSuccess={onSuccess}
-          />
-        )}
-      </div>
-    );
-  }
-
   // Vista: formulario eliminar cuenta
   if (trialView === 'delete_request') {
     return (
@@ -605,28 +170,10 @@ function PlanSelectorWithDelete({
     );
   }
 
-  // Vista por defecto: dos botones de plan + link eliminar
+  // Vista por defecto: Caso A/B + link eliminar cuenta
   return (
     <div className="space-y-3">
-      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Elige un plan para continuar</p>
-      <div className="grid grid-cols-2 gap-3">
-        <Button
-          className="rounded-xl py-6 font-bold text-sm bg-primary hover:bg-primary/90 flex-col h-auto gap-1"
-          onClick={() => { setTrialView('plan'); setTrialPlan('mensual'); }}
-        >
-          <span className="text-lg">🚀</span>
-          <span>Plan Mensual</span>
-          <span className="text-xs font-normal opacity-80">$16 USD / mes</span>
-        </Button>
-        <Button
-          className="rounded-xl py-6 font-bold text-sm bg-violet-600 hover:bg-violet-700 flex-col h-auto gap-1"
-          onClick={() => { setTrialView('plan'); setTrialPlan('trimestral'); }}
-        >
-          <span className="text-lg">💎</span>
-          <span>Plan Trimestral</span>
-          <span className="text-xs font-normal opacity-80">$68 USD / 3 meses</span>
-        </Button>
-      </div>
+      <PlanCaseAB hasPreviousConfig={hasPreviousConfig} previousConfig={previousConfig} onOpen={onOpenPlan} />
       <div className="text-center pt-1">
         <button
           className="text-xs text-muted-foreground hover:text-destructive transition-colors underline-offset-2 hover:underline"
@@ -736,530 +283,82 @@ function DeleteAccountRequest({
   );
 }
 
-// ── PagoSolicitudForm: formulario directo para solicitar plan mensual ──
-// Usado en: prueba_activa, prueba_finalizada, deshabilitado
-function PagoSolicitudForm({
-  defaultName,
-  defaultEmail,
-  userId,
-  onSuccess,
-  planSlug = 'monthly',
-  planName = 'Plan Mensual',
-  planPrice = '$16 USD / $60,000 COP al mes',
-  planAmount = 16,
+
+// ── PlanCaseAB (Parte 12): reemplaza las 3 opciones (7 días gratis / mensual /
+// trimestral) por dos casos detectados automáticamente —
+//   Caso A (sin config previa): CTA directo a "Arma tu plan" con descuento.
+//   Caso B (con config previa): resumen del plan anterior + Renovar igual / Modificar.
+const DIA_LABELS_ES: Record<string, string> = { mon: 'Lunes', tue: 'Martes', wed: 'Miércoles', thu: 'Jueves', fri: 'Viernes' };
+
+function PlanCaseAB({
+  hasPreviousConfig,
+  previousConfig,
+  onOpen,
 }: {
-  defaultName: string;
-  defaultEmail: string;
-  userId: string;
-  onSuccess: () => void;
-  planSlug?: string;
-  planName?: string;
-  planPrice?: string;
-  planAmount?: number;
+  hasPreviousConfig: boolean;
+  previousConfig?: {
+    edad?: string; modo?: string; planAutoestudio?: string | null;
+    horasDia?: number | null; diasSemana?: number | null; diasSel?: string[];
+    franja?: string | null; iaPlatform?: string | null;
+  };
+  onOpen: (opts?: { reviewOnly?: boolean }) => void;
 }) {
-  const [nombre, setNombre] = useState(defaultName);
-  const [correo, setCorreo] = useState(defaultEmail);
-  const [metodo, setMetodo] = useState<'paypal' | 'bold_pse' | 'bancolombia' | 'breb'>('paypal');
-  const [sending, setSending] = useState(false);
-  const [sent, setSent] = useState(false);
-  const [formError, setFormError] = useState('');
-  const [termsAccepted, setTermsAccepted] = useState(false);
-
-  const canSubmit = nombre.trim() && correo.trim() && termsAccepted;
-
-  const metodoLabel =
-    metodo === 'paypal'      ? '🌐 PayPal — USD' :
-    metodo === 'bancolombia' ? '🟡 Transferencia Bancolombia — COP (cta. ahorros)' :
-    metodo === 'breb'        ? '🔑 Bre-B / Llave — COP (cualquier banco colombiano)' :
-                               '💳 Bold / PSE — COP (+$10.000 recargo)';
-
-  const handleSubmit = async () => {
-    if (!canSubmit) return;
-    setSending(true);
-    setFormError('');
-    try {
-      // 1. Notificar al admin por WhatsApp (non-fatal)
-      try {
-        const waMsg = [
-          `💳 *SOLICITUD DE PAGO — BLANG ENGLISH*`,
-          ``,
-          `👤 *DATOS DEL ESTUDIANTE*`,
-          `• Nombre: ${nombre.trim()}`,
-          `• Correo: ${correo.trim()}`,
-          ``,
-          `📋 *PLAN SELECCIONADO*`,
-          `• Plan: ${planName}`,
-          `• Precio: ${planPrice}`,
-          ``,
-          `💳 *MÉTODO DE PAGO*`,
-          `• ${metodoLabel}`,
-          ``,
-          `✅ _El estudiante aceptó los términos y condiciones._`,
-        ].join('\n');
-        openWhatsApp(waMsg);
-      } catch (_) { /* non-fatal */ }
-
-      // 2. Actualizar estado en BD
-      if (userId) {
-        await supabase.from('student_profiles').update({
-          trial_active: false,
-          account_status: 'pending_payment',
-          updated_at: new Date().toISOString(),
-        }).eq('id', userId);
-
-        const { error: subUpErr } = await supabase.from('subscriptions').update({
-          trial_active: false,
-          status: 'pending_approval',
-          account_enabled: false,
-          payment_method: metodo,
-          updated_at: new Date().toISOString(),
-        }).eq('student_id', userId);
-
-        // Si no había suscripción previa, insertar una nueva
-        if (subUpErr) {
-          const periodEnd = new Date();
-          if (planSlug === 'trimestral') periodEnd.setMonth(periodEnd.getMonth() + 3);
-          else periodEnd.setMonth(periodEnd.getMonth() + 1);
-          await supabase.from('subscriptions').insert({
-            student_id: userId,
-            plan_slug: planSlug,
-            plan_name: planName,
-            status: 'pending_approval',
-            amount_usd: planAmount,
-            payment_method: metodo,
-            approved_by_admin: false,
-            account_enabled: false,
-            current_period_end: periodEnd.toISOString(),
-          });
-        }
-      }
-
-      setSent(true);
-      onSuccess();
-    } catch (_err) {
-      setFormError('Hubo un error al enviar. Por favor intenta de nuevo.');
-    } finally {
-      setSending(false);
-    }
-  };
-
-  if (sent) {
+  if (!hasPreviousConfig) {
+    // ── Caso A: usuario nuevo, nunca ha armado un plan ──
     return (
-      <div className="rounded-2xl bg-green-50 border-2 border-green-300 p-6 text-center space-y-3">
-        <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mx-auto">
-          <Check className="w-6 h-6 text-green-600" />
-        </div>
-        <h3 className="font-extrabold text-lg">¡Solicitud enviada! 🎉</h3>
-        <p className="text-sm text-muted-foreground">
-          Activaremos tu cuenta en máximo 48 horas hábiles. Recibirás confirmación en <strong>{correo}</strong>.
-        </p>
-        <p className="text-xs text-muted-foreground">
-          ¿Dudas?{' '}
-          <a href="https://wa.me/573236405246" target="_blank" rel="noopener noreferrer" className="text-primary font-semibold hover:underline">
-            +57 323 640 5246 (WhatsApp)
-          </a>
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="rounded-2xl border-2 border-primary/20 bg-background p-5 space-y-4">
-      <div>
-        <h3 className="font-extrabold text-base mb-0.5">💳 Adquirir {planName}</h3>
-        <p className="text-sm text-muted-foreground">{planPrice} · Acceso completo a todos los cursos</p>
-      </div>
-
-      <div className="space-y-1.5">
-        <Label className="text-sm font-semibold">Nombre completo *</Label>
-        <Input
-          value={nombre}
-          onChange={e => setNombre(e.target.value)}
-          placeholder="Tu nombre completo"
-          className="rounded-xl"
-        />
-      </div>
-
-      <div className="space-y-1.5">
-        <Label className="text-sm font-semibold">Correo electrónico *</Label>
-        <Input
-          type="email"
-          value={correo}
-          onChange={e => setCorreo(e.target.value)}
-          placeholder="tucorreo@ejemplo.com"
-          className="rounded-xl"
-        />
-      </div>
-
-      <div className="space-y-1.5">
-        <Label className="text-sm font-semibold">Método de pago *</Label>
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={() => setMetodo('paypal')}
-            className={`py-3 px-2 rounded-xl font-bold text-sm border-2 transition-all flex flex-col items-center gap-0.5 ${metodo === 'paypal' ? 'border-blue-500 bg-blue-50 text-blue-800 shadow-sm' : 'border-border/50 text-muted-foreground hover:border-blue-300 hover:text-foreground'}`}
-          >
-            <span>🌐 PayPal</span>
-            <span className="text-[10px] font-normal opacity-70">USD</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setMetodo('bold_pse')}
-            className={`py-3 px-2 rounded-xl font-bold text-sm border-2 transition-all flex flex-col items-center gap-0.5 ${metodo === 'bold_pse' ? 'border-violet-500 bg-violet-50 text-violet-800 shadow-sm' : 'border-border/50 text-muted-foreground hover:border-violet-300 hover:text-foreground'}`}
-          >
-            <span>💳 Bold / PSE</span>
-            <span className="text-[10px] font-normal opacity-70">COP +$10.000</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setMetodo('bancolombia')}
-            className={`py-3 px-2 rounded-xl font-bold text-sm border-2 transition-all flex flex-col items-center gap-0.5 ${metodo === 'bancolombia' ? 'border-yellow-400 bg-yellow-50 text-yellow-900 shadow-sm' : 'border-border/50 text-muted-foreground hover:border-yellow-300 hover:text-foreground'}`}
-          >
-            <span>🟡 Bancolombia</span>
-            <span className="text-[10px] font-normal opacity-70">COP (ahorros)</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setMetodo('breb')}
-            className={`py-3 px-2 rounded-xl font-bold text-sm border-2 transition-all flex flex-col items-center gap-0.5 ${metodo === 'breb' ? 'border-teal-500 bg-teal-50 text-teal-800 shadow-sm' : 'border-border/50 text-muted-foreground hover:border-teal-300 hover:text-foreground'}`}
-          >
-            <span>🔑 Bre-B / Llave</span>
-            <span className="text-[10px] font-normal opacity-70">COP</span>
-          </button>
-        </div>
-      </div>
-
-      <TermsAcceptBox accepted={termsAccepted} onChange={setTermsAccepted} />
-
-      <div className="bg-muted/30 rounded-xl p-3 text-xs text-muted-foreground leading-relaxed">
-        Al enviar, el administrador verificará el pago y activará tu cuenta en máximo 48 horas hábiles. Escríbenos por{' '}
-        <a href="https://wa.me/573236405246" target="_blank" rel="noopener noreferrer" className="text-primary font-semibold">
-          WhatsApp +57 323 640 5246
-        </a>{' '}con cualquier duda.
-      </div>
-
-      {formError && (
-        <p className="text-sm text-destructive bg-destructive/10 rounded-xl px-4 py-2">{formError}</p>
-      )}
-
-      <Button
-        className="w-full rounded-xl py-5 font-bold"
-        onClick={handleSubmit}
-        disabled={sending || !canSubmit}
-      >
-        {sending ? (
-          <span className="flex items-center gap-2">
-            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            Enviando solicitud...
-          </span>
-        ) : (
-          <span className="flex items-center gap-2">
-            <Mail className="w-4 h-4" />
-            Enviar solicitud de pago
-          </span>
-        )}
-      </Button>
-    </div>
-  );
-}
-
-// ── PlanPickerInline: 3 opciones de plan para primer_registro (sin modal) ──
-function PlanPickerInline({
-  defaultName,
-  defaultEmail,
-  userId,
-  onSuccess,
-}: {
-  defaultName: string;
-  defaultEmail: string;
-  userId: string;
-  onSuccess: () => void;
-}) {
-  type PlanChoice = 'trial' | 'mensual' | 'trimestral';
-  const [selected, setSelected] = useState<PlanChoice | null>(null);
-  const [nombre, setNombre] = useState(defaultName);
-  const [correo, setCorreo] = useState(defaultEmail);
-  const [metodo, setMetodo] = useState<'paypal' | 'bold_pse' | 'bancolombia'>('paypal');
-  const [trialMsg, setTrialMsg] = useState('');
-  const [sending, setSending] = useState(false);
-  const [sent, setSent] = useState(false);
-  const [formError, setFormError] = useState('');
-
-  const canSubmit = nombre.trim() && correo.trim();
-
-  const PLAN_INFO = {
-    trial:      { slug: 'free_trial',  name: '7 días gratis',  amount: 0,  period: 0 },
-    mensual:    { slug: 'monthly',     name: 'Plan Mensual',    amount: 15, period: 1 },
-    trimestral: { slug: 'trimestral',  name: 'Plan Trimestral', amount: 68, period: 3 },
-  };
-
-  const handleSubmit = async () => {
-    if (!selected || !canSubmit) return;
-    setSending(true);
-    setFormError('');
-    const info = PLAN_INFO[selected];
-    const isTrial = selected === 'trial';
-    const methodLabel = metodo === 'paypal' ? 'PayPal (USD)' : metodo === 'bancolombia' ? 'Transferencia Bancolombia (COP)' : 'Bold / PSE (COP)';
-
-    try {
-      // 1. Notificar al admin por WhatsApp (non-fatal)
-      try {
-        const msg = isTrial
-          ? `📋 SOLICITUD DE PRUEBA GRATUITA — BLANG ENGLISH\n\nNombre: ${nombre.trim()}\nCorreo: ${correo.trim()}${trialMsg ? '\nMensaje: ' + trialMsg : ''}`
-          : `💳 SOLICITUD DE PAGO — BLANG ENGLISH\n\nPlan: ${info.name}\nNombre: ${nombre.trim()}\nCorreo: ${correo.trim()}\nMétodo de pago: ${methodLabel}\nMonto: $${info.amount} USD`;
-        openWhatsApp(msg);
-      } catch (_) { /* non-fatal */ }
-
-      // 2. Actualizar BD
-      if (userId) {
-        await supabase.from('student_profiles').update({
-          account_status: 'pending_payment',
-          updated_at: new Date().toISOString(),
-        }).eq('id', userId);
-
-        if (isTrial) {
-          // Guardar en trial_requests
-          try {
-            await supabase.from('trial_requests').insert({
-              student_id: userId,
-              student_name: nombre.trim(),
-              student_email: correo.trim(),
-              message: trialMsg || '',
-              request_type: 'trial_7days',
-              status: 'pending',
-            });
-          } catch (_) { /* non-fatal */ }
-        } else {
-          // Upsert subscriptions
-          const periodEnd = new Date();
-          periodEnd.setMonth(periodEnd.getMonth() + info.period);
-          const subData = {
-            student_id: userId,
-            plan_slug: info.slug,
-            plan_name: info.name,
-            status: 'pending_approval',
-            amount_usd: info.amount,
-            payment_method: metodo,
-            approved_by_admin: false,
-            account_enabled: false,
-            current_period_end: periodEnd.toISOString(),
-            updated_at: new Date().toISOString(),
-          };
-          const { error: upErr } = await supabase.from('subscriptions')
-            .update(subData).eq('student_id', userId);
-          if (upErr) {
-            await supabase.from('subscriptions').insert(subData);
-          }
-        }
-      }
-
-      setSent(true);
-      onSuccess();
-    } catch (_err) {
-      setFormError('Hubo un error al enviar. Por favor intenta de nuevo.');
-    } finally {
-      setSending(false);
-    }
-  };
-
-  // ── Éxito ──
-  if (sent) {
-    const isTrial = selected === 'trial';
-    return (
-      <div className="rounded-2xl bg-green-50 border-2 border-green-300 p-6 text-center space-y-3">
-        <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mx-auto">
-          <Check className="w-6 h-6 text-green-600" />
-        </div>
-        <h3 className="font-extrabold text-lg">¡Listo! 🎉</h3>
-        <p className="text-sm text-muted-foreground max-w-xs mx-auto">
-          {isTrial
-            ? 'Tu solicitud fue recibida. El equipo BLANG te contactará en máximo 48 horas hábiles para activar tu prueba.'
-            : 'Revisa tu correo — te enviaremos el link de pago para completar tu inscripción. Tu acceso se activa en máximo 24 horas hábiles tras confirmar el pago.'}
-        </p>
-        <p className="text-xs text-muted-foreground">
-          ¿Dudas?{' '}
-          <a href="https://wa.me/573236405246" target="_blank" rel="noopener noreferrer" className="text-primary font-semibold hover:underline">
-            +57 323 640 5246 (WhatsApp)
-          </a>
-        </p>
-      </div>
-    );
-  }
-
-  // ── Formulario del plan seleccionado ──
-  if (selected) {
-    const isTrial = selected === 'trial';
-    const info = PLAN_INFO[selected];
-    return (
-      <div className="rounded-2xl border-2 border-primary/20 bg-background p-5 space-y-4">
-        {/* Volver */}
-        <button
-          type="button"
-          onClick={() => { setSelected(null); setFormError(''); }}
-          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-        >
-          ← Volver a opciones
-        </button>
-
-        {/* Header */}
+      <div className="rounded-2xl border-2 border-primary/20 bg-primary/5 p-5 text-center space-y-3">
+        <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-2xl mx-auto">📅</div>
         <div>
-          <h3 className="font-extrabold text-base mb-0.5">
-            {isTrial ? '🎁 Solicitar 7 días gratis' : selected === 'mensual' ? '📅 Plan Mensual' : '💎 Plan Trimestral'}
-          </h3>
+          <h3 className="font-extrabold text-lg mb-1">Arma tu plan</h3>
           <p className="text-sm text-muted-foreground">
-            {isTrial
-              ? 'Sin pago — el equipo BLANG activará tu prueba manualmente'
-              : selected === 'mensual'
-                ? '$16 USD / $60,000 COP al mes · Acceso completo'
-                : '$68 USD / $250,000 COP por 3 meses · Acceso completo'}
+            Elige cómo quieres aprender: clases en vivo con profesor o por tu cuenta. Las cuentas nuevas acceden a 50% de descuento en su primer mes.
           </p>
         </div>
-
-        {/* Nombre */}
-        <div className="space-y-1.5">
-          <Label className="text-sm font-semibold">Nombre completo *</Label>
-          <Input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Tu nombre completo" className="rounded-xl" />
-        </div>
-
-        {/* Correo */}
-        <div className="space-y-1.5">
-          <Label className="text-sm font-semibold">Correo electrónico *</Label>
-          <Input type="email" value={correo} onChange={e => setCorreo(e.target.value)} placeholder="tucorreo@ejemplo.com" className="rounded-xl" />
-        </div>
-
-        {/* Método de pago (solo planes de pago) */}
-        {!isTrial && (
-          <div className="space-y-1.5">
-            <Label className="text-sm font-semibold">¿Cómo prefieres pagar?</Label>
-            <div className="grid grid-cols-3 gap-2">
-              {([
-                { id: 'paypal', label: '💳 PayPal', sub: 'Dólares (USD)' },
-                { id: 'bold_pse', label: '🏦 PSE / Bold', sub: 'Pesos (COP)' },
-                { id: 'bancolombia', label: '🟡 Bancolombia', sub: 'Pesos (COP)' },
-              ] as const).map(m => (
-                <button
-                  key={m.id}
-                  type="button"
-                  onClick={() => setMetodo(m.id)}
-                  className={`py-3 rounded-xl font-bold text-sm border-2 transition-all flex flex-col items-center gap-0.5 ${
-                    metodo === m.id
-                      ? m.id === 'bancolombia'
-                        ? 'border-yellow-400 bg-yellow-50 text-yellow-900 shadow-sm'
-                        : 'border-primary bg-primary/10 text-primary shadow-sm'
-                      : 'border-border/50 text-muted-foreground hover:border-primary/40'
-                  }`}
-                >
-                  <span>{m.label}</span>
-                  <span className="text-[10px] font-normal opacity-70">{m.sub}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Mensaje opcional (solo trial) */}
-        {isTrial && (
-          <div className="space-y-1.5">
-            <Label className="text-sm font-semibold">Mensaje (opcional)</Label>
-            <textarea
-              value={trialMsg}
-              onChange={e => setTrialMsg(e.target.value)}
-              placeholder="¿Por qué quieres aprender inglés con BLANG?"
-              rows={3}
-              className="w-full border border-border/60 rounded-xl px-4 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors resize-none"
-            />
-          </div>
-        )}
-
-        {/* Nota */}
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-700">
-          {isTrial
-            ? 'ℹ️ El equipo BLANG revisará tu solicitud y te contactará en máximo 48 horas hábiles.'
-            : '📧 Al confirmar, te enviaremos el link de pago a tu correo. Tu acceso se activa en máximo 24 horas hábiles tras confirmar el pago.'}
-        </div>
-
-        {formError && (
-          <p className="text-sm text-destructive bg-destructive/10 rounded-xl px-4 py-2">{formError}</p>
-        )}
-
-        {/* Botón */}
         <Button
-          className="w-full rounded-xl py-5 font-bold"
-          onClick={handleSubmit}
-          disabled={sending || !canSubmit}
+          className="w-full rounded-xl py-5 font-bold bg-[#111111] hover:bg-[#111111]/90 text-white transition-colors"
+          onClick={() => onOpen({ reviewOnly: false })}
         >
-          {sending ? (
-            <span className="flex items-center gap-2">
-              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              Enviando...
-            </span>
-          ) : (
-            <span className="flex items-center gap-2">
-              <Mail className="w-4 h-4" />
-              {isTrial ? 'Enviar solicitud' : 'Confirmar solicitud'}
-            </span>
-          )}
+          📅 Arma tu plan →
         </Button>
       </div>
     );
   }
 
-  // ── Vista inicial: 3 tarjetas de plan ──
+  // ── Caso B: ya armó un plan antes — renovar con la misma configuración o modificarla ──
+  const cfg = previousConfig || {};
+  const isAuto = cfg.modo === 'self';
   return (
-    <div className="space-y-3">
-      {/* 7 días gratis */}
-      <button
-        type="button"
-        onClick={() => setSelected('trial')}
-        className="w-full rounded-2xl border-2 border-primary/30 bg-primary/5 hover:bg-primary/10 hover:border-primary/50 p-4 text-left transition-all group"
-      >
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center text-xl shrink-0">🎁</div>
-          <div className="flex-1">
-            <p className="font-bold text-base mb-0.5">Solicitar 7 días gratis</p>
-            <p className="text-xs text-muted-foreground">Sin pago. El equipo BLANG revisará tu solicitud y te contactará.</p>
-            <span className="inline-block mt-1.5 text-xs font-bold text-primary bg-primary/10 rounded-full px-2.5 py-0.5">✉️ Activación manual</span>
-          </div>
-          <div className="text-muted-foreground group-hover:text-primary transition-colors mt-1">→</div>
-        </div>
-      </button>
-
-      {/* Plan Mensual */}
-      <button
-        type="button"
-        onClick={() => setSelected('mensual')}
-        className="w-full rounded-2xl border-2 border-green-200 bg-green-50/60 hover:bg-green-50 hover:border-green-300 p-4 text-left transition-all group"
-      >
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center text-xl shrink-0">📅</div>
-          <div className="flex-1">
-            <p className="font-bold text-base mb-0.5">Plan Mensual</p>
-            <p className="text-xs text-muted-foreground">$16 USD / $60,000 COP al mes. Acceso completo a todos los cursos.</p>
-            <span className="inline-block mt-1.5 text-xs font-bold text-green-700 bg-green-100 rounded-full px-2.5 py-0.5">⏱ Activación en máx. 24 h hábiles</span>
-          </div>
-          <div className="text-muted-foreground group-hover:text-green-600 transition-colors mt-1">→</div>
-        </div>
-      </button>
-
-      {/* Plan Trimestral */}
-      <button
-        type="button"
-        onClick={() => setSelected('trimestral')}
-        className="w-full rounded-2xl border-2 border-violet-200 bg-violet-50/60 hover:bg-violet-50 hover:border-violet-300 p-4 text-left transition-all group relative overflow-hidden"
-      >
-        <div className="absolute top-3 right-3">
-          <span className="bg-amber-400 text-black text-[10px] font-extrabold px-2 py-0.5 rounded-full whitespace-nowrap">⭐ Mejor valor</span>
-        </div>
-        <div className="flex items-start gap-3 pr-20">
-          <div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center text-xl shrink-0">💎</div>
-          <div className="flex-1">
-            <p className="font-bold text-base mb-0.5">Plan Trimestral</p>
-            <p className="text-xs text-muted-foreground">$68 USD / $250,000 COP por 3 meses. ¡Ahorra frente al mensual!</p>
-            <span className="inline-block mt-1.5 text-xs font-bold text-violet-700 bg-violet-100 rounded-full px-2.5 py-0.5">⏱ Activación en máx. 24 h hábiles</span>
-          </div>
-        </div>
-        <div className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground group-hover:text-violet-600 transition-colors">→</div>
-      </button>
+    <div className="rounded-2xl border-2 border-border/50 bg-background p-5 space-y-4">
+      <div>
+        <h3 className="font-extrabold text-lg mb-1">Renovar plan</h3>
+        <p className="text-sm text-muted-foreground">Esta es la configuración de tu plan anterior.</p>
+      </div>
+      <div className="rounded-xl bg-muted/30 p-4 space-y-1.5 text-sm">
+        <p><strong>Modalidad:</strong> {isAuto ? `Por mi cuenta — ${cfg.planAutoestudio === 'trimestral' ? 'Plan Trimestral' : 'Plan Mensual'}` : 'Con profesor'}</p>
+        {!isAuto && (
+          <>
+            <p><strong>Horas por día:</strong> {cfg.horasDia}</p>
+            <p><strong>Días de clase:</strong> {cfg.diasSemana} ({(cfg.diasSel || []).map(k => DIA_LABELS_ES[k] || k).join(', ') || '—'})</p>
+            <p><strong>Franja horaria:</strong> {cfg.franja || '—'}</p>
+            <p><strong>Plataforma IA:</strong> {cfg.iaPlatform === 'trimestral' ? 'Speakology (trimestral)' : 'ChatGPT (mensual)'}</p>
+          </>
+        )}
+      </div>
+      <div className="flex flex-col sm:flex-row gap-3">
+        <Button
+          className="flex-1 rounded-xl py-5 font-bold bg-[#111111] hover:bg-[#111111]/90 text-white transition-colors"
+          onClick={() => onOpen({ reviewOnly: true })}
+        >
+          Renovar igual →
+        </Button>
+        <Button
+          variant="outline"
+          className="flex-1 rounded-xl py-5 font-bold"
+          onClick={() => onOpen({ reviewOnly: false })}
+        >
+          Modificar plan
+        </Button>
+      </div>
     </div>
   );
 }
@@ -1676,7 +775,6 @@ export default function Dashboard({ isLoggedIn = false, onOpenAuth, onLogout, us
   const [cancelConfirm, setCancelConfirm] = useState(false);
   // ── Trial action states ──────────────────────────────────────────────────────
   const [trialView, setTrialView] = useState<'actions' | 'plan' | 'cancel' | 'delete_request'>('actions');
-  const [trialPlan, setTrialPlan] = useState<'mensual' | 'trimestral' | null>(null);
   const [trialDeleteReason, setTrialDeleteReason] = useState('');
   const [trialDeleteSent, setTrialDeleteSent] = useState(false);
   const [trialDeleteSending, setTrialDeleteSending] = useState(false);
@@ -1710,6 +808,18 @@ const [showPaypalModal, setShowPaypalModal] = useState(false);
     trial_end_date?: string;
     created_at?: string;
     first_month_discount_used?: boolean;
+    live_class_config?: {
+      edad: 'kids' | 'teens' | 'adults';
+      modo: 'self' | 'teacher';
+      planAutoestudio?: 'mensual' | 'trimestral' | null;
+      horasDia?: 1 | 2 | null;
+      diasSemana?: number | null;
+      diasSel?: string[];
+      franja?: string | null;
+      iaPlatform?: 'mensual' | 'trimestral' | null;
+      payMethod?: 'bold' | 'paypal' | 'bancolombia' | 'breb';
+      updatedAt?: string;
+    } | null;
   } | null>(null);
   // IDs de cursos/unidades con acceso explícito habilitado por admin
   const [grantedModuleIds, setGrantedModuleIds] = useState<string[]>([]);
@@ -1759,6 +869,10 @@ const [loadingUnits, setLoadingUnits] = useState<string | null>(null);
   // bienvenida (Parte 3), pasado a través del CTA "Regístrate e inicia sesión"
   // del primer bloque de EnglishProgram.tsx (Parte 8).
   const [pendingAgeGroup, setPendingAgeGroup] = useState<'kids' | 'teens' | 'adults' | undefined>(undefined);
+  // Parte 12: opciones con las que se abre "Arma tu plan" desde Pagos y
+  // Suscripción — reviewOnly + prefill de la config anterior para "Renovar
+  // igual"/"Modificar", o vacío para el flujo normal de usuario nuevo.
+  const [planModalOptions, setPlanModalOptions] = useState<{ reviewOnly?: boolean; discountEligible?: boolean; prefill?: NonNullable<typeof studentProfile>['live_class_config'] } | null>(null);
 
   // Parte 8: si el usuario se registró/inició sesión desde el CTA "Regístrate
   // e inicia sesión" de "Arma tu plan" (inglés), lo llevamos directo a esa
@@ -1771,6 +885,20 @@ const [loadingUnits, setLoadingUnits] = useState<string | null>(null);
     if (flag === 'kids' || flag === 'teens' || flag === 'adults') setPendingAgeGroup(flag);
     setShowClasesModal(true);
   }, [isLoggedIn]);
+
+  // Parte 12: abre "Arma tu plan" — reviewOnly=true para "Renovar igual"
+  // (Caso B, sin descuento), reviewOnly=false para usuario nuevo (Caso A, con
+  // descuento si aplica) o para "Modificar" un plan anterior.
+  const openArmaTuPlan = (opts?: { reviewOnly?: boolean }) => {
+    const cfg = studentProfile?.live_class_config || undefined;
+    setPlanModalOptions({
+      reviewOnly: !!opts?.reviewOnly,
+      // No debe mostrarse el descuento de primer mes a quien ya tuvo un plan (Caso B).
+      discountEligible: cfg ? false : !studentProfile?.first_month_discount_used,
+      prefill: cfg,
+    });
+    setShowClasesModal(true);
+  };
 
   // Mundo Real state
   const [showMundoReal, setShowMundoReal] = useState(false);
@@ -1981,7 +1109,7 @@ useEffect(() => {
       Promise.all([
         supabase
           .from('student_profiles')
-          .select('full_name, english_level, onboarding_step, is_admin_only, birthday, country, city, education_level, education_other, account_enabled, account_status, trial_active, trial_start_date, trial_end_date, created_at, first_month_discount_used')
+          .select('full_name, english_level, onboarding_step, is_admin_only, birthday, country, city, education_level, education_other, account_enabled, account_status, trial_active, trial_start_date, trial_end_date, created_at, first_month_discount_used, live_class_config')
           .eq('id', userId)
           .maybeSingle(),
         supabase
@@ -3446,26 +2574,15 @@ useEffect(() => {
                     const nextBilling = sub?.current_period_end ? new Date(sub.current_period_end) : null;
                     const onPay = (amount: number, _label: string) => { setPaypalModalAmount(amount); setShowPaypalModal(true); };
 
-// ─── PRIMER_REGISTRO: nuevo estudiante — muestra 3 opciones inline ───
+// ─── PRIMER_REGISTRO: nuevo estudiante (Parte 12: Caso A/B, detectado automáticamente) ───
                     if (estado === 'primer_registro') {
                       return (
                         <div className="space-y-4">
-                          <div className="rounded-2xl border-2 border-primary/20 bg-primary/5 p-5 shadow-sm relative overflow-hidden">
-                            <div className="absolute top-0 left-0 right-0 h-1 bg-primary" />
-                            <div className="flex items-start gap-3 mb-4">
-                              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-xl shrink-0">👋</div>
-                              <div>
-                                <h2 className="font-extrabold text-lg mb-0.5">Elige tu plan</h2>
-                                <p className="text-sm text-muted-foreground">Selecciona cómo quieres comenzar en BLANG English.</p>
-                              </div>
-                            </div>
-                            <PlanPickerInline
-                              defaultName={profileForm.name || userName || ''}
-                              defaultEmail={currentEmail || ''}
-                              userId={currentUserId}
-                              onSuccess={async () => { if (currentUserId) await refreshProfile(currentUserId); }}
-                            />
-                          </div>
+                          <PlanCaseAB
+                            hasPreviousConfig={!!studentProfile?.live_class_config}
+                            previousConfig={studentProfile?.live_class_config}
+                            onOpen={openArmaTuPlan}
+                          />
                         </div>
                       );
                     }
@@ -3563,7 +2680,7 @@ useEffect(() => {
                             </div>
                           )}
 
-                          {/* ── Vista: Escoger plan ── */}
+                          {/* ── Vista: Escoger plan (Parte 12: Caso A/B) ── */}
                           {trialView === 'plan' && (
                             <div className="space-y-4">
                               <button
@@ -3572,62 +2689,11 @@ useEffect(() => {
                               >
                                 ← Volver
                               </button>
-
-                              {/* Selector de plan */}
-                              <div className="grid grid-cols-2 gap-3">
-                                {/* Plan Mensual */}
-                                <button
-                                  type="button"
-                                  onClick={() => setTrialPlan('mensual')}
-                                  className={`rounded-2xl border-2 p-4 text-left transition-all ${
-                                    trialPlan === 'mensual'
-                                      ? 'border-primary bg-primary/5 shadow-md'
-                                      : 'border-border/50 hover:border-primary/40 hover:bg-primary/5'
-                                  }`}
-                                >
-                                  <div className="text-2xl mb-2">🚀</div>
-                                  <p className="font-bold text-sm">Plan Mensual</p>
-                                  <p className="text-xl font-extrabold text-primary mt-1">$16 USD</p>
-                                  <p className="text-xs text-muted-foreground">$60,000 COP / mes</p>
-                                  {trialPlan === 'mensual' && (
-                                    <span className="inline-block mt-2 text-[10px] font-bold bg-primary/10 text-primary rounded-full px-2 py-0.5">✓ Seleccionado</span>
-                                  )}
-                                </button>
-
-                                {/* Plan Trimestral */}
-                                <button
-                                  type="button"
-                                  onClick={() => setTrialPlan('trimestral')}
-                                  className={`rounded-2xl border-2 p-4 text-left transition-all relative ${
-                                    trialPlan === 'trimestral'
-                                      ? 'border-violet-500 bg-violet-50 shadow-md'
-                                      : 'border-border/50 hover:border-violet-400 hover:bg-violet-50/50'
-                                  }`}
-                                >
-                                  <span className="absolute top-2 right-2 text-[10px] font-extrabold bg-amber-400 text-black rounded-full px-2 py-0.5">⭐ Mejor valor</span>
-                                  <div className="text-2xl mb-2">💎</div>
-                                  <p className="font-bold text-sm">Plan Trimestral</p>
-                                  <p className="text-xl font-extrabold text-violet-700 mt-1">$68 USD</p>
-                                  <p className="text-xs text-muted-foreground">$250,000 COP / 3 meses</p>
-                                  {trialPlan === 'trimestral' && (
-                                    <span className="inline-block mt-2 text-[10px] font-bold bg-violet-100 text-violet-700 rounded-full px-2 py-0.5">✓ Seleccionado</span>
-                                  )}
-                                </button>
-                              </div>
-
-                              {/* Formulario según plan seleccionado */}
-                              {trialPlan && (
-                                <PagoSolicitudForm
-                                  defaultName={profileForm.name || userName || ''}
-                                  defaultEmail={currentEmail || ''}
-                                  userId={currentUserId}
-                                  planSlug={trialPlan === 'mensual' ? 'monthly' : 'trimestral'}
-                                  planName={trialPlan === 'mensual' ? 'Plan Mensual' : 'Plan Trimestral'}
-                                  planPrice={trialPlan === 'mensual' ? '$16 USD / $60,000 COP al mes' : '$68 USD / $250,000 COP por 3 meses'}
-                                  planAmount={trialPlan === 'mensual' ? 16 : 68}
-                                  onSuccess={async () => { if (currentUserId) await refreshProfile(currentUserId); }}
-                                />
-                              )}
+                              <PlanCaseAB
+                                hasPreviousConfig={!!studentProfile?.live_class_config}
+                                previousConfig={studentProfile?.live_class_config}
+                                onOpen={openArmaTuPlan}
+                              />
                             </div>
                           )}
 
@@ -3702,12 +2768,13 @@ useEffect(() => {
                             defaultName={profileForm.name || userName || ''}
                             defaultEmail={currentEmail || ''}
                             userId={currentUserId}
+                            hasPreviousConfig={!!studentProfile?.live_class_config}
+                            previousConfig={studentProfile?.live_class_config}
+                            onOpenPlan={openArmaTuPlan}
                             trialView={trialView} setTrialView={setTrialView}
-                            trialPlan={trialPlan} setTrialPlan={setTrialPlan}
                             trialDeleteReason={trialDeleteReason} setTrialDeleteReason={setTrialDeleteReason}
                             trialDeleteSent={trialDeleteSent} setTrialDeleteSent={setTrialDeleteSent}
                             trialDeleteSending={trialDeleteSending} setTrialDeleteSending={setTrialDeleteSending}
-                            onSuccess={async () => { if (currentUserId) await refreshProfile(currentUserId); }}
                           />
                         </div>
                       );
@@ -3760,12 +2827,13 @@ useEffect(() => {
                             defaultName={profileForm.name || userName || ''}
                             defaultEmail={currentEmail || ''}
                             userId={currentUserId}
+                            hasPreviousConfig={!!studentProfile?.live_class_config}
+                            previousConfig={studentProfile?.live_class_config}
+                            onOpenPlan={openArmaTuPlan}
                             trialView={trialView} setTrialView={setTrialView}
-                            trialPlan={trialPlan} setTrialPlan={setTrialPlan}
                             trialDeleteReason={trialDeleteReason} setTrialDeleteReason={setTrialDeleteReason}
                             trialDeleteSent={trialDeleteSent} setTrialDeleteSent={setTrialDeleteSent}
                             trialDeleteSending={trialDeleteSending} setTrialDeleteSending={setTrialDeleteSending}
-                            onSuccess={async () => { if (currentUserId) await refreshProfile(currentUserId); }}
                           />
                         </div>
                       );
@@ -3819,12 +2887,13 @@ useEffect(() => {
                             defaultName={profileForm.name || userName || ''}
                             defaultEmail={currentEmail || ''}
                             userId={currentUserId}
+                            hasPreviousConfig={!!studentProfile?.live_class_config}
+                            previousConfig={studentProfile?.live_class_config}
+                            onOpenPlan={openArmaTuPlan}
                             trialView={trialView} setTrialView={setTrialView}
-                            trialPlan={trialPlan} setTrialPlan={setTrialPlan}
                             trialDeleteReason={trialDeleteReason} setTrialDeleteReason={setTrialDeleteReason}
                             trialDeleteSent={trialDeleteSent} setTrialDeleteSent={setTrialDeleteSent}
                             trialDeleteSending={trialDeleteSending} setTrialDeleteSending={setTrialDeleteSending}
-                            onSuccess={async () => { if (currentUserId) await refreshProfile(currentUserId); }}
                           />
                         </div>
                       );
@@ -4604,12 +3673,21 @@ useEffect(() => {
       {/* ── MODAL: CLASES VIRTUALES PERSONALIZADAS MENSUALES ── */}
       <ClasesVirtualesModal
         open={showClasesModal}
-        onClose={() => { setShowClasesModal(false); setPendingAgeGroup(undefined); }}
+        onClose={() => { setShowClasesModal(false); setPendingAgeGroup(undefined); setPlanModalOptions(null); }}
         defaultName={profileForm.name || userName || ''}
         defaultEmail={currentEmail || ''}
-        defaultAgeGroup={pendingAgeGroup}
+        defaultAgeGroup={planModalOptions?.prefill?.edad || pendingAgeGroup}
+        defaultModoAdulto={planModalOptions?.prefill?.modo}
+        defaultPlanAutoestudio={planModalOptions?.prefill?.planAutoestudio || undefined}
+        defaultHorasDia={planModalOptions?.prefill?.horasDia || undefined}
+        defaultDiasSemana={planModalOptions?.prefill?.diasSemana || undefined}
+        defaultDiasSel={planModalOptions?.prefill?.diasSel}
+        defaultFranja={planModalOptions?.prefill?.franja || undefined}
+        defaultIaPlatform={planModalOptions?.prefill?.iaPlatform || undefined}
+        defaultPayMethod={planModalOptions?.prefill?.payMethod}
+        reviewOnly={!!planModalOptions?.reviewOnly}
         userId={currentUserId}
-        discountEligible={!studentProfile?.first_month_discount_used}
+        discountEligible={planModalOptions ? !!planModalOptions.discountEligible : !studentProfile?.first_month_discount_used}
         onDiscountUsed={() => { if (currentUserId) refreshProfile(currentUserId); }}
       />
     </div>

@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { X, Send, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,18 @@ interface ClasesVirtualesModalProps {
   defaultEmail?: string;
   /** Grupo de edad preseleccionado (ej. desde la tarjeta de la pantalla de bienvenida) */
   defaultAgeGroup?: 'kids' | 'teens' | 'adults';
+  // ── Prefill de una configuración previa (Parte 12: renovar plan) ──────────
+  defaultModoAdulto?: 'self' | 'teacher';
+  defaultPlanAutoestudio?: 'mensual' | 'trimestral';
+  defaultHorasDia?: 1 | 2;
+  defaultDiasSemana?: number;
+  defaultDiasSel?: string[];
+  defaultFranja?: string;
+  defaultIaPlatform?: 'mensual' | 'trimestral';
+  defaultPayMethod?: 'bold' | 'paypal' | 'bancolombia' | 'breb';
+  /** true = abre directo en el resumen + pago con los valores por defecto, sin
+   *  mostrar el formulario completo (Parte 12: "Renovar igual" vs "Modificar"). */
+  reviewOnly?: boolean;
   /** ID de la cuenta logueada — requerido para mostrar y marcar el descuento de primer mes (Parte 8) */
   userId?: string;
   /** true si esta cuenta todavía no usó el descuento de primer mes */
@@ -116,6 +128,15 @@ export function ClasesVirtualesModal({
   defaultName = '',
   defaultEmail = '',
   defaultAgeGroup,
+  defaultModoAdulto,
+  defaultPlanAutoestudio,
+  defaultHorasDia,
+  defaultDiasSemana,
+  defaultDiasSel,
+  defaultFranja,
+  defaultIaPlatform,
+  defaultPayMethod,
+  reviewOnly = false,
   userId,
   discountEligible = false,
   onDiscountUsed,
@@ -137,14 +158,14 @@ export function ClasesVirtualesModal({
   const [correo, setCorreo] = useState(defaultEmail);
   const [edad, setEdad] = useState<'kids' | 'teens' | 'adults'>(defaultAgeGroup || 'adults');
   // Solo aplica cuando edad === 'adults': autoaprendizaje (sin profesor, sin fechas) vs. con profesor (horario fijo).
-  const [modoAdulto, setModoAdulto] = useState<'self' | 'teacher'>('teacher');
-  const [planAutoestudio, setPlanAutoestudio] = useState<'mensual' | 'trimestral'>('mensual');
-  const [horasDia, setHorasDia] = useState<1 | 2>(1);
-  const [diasSemana, setDiasSemana] = useState<number>(2);
-  const [diasSel, setDiasSel] = useState<string[]>([]);
-  const [franja, setFranja] = useState('');
-  const [payMethod, setPayMethod] = useState<'bold' | 'paypal' | 'bancolombia' | 'breb'>('bold');
-  const [iaPlatform, setIaPlatform] = useState<'mensual' | 'trimestral'>('mensual');
+  const [modoAdulto, setModoAdulto] = useState<'self' | 'teacher'>(defaultModoAdulto || 'teacher');
+  const [planAutoestudio, setPlanAutoestudio] = useState<'mensual' | 'trimestral'>(defaultPlanAutoestudio || 'mensual');
+  const [horasDia, setHorasDia] = useState<1 | 2>(defaultHorasDia || 1);
+  const [diasSemana, setDiasSemana] = useState<number>(defaultDiasSemana || 2);
+  const [diasSel, setDiasSel] = useState<string[]>(defaultDiasSel || []);
+  const [franja, setFranja] = useState(defaultFranja || '');
+  const [payMethod, setPayMethod] = useState<'bold' | 'paypal' | 'bancolombia' | 'breb'>(defaultPayMethod || 'bold');
+  const [iaPlatform, setIaPlatform] = useState<'mensual' | 'trimestral'>(defaultIaPlatform || 'mensual');
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
@@ -152,10 +173,16 @@ export function ClasesVirtualesModal({
   // Parte 8: descuento de primer mes, gateado por cuenta (no por sesión/navegador).
   const [discountApplied, setDiscountApplied] = useState(false);
   const showDiscountToggle = !!userId && discountEligible;
+  // Parte 12: reviewOnly arranca mostrando solo el resumen; "Modificar detalles" revela el formulario completo.
+  const [showFullForm, setShowFullForm] = useState(!reviewOnly);
+  const skipFranjaReset = useRef(true);
 
   useEffect(() => { setNombre(defaultName); }, [defaultName]);
   useEffect(() => { setCorreo(defaultEmail); }, [defaultEmail]);
-  useEffect(() => { setFranja(''); }, [horasDia]);
+  useEffect(() => {
+    if (skipFranjaReset.current) { skipFranjaReset.current = false; return; }
+    setFranja('');
+  }, [horasDia]);
   useEffect(() => {
     setDiasSel(prev => prev.slice(0, diasSemana));
   }, [diasSemana]);
@@ -164,18 +191,20 @@ export function ClasesVirtualesModal({
   useEffect(() => {
     if (!open) {
       setEdad(defaultAgeGroup || 'adults');
-      setModoAdulto('teacher');
-      setPlanAutoestudio('mensual');
-      setHorasDia(1);
-      setDiasSemana(2);
-      setDiasSel([]);
-      setFranja('');
-      setPayMethod('bold');
-      setIaPlatform('mensual');
+      setModoAdulto(defaultModoAdulto || 'teacher');
+      setPlanAutoestudio(defaultPlanAutoestudio || 'mensual');
+      setHorasDia(defaultHorasDia || 1);
+      setDiasSemana(defaultDiasSemana || 2);
+      setDiasSel(defaultDiasSel || []);
+      setFranja(defaultFranja || '');
+      setPayMethod(defaultPayMethod || 'bold');
+      setIaPlatform(defaultIaPlatform || 'mensual');
       setSent(false);
       setError('');
       setTermsAccepted(false);
       setDiscountApplied(false);
+      setShowFullForm(!reviewOnly);
+      skipFranjaReset.current = true;
     }
   }, [open]);
 
@@ -270,14 +299,32 @@ export function ClasesVirtualesModal({
     openWhatsApp(mensaje);
     setSent(true);
 
-    // Marca el descuento como usado para esta cuenta — para siempre, sin importar
-    // sesión/navegador. Se hace al enviar, no al solo activar el botón.
-    if (discountApplied && userId) {
+    // Parte 12: persistimos la configuración enviada para poder mostrarla luego
+    // en "Renovar plan" (Pagos y Suscripción) sin depender solo del mensaje de
+    // WhatsApp. Se guarda siempre que haya cuenta logueada, con o sin descuento.
+    if (userId) {
+      const update: Record<string, unknown> = {
+        live_class_config: {
+          edad,
+          modo: isAutoestudio ? 'self' : 'teacher',
+          planAutoestudio: isAutoestudio ? planAutoestudio : null,
+          horasDia: isAutoestudio ? null : horasDia,
+          diasSemana: isAutoestudio ? null : diasSemana,
+          diasSel: isAutoestudio ? [] : diasSel,
+          franja: isAutoestudio ? null : franja,
+          iaPlatform: isAutoestudio ? null : iaPlatform,
+          payMethod,
+          updatedAt: new Date().toISOString(),
+        },
+      };
+      // Marca el descuento como usado para esta cuenta — para siempre, sin importar
+      // sesión/navegador. Se hace al enviar, no al solo activar el botón.
+      if (discountApplied) update.first_month_discount_used = true;
       supabase
         .from('student_profiles')
-        .update({ first_month_discount_used: true })
+        .update(update)
         .eq('id', userId)
-        .then(() => onDiscountUsed?.());
+        .then(() => { if (discountApplied) onDiscountUsed?.(); });
     }
   };
 
@@ -333,6 +380,8 @@ export function ClasesVirtualesModal({
             </div>
           ) : (
             <>
+              {showFullForm ? (
+              <>
               {/* ── Nombre ── */}
               <div className="space-y-1.5">
                 <Label className="text-sm font-semibold">{t.nombreLabel}</Label>
@@ -609,6 +658,29 @@ export function ClasesVirtualesModal({
                       {t.iaTrimestralNote(formatCOP(SPEAKOLOGY_FEE))}
                     </p>
                   )}
+                </div>
+              )}
+              </>
+              ) : (
+                /* ── Resumen condensado (Parte 12: "Renovar igual") ── */
+                <div className="rounded-2xl border-2 border-border/50 bg-muted/20 p-4 space-y-1.5">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-bold">{t.reviewSummaryTitle}</p>
+                    <button
+                      type="button"
+                      onClick={() => setShowFullForm(true)}
+                      className="shrink-0 text-xs font-semibold text-primary hover:underline"
+                    >
+                      {t.modifyDetailsCta}
+                    </button>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {EDAD_CONFIG[edad].emoji} {EDAD_CONFIG[edad].label}
+                    {edad === 'adults' ? ` · ${modoAdulto === 'self' ? t.modalidad.self.title : t.modalidad.teacher.title}` : ''}
+                    {isAutoestudio
+                      ? ` · ${autoestudioPlan.label}`
+                      : ` · ${t.horaSuffix(horasDia)} · ${t.diaSuffix(diasSemana)} · ${franja} · ${iaPlatform === 'trimestral' ? t.iaTrimestral.title : t.iaMensual.title}`}
+                  </p>
                 </div>
               )}
 
