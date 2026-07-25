@@ -25,11 +25,6 @@ export type AuthModal = 'login' | 'register' | null;
 // evitar que el usuario se quede en un dashboard genérico tras registrarse.
 export const OPEN_PLAN_AFTER_AUTH_KEY = 'blang_open_plan_after_auth';
 
-// Parte 17: valor especial de OPEN_PLAN_AFTER_AUTH_KEY (en vez de un grupo de
-// edad) que le indica a Dashboard que debe abrir el armador de plan de
-// ESPAÑOL (PlanEspanolModal) en lugar del de inglés (ClasesVirtualesModal).
-export const SPANISH_PLAN_FLAG = 'spanish';
-
 // ─── Domain Types ─────────────────────────────────────────────────────────────
 export interface Lesson {
   id: string;

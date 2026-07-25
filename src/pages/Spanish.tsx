@@ -1,31 +1,31 @@
 // @ts-nocheck
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
-import { ROUTE_PATHS, OPEN_PLAN_AFTER_AUTH_KEY, SPANISH_PLAN_FLAG } from '@/lib/index';
+import { PlanEspanolModal } from '@/components/PlanEspanolModal';
+import { ROUTE_PATHS } from '@/lib/index';
 import type { AuthModal } from '@/lib/index';
 import { openWhatsApp } from '@/lib/whatsapp';
 import { useLanguage } from '@/lib/language';
 import { translations } from '@/lib/translations';
 
 // ── PENDIENTE POR DEFINIR (no inventar, solo dejar nota) ──────────────────────
-// 1. Esta tarjeta de precio pública sigue mostrando "Consultar" como copy de
-//    marketing — desde la Parte 17 el precio real (USD, con profesor) sí
-//    existe dentro de PlanEspanolModal.tsx, que se abre desde Dashboard tras
-//    iniciar sesión/registrarse (ver botones del CTA abajo). No se actualizó
-//    el copy de esta tarjeta porque la Parte 17 no lo pidió — solo el
-//    comportamiento del formulario.
-// 2. Niveles reales del curso (¿misma escala A1–C1 que inglés, o una escala
+// 1. Niveles reales del curso (¿misma escala A1–C1 que inglés, o una escala
 //    propia?) — por ahora la sección de niveles queda en placeholder.
-// 3. Si existen módulos especiales equivalentes a "English for you"
+// 2. Si existen módulos especiales equivalentes a "English for you"
 //    (Pronunciación, Contextos, Mundo Real, etc.) para español — por ahora
 //    esta página no incluye esa sección.
-// 4. El 50% de descuento del primer mes (Parte 8) es exclusivo del curso de
-//    inglés — confirmado en la Parte 17 que NUNCA aplica a español, bajo
-//    ninguna circunstancia (no hay botón ni badge de descuento en
-//    PlanEspanolModal.tsx).
+// 3. El 50% de descuento del primer mes (Parte 8) es exclusivo del curso de
+//    inglés — NUNCA aplica a español bajo ninguna circunstancia (no hay
+//    botón ni badge de descuento en PlanEspanolModal.tsx).
+//
+// Parte 17b: a diferencia de inglés (Parte 8, requiere cuenta), el armador
+// de plan de español es público — "Arma tu plan" abre PlanEspanolModal
+// directo con un estado local de esta página, sin pedir registro/login. Los
+// extranjeros que quieren aprender español no necesitan crear una cuenta
+// para ver precios ni armar su plan.
 
 const staggerContainer = {
   hidden: { opacity: 0 },
@@ -79,6 +79,7 @@ export default function SpanishProgram({ onOpenAuth, isLoggedIn }: SpanishProgra
   const { lang } = useLanguage();
   const t = translations[lang].spanish;
   const STEPS = STEPS_STYLE.map((s, i) => ({ ...s, ...t.cincoPasos.steps[i] }));
+  const [showPlanModal, setShowPlanModal] = useState(false);
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -167,7 +168,7 @@ export default function SpanishProgram({ onOpenAuth, isLoggedIn }: SpanishProgra
                 ))}
               </motion.div>
 
-              {/* Columna derecha: tarjeta precio (placeholder) + CTA */}
+              {/* Columna derecha: tarjeta precio + CTA a "Arma tu plan" */}
               <motion.div variants={staggerItem} className="flex flex-col gap-4 sm:gap-6">
                 <div className="relative bg-gradient-to-br from-violet-500 via-violet-700 to-purple-700 rounded-3xl p-5 sm:p-8 text-white shadow-2xl shadow-violet-500/30 overflow-hidden">
                   <div className="absolute -top-6 -right-6 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
@@ -175,10 +176,10 @@ export default function SpanishProgram({ onOpenAuth, isLoggedIn }: SpanishProgra
 
                   <div className="relative z-10">
                     <div className="flex items-center gap-3 mb-4 sm:mb-6">
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white/20 flex items-center justify-center text-xl sm:text-2xl">🔒</div>
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white/20 flex items-center justify-center text-xl sm:text-2xl">📅</div>
                       <div>
-                        <p className="font-extrabold text-base sm:text-lg">{t.armaTuPlan.priceCard.lockedTitle}</p>
-                        <p className="text-white/70 text-xs sm:text-sm">{t.armaTuPlan.priceCard.lockedDesc}</p>
+                        <p className="font-extrabold text-base sm:text-lg">{t.armaTuPlan.priceCard.title}</p>
+                        <p className="text-white/70 text-xs sm:text-sm">{t.armaTuPlan.priceCard.desc}</p>
                       </div>
                     </div>
                     <div className="flex items-end gap-2 mb-2">
@@ -190,32 +191,15 @@ export default function SpanishProgram({ onOpenAuth, isLoggedIn }: SpanishProgra
                         <li key={i} className="text-white/90 font-medium text-xs sm:text-sm">✓  {f}</li>
                       ))}
                     </ul>
-                    {/* Parte 17: registrarse/iniciar sesión ahora sí lleva directo al
-                        armador de plan de español (PlanEspanolModal, abierto desde
-                        Dashboard tras la autenticación) — mismo mecanismo que inglés
-                        (Parte 8), señalizado con SPANISH_PLAN_FLAG en vez de un grupo
-                        de edad. */}
+                    {/* Parte 17b: a diferencia de inglés (Parte 8, requiere cuenta), acá
+                        el botón abre el armador de plan directo, sin login. */}
                     <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                       <Button
                         size="lg"
                         className="flex-1 bg-[#111111] hover:bg-[#111111]/90 text-white font-extrabold text-sm sm:text-base py-5 sm:py-6 rounded-2xl shadow-xl transition-colors active:scale-[0.98]"
-                        onClick={() => {
-                          sessionStorage.setItem(OPEN_PLAN_AFTER_AUTH_KEY, SPANISH_PLAN_FLAG);
-                          onOpenAuth?.('register');
-                        }}
+                        onClick={() => setShowPlanModal(true)}
                       >
                         {t.armaTuPlan.priceCard.cta}
-                      </Button>
-                      <Button
-                        size="lg"
-                        variant="outline"
-                        className="flex-1 border-white/40 text-white hover:bg-white/10 font-bold text-sm sm:text-base py-5 sm:py-6 rounded-2xl"
-                        onClick={() => {
-                          sessionStorage.setItem(OPEN_PLAN_AFTER_AUTH_KEY, SPANISH_PLAN_FLAG);
-                          onOpenAuth?.('login');
-                        }}
-                      >
-                        {t.armaTuPlan.priceCard.loginCta}
                       </Button>
                     </div>
                   </div>
@@ -333,6 +317,9 @@ export default function SpanishProgram({ onOpenAuth, isLoggedIn }: SpanishProgra
           </motion.div>
         </div>
       </section>
+
+      {/* ── MODAL: ARMA TU PLAN — ESPAÑOL PARA EXTRANJEROS (Parte 17, público sin login — Parte 17b) ── */}
+      <PlanEspanolModal open={showPlanModal} onClose={() => setShowPlanModal(false)} />
 
     </Layout>
   );
