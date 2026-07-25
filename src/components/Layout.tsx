@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Menu, X, BookOpen, Video, TrendingUp, LayoutDashboard, LogIn, UserPlus, ChevronLeft } from 'lucide-react';
 import { SiWhatsapp, SiInstagram, SiTiktok } from 'react-icons/si';
 import { Button } from '@/components/ui/button';
@@ -16,36 +16,36 @@ import { Globe } from 'lucide-react';
 // (corrige la Parte 15, que lo puso como una franja morada separada arriba
 // del header). Vive como un renglón propio dentro del mismo <header> blanco,
 // sin fondo ni color nuevos — texto en --primary (morado) sobre blanco.
-// Componente de nivel de módulo (no anidado dentro de Layout) para que no se
-// remonte -y pierda el intervalo- cada vez que Layout se re-renderiza por
-// motivos ajenos (abrir el menú mobile, etc.). Solo reinicia la rotación
-// cuando cambia el arreglo de mensajes (cambio de idioma).
-function TopMessageBar({ messages }: { messages: string[] }) {
-  const [idx, setIdx] = useState(0);
+// Movimiento SIEMPRE horizontal (cinta continua tipo ticker) — nunca
+// vertical: se corrige acá un error donde había quedado como un fundido
+// vertical (opacity + y) entre mensajes.
+// Constantes de animación a nivel de módulo (no objetos literales nuevos en
+// cada render) para que la cinta no reinicie su recorrido cada vez que
+// Layout se re-renderiza por motivos ajenos (abrir el menú mobile, etc.).
+const MARQUEE_ANIMATE = { x: ['0%', '-50%'] };
+const MARQUEE_TRANSITION = { duration: 26, ease: 'linear', repeat: Infinity };
 
-  useEffect(() => {
-    setIdx(0);
-    const id = setInterval(() => {
-      setIdx((i) => (i + 1) % messages.length);
-    }, 3500);
-    return () => clearInterval(id);
-  }, [messages]);
+function TopMessageBar({ messages }: { messages: string[] }) {
+  // Un solo texto combinado, duplicado, que se desplaza -50% de su propio
+  // ancho: como las dos copias son idénticas, el recorrido se ve continuo e
+  // infinito sin "salto" al reiniciar.
+  const combined = messages.join('     •     ') + '     •     ';
 
   return (
     <div className="overflow-hidden">
-      <div className="container mx-auto px-4 h-6 sm:h-7 flex items-center justify-center">
-        <AnimatePresence mode="wait">
-          <motion.p
-            key={idx}
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.35 }}
-            className="text-[11px] sm:text-xs font-bold text-primary tracking-wide text-center truncate max-w-full"
-          >
-            {messages[idx]}
-          </motion.p>
-        </AnimatePresence>
+      <div className="h-6 sm:h-7 flex items-center overflow-hidden">
+        <motion.div
+          className="flex shrink-0 whitespace-nowrap"
+          animate={MARQUEE_ANIMATE}
+          transition={MARQUEE_TRANSITION}
+        >
+          <span className="text-[11px] sm:text-xs font-bold text-primary tracking-wide shrink-0">
+            {combined}
+          </span>
+          <span className="text-[11px] sm:text-xs font-bold text-primary tracking-wide shrink-0" aria-hidden="true">
+            {combined}
+          </span>
+        </motion.div>
       </div>
     </div>
   );
