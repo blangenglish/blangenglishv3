@@ -24,13 +24,17 @@ interface HomeProps {
   isLoggedIn?: boolean;
 }
 
-// Paleta limitada a blanco/negro/morado (Parte 7): cada tarjeta se diferencia
-// por tono e intensidad dentro de esas 3 familias, no por colores distintos.
+// Parte 9 — sistema de diseño: las 4 tarjetas son estructuralmente idénticas
+// (mismo fondo, radio, sombra, padding, ícono y botón). No hay degradados ni
+// colores distintos por tarjeta — solo cambian el emoji, el texto y la ruta.
+// PENDIENTE POR DEFINIR: cuál tarjeta/plan es la "Más popular" — hasta que se
+// confirme, ninguna tarjeta lleva el badge/borde plateado o dorado de acento
+// (ver también ClasesVirtualesModal.tsx para el mismo pendiente en los planes).
 const PROGRAMS_STYLE = [
-  { id: 'spanish', emoji: '🇪🇸', gradient: 'from-neutral-700 via-neutral-800 to-black', softBg: 'from-neutral-50 to-gray-100 border-neutral-300', route: ROUTE_PATHS.SPANISH },
-  { id: 'kids', emoji: '🧒', gradient: 'from-violet-400 via-purple-500 to-violet-600', softBg: 'from-violet-50 to-purple-50 border-violet-200', route: ROUTE_PATHS.ENGLISH },
-  { id: 'teens', emoji: '🧑', gradient: 'from-purple-600 via-violet-700 to-purple-800', softBg: 'from-purple-50 to-violet-100 border-purple-300', route: ROUTE_PATHS.ENGLISH },
-  { id: 'adults', emoji: '🎓', gradient: 'from-primary via-violet-800 to-black', softBg: 'from-primary/5 to-purple-50 border-primary/30', route: ROUTE_PATHS.ENGLISH },
+  { id: 'spanish', emoji: '🇪🇸', route: ROUTE_PATHS.SPANISH },
+  { id: 'kids', emoji: '🧒', route: ROUTE_PATHS.ENGLISH },
+  { id: 'teens', emoji: '🧑', route: ROUTE_PATHS.ENGLISH },
+  { id: 'adults', emoji: '🎓', route: ROUTE_PATHS.ENGLISH },
 ];
 
 export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
@@ -103,17 +107,16 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
                   variants={staggerItem}
                   whileHover={{ y: -6, transition: { duration: 0.2 } }}
                   onClick={() => navigate(targetUrl)}
-                  className={`relative cursor-pointer bg-gradient-to-br ${p.softBg} border-2 rounded-3xl p-6 sm:p-8 shadow-lg hover:shadow-2xl transition-all flex flex-col overflow-hidden`}
+                  className="relative cursor-pointer bg-white border border-[#E5E7EB] rounded-3xl p-6 sm:p-8 shadow-lg hover:shadow-2xl transition-all flex flex-col overflow-hidden"
                 >
-                  <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/50 rounded-full blur-2xl pointer-events-none" />
-                  <div className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-gradient-to-br ${p.gradient} flex items-center justify-center text-3xl sm:text-4xl shadow-lg mb-5`}>
+                  <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-[#4C1D95] flex items-center justify-center text-3xl sm:text-4xl shadow-lg mb-5">
                     {p.emoji}
                   </div>
                   <h2 className="relative text-xl sm:text-2xl font-black text-foreground leading-tight">{p.title}</h2>
                   <p className="relative text-sm font-semibold text-muted-foreground mb-3">{p.subtitle}</p>
                   <p className="relative text-sm sm:text-base text-muted-foreground leading-relaxed flex-1 mb-6">{p.desc}</p>
                   <Button
-                    className={`relative w-full rounded-xl py-5 sm:py-6 font-bold text-sm sm:text-base bg-gradient-to-r ${p.gradient} text-white hover:opacity-90 transition-opacity gap-2 shadow-lg`}
+                    className="relative w-full rounded-xl py-5 sm:py-6 font-bold text-sm sm:text-base bg-[#111111] hover:bg-[#111111]/90 text-white transition-colors gap-2 shadow-lg"
                     onClick={(e) => { e.stopPropagation(); navigate(targetUrl); }}
                   >
                     {t.welcome.cta}

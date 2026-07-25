@@ -39,6 +39,10 @@ const EDAD_EMOJI = { kids: '🧒', teens: '🧑', adults: '🎓' } as const;
 
 // ── Autoaprendizaje (solo Adultos): plan de plataforma sin profesor, sin horario ──
 // Mismos precios de siempre del curso (Plan Mensual / Plan Trimestral).
+// PENDIENTE POR DEFINIR (Parte 9): cuál de estos dos planes (o de las 4 tarjetas
+// del menú principal) es el "Más popular". Hasta que se confirme, ninguna
+// tarjeta de plan lleva el badge/borde plateado o dorado de acento — no inventar
+// cuál es el destacado.
 const AUTOESTUDIO_PRECIOS_BASE = {
   mensual: { cop: 60000, usd: 16 },
   trimestral: { cop: 250000, usd: 68 },
@@ -323,7 +327,7 @@ export function ClasesVirtualesModal({
               <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
                 {t.success.descPre}<strong>{t.success.descStrong}</strong>{t.success.descPost}
               </p>
-              <Button className="rounded-full bg-violet-600 hover:bg-violet-700 text-white px-8" onClick={onClose}>
+              <Button className="rounded-full bg-[#111111] hover:bg-[#111111]/90 text-white px-8 transition-colors" onClick={onClose}>
                 {t.success.close}
               </Button>
             </div>
@@ -615,8 +619,8 @@ export function ClasesVirtualesModal({
                   onClick={() => setDiscountApplied(v => !v)}
                   className={`w-full rounded-2xl border-2 p-3 flex items-center justify-between gap-3 text-left transition-all ${
                     discountApplied
-                      ? 'border-primary bg-violet-50 shadow-sm'
-                      : 'border-dashed border-violet-300 bg-white hover:bg-violet-50/50'
+                      ? 'border-primary bg-accent shadow-sm'
+                      : 'border-dashed border-primary/40 bg-white hover:bg-accent/60'
                   }`}
                 >
                   <span>
@@ -628,7 +632,7 @@ export function ClasesVirtualesModal({
                     </span>
                   </span>
                   <span className={`shrink-0 text-[10px] font-bold px-2.5 py-1 rounded-full ${
-                    discountApplied ? 'bg-primary text-white' : 'bg-violet-100 text-violet-700'
+                    discountApplied ? 'bg-primary text-white' : 'bg-accent text-accent-foreground'
                   }`}>
                     {discountApplied ? t.discountActiveBadge : t.discountActivateCta}
                   </span>
@@ -849,7 +853,7 @@ export function ClasesVirtualesModal({
 
               {/* Botón enviar */}
               <Button
-                className="w-full rounded-xl font-bold py-6 bg-violet-600 hover:bg-violet-700 text-white disabled:opacity-50"
+                className="w-full rounded-xl font-bold py-6 bg-[#111111] hover:bg-[#111111]/90 text-white transition-colors disabled:opacity-50"
                 onClick={handleSubmit}
                 disabled={!canSubmit}
               >

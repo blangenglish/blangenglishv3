@@ -242,7 +242,7 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
                     <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                       <Button
                         size="lg"
-                        className="flex-1 bg-white text-primary hover:bg-white/90 font-extrabold text-sm sm:text-base py-5 sm:py-6 rounded-2xl shadow-xl transition-all active:scale-[0.98]"
+                        className="flex-1 bg-[#111111] hover:bg-[#111111]/90 text-white font-extrabold text-sm sm:text-base py-5 sm:py-6 rounded-2xl shadow-xl transition-colors active:scale-[0.98]"
                         onClick={() => {
                           sessionStorage.setItem(OPEN_PLAN_AFTER_AUTH_KEY, initialAgeGroup || '1');
                           onOpenAuth?.('register');
@@ -309,7 +309,7 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
             <motion.div variants={staggerItem} className="mt-8">
               <button
                 onClick={() => onOpenAuth?.('register')}
-                className="w-full sm:w-auto sm:px-14 bg-gradient-to-r from-primary to-violet-600 hover:opacity-90 text-white font-extrabold text-base sm:text-lg py-4 rounded-2xl transition-opacity shadow-lg shadow-primary/30"
+                className="w-full sm:w-auto sm:px-14 bg-[#111111] hover:bg-[#111111]/90 text-white font-extrabold text-base sm:text-lg py-4 rounded-2xl transition-colors shadow-lg"
               >
                 {t.compactHero.cta}
               </button>
@@ -478,7 +478,7 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
               </div>
               <button
                 onClick={() => onOpenAuth?.('register')}
-                className="shrink-0 bg-gradient-to-r from-primary to-violet-600 hover:opacity-90 text-white font-bold text-sm px-5 py-2.5 rounded-xl shadow-md transition-opacity whitespace-nowrap"
+                className="shrink-0 bg-[#111111] hover:bg-[#111111]/90 text-white font-bold text-sm px-5 py-2.5 rounded-xl shadow-md transition-colors whitespace-nowrap"
               >
                 {t.englishForYou.accessCta}
               </button>
@@ -556,7 +556,7 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
                       {/* CTA */}
                       <button
                         onClick={() => onOpenAuth?.('register')}
-                        className={`mt-auto w-full rounded-xl bg-gradient-to-r ${mod.gradient} text-white font-semibold text-sm py-2.5 shadow-sm hover:shadow-md hover:opacity-90 transition-all flex items-center justify-center gap-1.5`}
+                        className="mt-auto w-full rounded-xl bg-[#111111] hover:bg-[#111111]/90 text-white font-semibold text-sm py-2.5 shadow-sm hover:shadow-md transition-colors flex items-center justify-center gap-1.5"
                       >
                         <Lock className="w-3.5 h-3.5" />
                         {t.englishForYou.unlockCta}
@@ -571,7 +571,7 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
             <motion.div variants={staggerItem} className="text-center mt-8">
               <button
                 onClick={() => onOpenAuth?.('register')}
-                className="inline-flex items-center gap-2 bg-gradient-to-r from-primary to-violet-600 hover:opacity-90 text-white font-extrabold text-base sm:text-lg px-8 py-4 rounded-2xl shadow-lg shadow-primary/30 transition-opacity"
+                className="inline-flex items-center gap-2 bg-[#111111] hover:bg-[#111111]/90 text-white font-extrabold text-base sm:text-lg px-8 py-4 rounded-2xl shadow-lg transition-colors"
               >
                 {t.englishForYou.finalCta}
                 <ChevronRight className="w-5 h-5" />
@@ -623,7 +623,7 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
 
                 <Button
                   size="lg"
-                  className="bg-gradient-to-r from-violet-600 to-primary hover:opacity-90 text-white rounded-full px-10 py-6 font-extrabold text-base shadow-lg shadow-primary/30 gap-2"
+                  className="bg-[#111111] hover:bg-[#111111]/90 text-white rounded-full px-10 py-6 font-extrabold text-base shadow-lg transition-colors gap-2"
                   onClick={() => setQuizOpen(true)}
                 >
                   {t.nivelTest.cta}
@@ -780,7 +780,7 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
             </motion.p>
             <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button size="lg"
-                className="bg-white text-primary hover:bg-white/90 rounded-full font-bold px-10 py-6 text-lg"
+                className="bg-[#111111] hover:bg-[#111111]/90 text-white rounded-full font-bold px-10 py-6 text-lg shadow-lg transition-colors"
                 onClick={() => onOpenAuth?.('register')}
               >
                 {t.ctaFinal.register}

@@ -194,7 +194,7 @@ export default function SpanishProgram({ onOpenAuth, isLoggedIn }: SpanishProgra
                     <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                       <Button
                         size="lg"
-                        className="flex-1 bg-white text-violet-600 hover:bg-white/90 font-extrabold text-sm sm:text-base py-5 sm:py-6 rounded-2xl shadow-xl transition-all active:scale-[0.98]"
+                        className="flex-1 bg-[#111111] hover:bg-[#111111]/90 text-white font-extrabold text-sm sm:text-base py-5 sm:py-6 rounded-2xl shadow-xl transition-colors active:scale-[0.98]"
                         onClick={() => onOpenAuth?.('register')}
                       >
                         {t.armaTuPlan.priceCard.cta}
@@ -314,7 +314,7 @@ export default function SpanishProgram({ onOpenAuth, isLoggedIn }: SpanishProgra
             <motion.div variants={fadeUp}>
               <Button
                 size="lg"
-                className="bg-white text-violet-600 hover:bg-white/90 rounded-full font-bold px-10 py-6 text-lg"
+                className="bg-[#111111] hover:bg-[#111111]/90 text-white rounded-full font-bold px-10 py-6 text-lg shadow-lg transition-colors"
                 onClick={contactWhatsApp}
               >
                 {t.ctaFinal.cta}
