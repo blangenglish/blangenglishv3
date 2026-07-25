@@ -1,18 +1,17 @@
 // @ts-nocheck
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ArrowLeft, Send } from 'lucide-react';
+import { X, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
-import { openWhatsApp } from '@/lib/whatsapp';
-import { TermsAcceptBox } from '@/components/TermsAcceptBox';
 
-// ─── Constants ───────────────────────────────────────────────────────────────
-const AMOUNT_FULL_USD = 16;
-const AMOUNT_TRIMESTRAL_USD = 68;
+// Parte 11: el modal "¡Bienvenido!" con 3 opciones (7 días gratis / Plan
+// Mensual / Plan Trimestral) que vivía acá fue eliminado — contradecía la
+// Parte 1 (sin prueba gratis) y la Parte 8 (registro va directo a "Arma tu
+// plan mensual"). Este componente ahora solo cubre la selección de nivel de
+// inglés para cuentas que ya tienen un plan activo (ver Dashboard.tsx:
+// "Definir mi nivel ahora" / "Tomar examen ahora"), sin relación con el
+// flujo de registro.
 
 const ENGLISH_LEVELS = [
   { value: 'A1', label: 'A1 — Principiante', desc: 'No sé nada o muy poco de inglés' },
@@ -24,17 +23,9 @@ const ENGLISH_LEVELS = [
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type FlowState =
-  | 'INITIAL'              // 3 opciones: trial / mensual / trimestral
-  | 'TRIAL_FORM'           // Formulario solicitud 7 dias gratis
-  | 'TRIAL_SENT'           // Confirmacion enviada
-  | 'FULL_PAY_FORM'        // Formulario pago Plan Mensual
-  | 'TRIMESTRAL_PAY_FORM'  // Formulario pago Plan Trimestral
-  | 'PAYMENT_SENT'         // Confirmacion datos de pago enviados
-  | 'LEVEL_CHOICE'         // Ya pagó: elegir entre "ya sé mi nivel" / "tomar examen"
+  | 'LEVEL_CHOICE'         // Elegir entre "ya sé mi nivel" / "tomar examen"
   | 'LEVEL_SELECT'         // Seleccionar nivel manualmente
   | 'LEVEL_SAVED';         // Nivel guardado con éxito
-
-type PayMethod = 'paypal' | 'pse' | 'bancolombia' | 'breb'; // v2
 
 interface OnboardingFlowProps {
   open: boolean;
@@ -53,70 +44,35 @@ interface OnboardingFlowProps {
 // ─── Progress bar helper ──────────────────────────────────────────────────────
 function progressFor(s: FlowState): number {
   const m: Record<FlowState, number> = {
-    INITIAL: 10, TRIAL_FORM: 40, TRIAL_SENT: 90,
-    FULL_PAY_FORM: 50, TRIMESTRAL_PAY_FORM: 50, PAYMENT_SENT: 90,
     LEVEL_CHOICE: 30, LEVEL_SELECT: 60, LEVEL_SAVED: 100,
   };
-  return m[s] ?? 10;
-}
-
-// ─── PayPal SVG icon ──────────────────────────────────────────────────────────
-function PayPalIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="w-4 h-4 inline mr-1 fill-current">
-      <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.106zm14.146-14.42a3.35 3.35 0 0 0-.607-.541c-.013.076-.026.175-.041.254-.59 3.025-2.566 6.082-8.558 6.082H9.928l-1.182 7.519H12c.46 0 .85-.334.922-.789l.038-.197.733-4.64.047-.257a.932.932 0 0 1 .921-.789h.58c3.76 0 6.701-1.528 7.559-5.95.36-1.85.176-3.395-.578-4.692z" />
-    </svg>
-  );
+  return m[s] ?? 30;
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export function OnboardingFlow({
-  open, userId, userName, userEmail,
-  userCountry, userCity,
-  onComplete, hasPaidPlan, initialStep, onOpenExam,
+  open, userId,
+  onComplete, onOpenExam,
 }: OnboardingFlowProps) {
 
-  // Si ya pagó → ir directo a selección de nivel
-  const getInit = (): FlowState => {
-    if (hasPaidPlan) return 'LEVEL_CHOICE';
-    if (initialStep === 'plan') return 'FULL_PAY_FORM';
-    return 'INITIAL';
-  };
+  const getInit = (): FlowState => 'LEVEL_CHOICE';
 
   const [state, setState] = useState<FlowState>(getInit);
-  const [payMethod, setPayMethod] = useState<PayMethod>('paypal');
-  const [termsAccepted, setTermsAccepted] = useState(false);
-  const [trialName, setTrialName] = useState(userName || '');
-  const [trialEmail, setTrialEmail] = useState(userEmail || '');
-  const [trialMessage, setTrialMessage] = useState('');
-  const [payName, setPayName] = useState(userName || '');
-  const [payEmail, setPayEmail] = useState(userEmail || '');
-  const [loading, setLoading] = useState(false);
-  const [emailError, setEmailError] = useState<string | null>(null);
   const [history, setHistory] = useState<FlowState[]>([getInit()]);
   const [selectedLevel, setSelectedLevel] = useState('');
   const [savingLevel, setSavingLevel] = useState(false);
 
-  useEffect(() => {
-    setTrialName(userName || '');
-    setTrialEmail(userEmail || '');
-    setPayName(userName || '');
-    setPayEmail(userEmail || '');
-  }, [userName, userEmail]);
-
-  // Resetear al abrir, respetando hasPaidPlan
+  // Resetear al abrir
   useEffect(() => {
     if (open) {
       const s = getInit();
       setState(s);
       setHistory([s]);
-      setTrialMessage('');
       setSelectedLevel('');
       setSavingLevel(false);
-      setEmailError(null);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, hasPaidPlan, initialStep]);
+  }, [open]);
 
   const goTo = (next: FlowState) => {
     setHistory(h => [...h, next]);
@@ -127,7 +83,7 @@ export function OnboardingFlow({
     setHistory(h => {
       const prev = [...h];
       prev.pop();
-      const target = prev[prev.length - 1] ?? 'INITIAL';
+      const target = prev[prev.length - 1] ?? 'LEVEL_CHOICE';
       setState(target);
       return prev;
     });
@@ -176,82 +132,10 @@ export function OnboardingFlow({
     }
   };
 
-  // ── Enviar solicitud de prueba ────────────────────────────────────────────
-  const handleSendTrialRequest = async () => {
-    setLoading(true);
-    setEmailError(null);
-    try {
-      const pais = userCountry || 'No especificado';
-      const ciudad = userCity || 'No especificado';
-      const msg = trialMessage.trim() ||
-        'Hola, me gustaria solicitar los 7 dias gratis de BLANG English. ' +
-        'Nombre: ' + trialName + '. Correo: ' + trialEmail +
-        '. Pais: ' + pais + '. Ciudad: ' + ciudad + '.';
-
-      try {
-        await supabase.from('trial_requests').insert({
-          student_id: userId || null,
-          student_name: trialName,
-          student_email: trialEmail,
-          message: msg,
-          request_type: 'trial_7days',
-          status: 'pending',
-        });
-      } catch (_dbErr) {
-        console.warn('DB history insert failed (non-fatal)', _dbErr);
-      }
-
-      openWhatsApp(msg);
-      goTo('TRIAL_SENT');
-    } catch (err) {
-      const msgErr = err instanceof Error ? err.message : String(err);
-      setEmailError('Hubo un problema al enviar tu solicitud. Por favor intenta nuevamente. (Error: ' + msgErr + ')');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // ── Enviar datos de pago ──────────────────────────────────────────────────
-  const handleSendPaymentRequest = async (planLabel: string, amount: number) => {
-    setLoading(true);
-    setEmailError(null);
-    try {
-      const metodoLabel =
-        payMethod === 'paypal'      ? '🌐 PayPal — USD' :
-        payMethod === 'bancolombia' ? '🟡 Transferencia Bancolombia — COP (cta. ahorros)' :
-        payMethod === 'breb'        ? '🔑 Bre-B / Llave — COP (cualquier banco colombiano)' :
-                                      '💳 Bold / PSE — COP (+$10.000 recargo)';
-      const msg = [
-        `💳 *SOLICITUD DE PAGO — BLANG ENGLISH*`,
-        ``,
-        `👤 *DATOS DEL ESTUDIANTE*`,
-        `• Nombre: ${payName}`,
-        `• Correo: ${payEmail}`,
-        ``,
-        `📋 *PLAN SELECCIONADO*`,
-        `• Plan: ${planLabel}`,
-        `• Monto: $${amount} USD`,
-        ``,
-        `💳 *MÉTODO DE PAGO*`,
-        `• ${metodoLabel}`,
-        ``,
-        `✅ _El estudiante aceptó los términos y condiciones._`,
-      ].join('\n');
-
-      openWhatsApp(msg);
-      goTo('PAYMENT_SENT');
-    } catch (err) {
-      const msgErr2 = err instanceof Error ? err.message : String(err);
-      setEmailError('Hubo un problema al enviar tu solicitud. Por favor intenta nuevamente. (Error: ' + msgErr2 + ')');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   if (!open) return null;
 
   const progress = progressFor(state);
-  const canGoBack = history.length > 1 && !['TRIAL_SENT', 'PAYMENT_SENT', 'LEVEL_SAVED'].includes(state);
+  const canGoBack = history.length > 1 && state !== 'LEVEL_SAVED';
 
   return (
     <AnimatePresence>
@@ -265,7 +149,7 @@ export function OnboardingFlow({
         {/* Backdrop */}
         <div
           className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-          onClick={['TRIAL_SENT', 'PAYMENT_SENT', 'LEVEL_SAVED'].includes(state) ? onComplete : undefined}
+          onClick={state === 'LEVEL_SAVED' ? onComplete : undefined}
         />
 
         {/* Modal */}
@@ -412,438 +296,10 @@ export function OnboardingFlow({
                 </Button>
               </div>
             )}
-
-            {/* ── Vista inicial (sin plan pagado) ── */}
-            {state === 'INITIAL' && (
-              <InitialView
-                userName={trialName}
-                onSelectTrial={() => goTo('TRIAL_FORM')}
-                onSelectFull={() => goTo('FULL_PAY_FORM')}
-                onSelectTrimestral={() => goTo('TRIMESTRAL_PAY_FORM')}
-              />
-            )}
-
-            {state === 'TRIAL_FORM' && (
-              <TrialFormView
-                emailError={emailError}
-                name={trialName}
-                email={trialEmail}
-                message={trialMessage}
-                loading={loading}
-                onNameChange={setTrialName}
-                onEmailChange={setTrialEmail}
-                onMessageChange={setTrialMessage}
-                onSubmit={handleSendTrialRequest}
-              />
-            )}
-
-            {state === 'TRIAL_SENT' && (
-              <TrialSentView onClose={onComplete} />
-            )}
-
-            {state === 'FULL_PAY_FORM' && (
-              <PaymentFormView
-                emailError={emailError}
-                title="Plan Mensual"
-                subtitle="$16 USD / $60,000 COP al mes"
-                badge="📅 PLAN MENSUAL"
-                name={payName}
-                email={payEmail}
-                payMethod={payMethod}
-                loading={loading}
-                termsAccepted={termsAccepted}
-                onTermsChange={setTermsAccepted}
-                onNameChange={setPayName}
-                onEmailChange={setPayEmail}
-                onMethodChange={setPayMethod}
-                onSubmit={() => handleSendPaymentRequest('Plan Mensual — $16 USD / $60,000 COP al mes', AMOUNT_FULL_USD)}
-              />
-            )}
-
-            {state === 'TRIMESTRAL_PAY_FORM' && (
-              <PaymentFormView
-                emailError={emailError}
-                title="Plan Trimestral"
-                subtitle="$68 USD / $250,000 COP por 3 meses"
-                badge="💎 PLAN TRIMESTRAL"
-                name={payName}
-                email={payEmail}
-                payMethod={payMethod}
-                loading={loading}
-                termsAccepted={termsAccepted}
-                onTermsChange={setTermsAccepted}
-                onNameChange={setPayName}
-                onEmailChange={setPayEmail}
-                onMethodChange={setPayMethod}
-                onSubmit={() => handleSendPaymentRequest('Plan Trimestral — $68 USD / $250,000 COP por 3 meses', AMOUNT_TRIMESTRAL_USD)}
-              />
-            )}
-
-            {state === 'PAYMENT_SENT' && (
-              <PaymentSentView onClose={onComplete} />
-            )}
           </div>
         </motion.div>
       </motion.div>
     </AnimatePresence>
-  );
-}
-
-// ─── Sub-views ────────────────────────────────────────────────────────────────
-
-function InitialView({
-  userName,
-  onSelectTrial,
-  onSelectFull,
-  onSelectTrimestral,
-}: {
-  userName: string;
-  onSelectTrial: () => void;
-  onSelectFull: () => void;
-  onSelectTrimestral: () => void;
-}) {
-  return (
-    <div className="space-y-3 pt-1">
-      <div className="text-center mb-5">
-        <div className="text-4xl mb-3">👋</div>
-        <h2 className="font-extrabold text-2xl mb-1">
-          ¡Bienvenido{userName ? `, ${userName.split(' ')[0]}` : ''}!
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          Elige cómo quieres comenzar tu experiencia en BLANG English.
-        </p>
-      </div>
-
-      {/* Opcion 1: 7 dias gratis */}
-      <button
-        className="w-full rounded-2xl border-2 border-primary/30 bg-primary/5 hover:bg-primary/10 hover:border-primary/50 p-4 text-left transition-all group"
-        onClick={onSelectTrial}
-      >
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center text-xl shrink-0">🎁</div>
-          <div className="flex-1">
-            <p className="font-bold text-base mb-0.5">Solicitar 7 días gratis</p>
-            <p className="text-xs text-muted-foreground">Sin pago. El equipo BLANG revisará tu solicitud y te contactará.</p>
-            <span className="inline-block mt-1.5 text-xs font-bold text-primary bg-primary/10 rounded-full px-2.5 py-0.5">✉️ Activación manual</span>
-          </div>
-          <div className="text-muted-foreground group-hover:text-primary transition-colors mt-1">→</div>
-        </div>
-      </button>
-
-      {/* Opcion 2: Plan Mensual */}
-      <button
-        className="w-full rounded-2xl border-2 border-green-200 bg-green-50/60 hover:bg-green-50 hover:border-green-300 p-4 text-left transition-all group"
-        onClick={onSelectFull}
-      >
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center text-xl shrink-0">📅</div>
-          <div className="flex-1">
-            <p className="font-bold text-base mb-0.5">Plan Mensual</p>
-            <p className="text-xs text-muted-foreground">$16 USD / $60,000 COP al mes. Acceso completo a todos los cursos.</p>
-            <span className="inline-block mt-1.5 text-xs font-bold text-green-700 bg-green-100 rounded-full px-2.5 py-0.5">⏱ Activación en máx. 24 h hábiles</span>
-          </div>
-          <div className="text-muted-foreground group-hover:text-green-600 transition-colors mt-1">→</div>
-        </div>
-      </button>
-
-      {/* Opcion 3: Plan Trimestral */}
-      <button
-        className="w-full rounded-2xl border-2 border-violet-200 bg-violet-50/60 hover:bg-violet-50 hover:border-violet-300 p-4 text-left transition-all group relative overflow-hidden"
-        onClick={onSelectTrimestral}
-      >
-        {/* Badge "Mejor valor" */}
-        <div className="absolute top-3 right-3">
-          <span className="bg-amber-400 text-black text-[10px] font-extrabold px-2 py-0.5 rounded-full whitespace-nowrap">⭐ Mejor valor</span>
-        </div>
-        <div className="flex items-start gap-3 pr-20">
-          <div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center text-xl shrink-0">💎</div>
-          <div className="flex-1">
-            <p className="font-bold text-base mb-0.5">Plan Trimestral</p>
-            <p className="text-xs text-muted-foreground">$68 USD / $250,000 COP por 3 meses. ¡Ahorra frente al mensual!</p>
-            <span className="inline-block mt-1.5 text-xs font-bold text-violet-700 bg-violet-100 rounded-full px-2.5 py-0.5">⏱ Activación en máx. 24 h hábiles</span>
-          </div>
-        </div>
-        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground group-hover:text-violet-600 transition-colors">→</div>
-      </button>
-    </div>
-  );
-}
-
-function TrialFormView({
-  name, email, message, loading, emailError,
-  onNameChange, onEmailChange, onMessageChange, onSubmit,
-}: {
-  name: string;
-  email: string;
-  message: string;
-  loading: boolean;
-  emailError?: string | null;
-  onNameChange: (v: string) => void;
-  onEmailChange: (v: string) => void;
-  onMessageChange: (v: string) => void;
-  onSubmit: () => void;
-}) {
-  return (
-    <div className="space-y-4 pt-1">
-      <div className="text-center mb-4">
-        <div className="text-4xl mb-2">🎁</div>
-        <h2 className="font-extrabold text-xl mb-1">Solicitar 7 días gratis</h2>
-        <p className="text-xs text-muted-foreground">
-          Completa el formulario y el equipo BLANG revisará tu solicitud. <strong>No se activa nada automáticamente.</strong>
-        </p>
-      </div>
-
-      <div className="space-y-3">
-        <div>
-          <Label className="text-xs font-semibold mb-1 block">Nombre completo</Label>
-          <Input
-            value={name}
-            onChange={e => onNameChange(e.target.value)}
-            placeholder="Tu nombre completo"
-            className="rounded-xl"
-          />
-        </div>
-        <div>
-          <Label className="text-xs font-semibold mb-1 block">Correo electrónico</Label>
-          <Input
-            type="email"
-            value={email}
-            onChange={e => onEmailChange(e.target.value)}
-            placeholder="tu@correo.com"
-            className="rounded-xl"
-          />
-        </div>
-        <div>
-          <Label className="text-xs font-semibold mb-1 block">Mensaje (opcional)</Label>
-          <Textarea
-            value={message}
-            onChange={e => onMessageChange(e.target.value)}
-            placeholder="¿Por qué quieres aprender inglés con BLANG?"
-            className="rounded-xl resize-none"
-            rows={3}
-          />
-        </div>
-      </div>
-
-      <div className="rounded-xl bg-blue-50 border border-blue-200 p-3">
-        <p className="text-xs text-blue-700">
-          ℹ️ <strong>Proceso manual:</strong> El equipo BLANG revisará tu solicitud y se comunicará contigo en máximo 48 horas hábiles para activar tu acceso de prueba.
-        </p>
-      </div>
-
-      {emailError && (
-        <div className="rounded-xl bg-red-50 border border-red-200 p-3">
-          <p className="text-xs text-red-700">{emailError}</p>
-          <p className="text-xs text-red-600 mt-1">Si el problema persiste, escríbenos por WhatsApp al <strong>+57 323 640 5246</strong></p>
-        </div>
-      )}
-
-      <Button
-        className="w-full rounded-2xl py-5 font-bold text-base gap-2"
-        onClick={onSubmit}
-        disabled={loading || !name.trim() || !email.trim()}
-      >
-        {loading ? (
-          <span className="flex items-center gap-2"><span className="animate-spin w-4 h-4 border-2 border-white/30 border-t-white rounded-full" /> Enviando...</span>
-        ) : (
-          <><Send className="w-4 h-4" /> Enviar solicitud</>
-        )}
-      </Button>
-    </div>
-  );
-}
-
-function TrialSentView({ onClose }: { onClose: () => void }) {
-  return (
-    <div className="text-center py-6 space-y-4">
-      <motion.div
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
-        transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-        className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center text-4xl mx-auto"
-      >
-        ✅
-      </motion.div>
-      <div>
-        <h2 className="font-extrabold text-xl mb-2">¡Solicitud enviada!</h2>
-        <p className="text-sm text-muted-foreground max-w-xs mx-auto">
-          Tu solicitud de 7 días gratis fue recibida por el equipo BLANG. Te contactaremos en máximo <strong>48 horas hábiles</strong> para activar tu acceso.
-        </p>
-      </div>
-      <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 text-left">
-        <p className="text-xs text-amber-700">
-          ⚠️ <strong>Importante:</strong> Tu cuenta aún no está activa. Espera la confirmación del equipo BLANG antes de intentar acceder a los cursos.
-        </p>
-      </div>
-      <Button className="w-full rounded-2xl py-4 font-bold" onClick={onClose}>
-        Entendido, esperaré la confirmación
-      </Button>
-    </div>
-  );
-}
-
-function PaymentFormView({
-  title, subtitle, badge,
-  name, email, payMethod, loading, emailError,
-  termsAccepted, onTermsChange,
-  onNameChange, onEmailChange, onMethodChange, onSubmit,
-}: {
-  title: string;
-  subtitle: string;
-  badge: string;
-  name: string;
-  email: string;
-  payMethod: PayMethod;
-  loading: boolean;
-  emailError?: string | null;
-  termsAccepted: boolean;
-  onTermsChange: (v: boolean) => void;
-  onNameChange: (v: string) => void;
-  onEmailChange: (v: string) => void;
-  onMethodChange: (v: PayMethod) => void;
-  onSubmit: () => void;
-}) {
-  return (
-    <div className="space-y-4 pt-1">
-      {/* Header */}
-      <div className="text-center mb-3">
-        <span className="inline-block text-xs font-bold px-3 py-1 rounded-full bg-primary/10 text-primary mb-2">{badge}</span>
-        <h2 className="font-extrabold text-xl mb-1">{title}</h2>
-        <p className="text-sm font-semibold text-foreground/70">{subtitle}</p>
-      </div>
-
-      {/* Nombre y correo */}
-      <div className="space-y-3">
-        <div>
-          <Label className="text-xs font-semibold mb-1 block">Nombre completo</Label>
-          <Input value={name} onChange={e => onNameChange(e.target.value)} placeholder="Tu nombre" className="rounded-xl" />
-        </div>
-        <div>
-          <Label className="text-xs font-semibold mb-1 block">Correo electrónico</Label>
-          <Input type="email" value={email} onChange={e => onEmailChange(e.target.value)} placeholder="tu@correo.com" className="rounded-xl" />
-        </div>
-      </div>
-
-      {/* Selector método de pago */}
-      <div>
-        <p className="text-xs font-semibold mb-2">¿Cómo prefieres pagar?</p>
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={() => onMethodChange('paypal')}
-            className={`rounded-xl py-3 px-2 text-sm font-bold border-2 transition-all flex flex-col items-center justify-center gap-1 ${
-              payMethod === 'paypal'
-                ? 'border-[#003087] bg-[#003087]/5 text-[#003087]'
-                : 'border-border/40 text-muted-foreground hover:border-border'
-            }`}
-          >
-            <PayPalIcon />
-            <span>PayPal</span>
-            <span className="text-[10px] font-normal opacity-70">USD</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => onMethodChange('pse')}
-            className={`rounded-xl py-3 px-2 text-sm font-bold border-2 transition-all flex flex-col items-center justify-center gap-1 ${
-              payMethod === 'pse'
-                ? 'border-violet-500 bg-violet-50 text-violet-700'
-                : 'border-border/40 text-muted-foreground hover:border-border'
-            }`}
-          >
-            <span className="text-lg">💳</span>
-            <span>PSE / Bold</span>
-            <span className="text-[10px] font-normal opacity-70">COP</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => onMethodChange('bancolombia')}
-            className={`rounded-xl py-3 px-2 text-sm font-bold border-2 transition-all flex flex-col items-center justify-center gap-1 ${
-              payMethod === 'bancolombia'
-                ? 'border-yellow-400 bg-yellow-50 text-yellow-900'
-                : 'border-border/40 text-muted-foreground hover:border-border'
-            }`}
-          >
-            <span className="text-lg">🟡</span>
-            <span className="text-[11px]">Bancolombia</span>
-            <span className="text-[10px] font-normal opacity-70">COP (ahorros)</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => onMethodChange('breb')}
-            className={`rounded-xl py-3 px-2 text-sm font-bold border-2 transition-all flex flex-col items-center justify-center gap-1 ${
-              payMethod === 'breb'
-                ? 'border-teal-500 bg-teal-50 text-teal-700'
-                : 'border-border/40 text-muted-foreground hover:border-border'
-            }`}
-          >
-            <span className="text-lg">🔑</span>
-            <span className="text-[11px]">Bre-B / Llave</span>
-            <span className="text-[10px] font-normal opacity-70">COP</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Términos y condiciones */}
-      <TermsAcceptBox accepted={termsAccepted} onChange={onTermsChange} />
-
-      {/* Nota informativa */}
-      <div className="rounded-xl bg-blue-50 border border-blue-200 p-3">
-        <p className="text-xs text-blue-700">
-          📧 Al confirmar, te enviaremos el link de pago a tu correo. Tu acceso se activa en máximo <strong>24 horas hábiles</strong> tras confirmar tu pago.
-        </p>
-      </div>
-
-      {emailError && (
-        <div className="rounded-xl bg-red-50 border border-red-200 p-3">
-          <p className="text-xs text-red-700">{emailError}</p>
-          <p className="text-xs text-red-600 mt-1">Si el problema persiste, escríbenos por WhatsApp al <strong>+57 323 640 5246</strong></p>
-        </div>
-      )}
-
-      <Button
-        className="w-full rounded-2xl py-5 font-bold text-base gap-2"
-        onClick={onSubmit}
-        disabled={loading || !name.trim() || !email.trim() || !termsAccepted}
-      >
-        {loading ? (
-          <span className="flex items-center gap-2">
-            <span className="animate-spin w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
-            Enviando...
-          </span>
-        ) : (
-          <><Send className="w-4 h-4" /> Confirmar solicitud</>
-        )}
-      </Button>
-    </div>
-  );
-}
-
-function PaymentSentView({ onClose }: { onClose: () => void }) {
-  return (
-    <div className="text-center py-6 space-y-4">
-      <motion.div
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
-        transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-        className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center text-4xl mx-auto"
-      >
-        ✅
-      </motion.div>
-      <div>
-        <h2 className="font-extrabold text-xl mb-2">¡Listo!</h2>
-        <p className="text-sm text-muted-foreground max-w-xs mx-auto">
-          Revisa tu correo — te enviaremos el link de pago para completar tu inscripción.
-        </p>
-      </div>
-      <div className="rounded-xl bg-blue-50 border border-blue-200 p-3 text-left">
-        <p className="text-xs text-blue-700">
-          ⏱ Tu acceso se activa en máximo <strong>24 horas hábiles</strong> tras confirmar tu pago. Si tienes dudas, escríbenos por WhatsApp al <strong>+57 323 640 5246</strong>
-        </p>
-      </div>
-      <Button className="w-full rounded-2xl py-4 font-bold" onClick={onClose}>
-        Entendido
-      </Button>
-    </div>
   );
 }
 

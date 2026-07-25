@@ -5,7 +5,7 @@ import { Toaster as Sonner } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { HashRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
-import { ROUTE_PATHS } from '@/lib/index';
+import { ROUTE_PATHS, OPEN_PLAN_AFTER_AUTH_KEY } from '@/lib/index';
 import { ADMIN_ROUTES } from '@/lib/admin';
 import type { AuthModal } from '@/lib/index';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,7 +24,6 @@ import ResetPassword from '@/pages/ResetPassword';
 import EnglishModule from '@/pages/EnglishModule';
 import Phonetics from '@/pages/Phonetics';
 import { AuthModals } from '@/components/AuthModals';
-import { OnboardingFlow } from '@/components/OnboardingFlow';
 import AdminLogin from '@/pages/admin/AdminLogin';
 import AdminDashboard from '@/pages/admin/AdminDashboard';
 import AdminCourses from '@/pages/admin/AdminCourses';
@@ -44,9 +43,6 @@ function AppRoutes() {
   const [userName, setUserName] = useState('');
   const [userId, setUserId] = useState('');
   const [userEmail, setUserEmail] = useState('');
-  const [showOnboarding, setShowOnboarding] = useState(false);
-  const [userCountry, setUserCountry] = useState('');
-  const [userCity, setUserCity] = useState('');
   const [sessionReady, setSessionReady] = useState(false);
   const ADMIN_EMAIL = 'blangenglishlearning@blangenglish.com';
 
@@ -120,8 +116,6 @@ function AppRoutes() {
     setUserName(name);
     setUserEmail(email);
     if (uid) setUserId(uid);
-    if (country) setUserCountry(country);
-    if (city) setUserCity(city);
     setAuthModal(null);
 
     // Solo ir al panel admin si isAdmin=true fue EXPLÍCITAMENTE aprobado
@@ -130,9 +124,14 @@ function AppRoutes() {
       return;
     }
 
-    // Nuevo registro → mostrar OnboardingFlow antes del Dashboard
+    // Nuevo registro → directo a "Arma tu plan mensual" en el Dashboard (Parte 8/11).
+    // Ya no existe el modal "¡Bienvenido!" con 3 opciones (7 días gratis / mensual /
+    // trimestral). Si el CTA de origen ya dejó un grupo de edad guardado (Parte 8),
+    // lo respetamos; si no, solo marcamos que hay que abrir el modal.
     if (isNewReg) {
-      setShowOnboarding(true);
+      if (!sessionStorage.getItem(OPEN_PLAN_AFTER_AUTH_KEY)) {
+        sessionStorage.setItem(OPEN_PLAN_AFTER_AUTH_KEY, '1');
+      }
       setTimeout(() => navigate(ROUTE_PATHS.DASHBOARD), 300);
       return;
     }
@@ -208,21 +207,6 @@ function AppRoutes() {
         onClose={() => setAuthModal(null)}
         onLogin={(email, name, uid, isAdmin, country, city, isNewReg) => handleLogin(email, name, uid, isAdmin, country, city, isNewReg)}
       />
-
-      {showOnboarding && userId && (
-        <OnboardingFlow
-          open={showOnboarding}
-          userId={userId}
-          userName={userName}
-          userEmail={userEmail}
-          userCountry={userCountry}
-          userCity={userCity}
-          onComplete={() => {
-            setShowOnboarding(false);
-            navigate(ROUTE_PATHS.DASHBOARD);
-          }}
-        />
-      )}
     </>
   );
 }
