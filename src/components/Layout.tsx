@@ -26,10 +26,14 @@ const MARQUEE_ANIMATE = { x: ['0%', '-50%'] };
 const MARQUEE_TRANSITION = { duration: 26, ease: 'linear', repeat: Infinity };
 
 function TopMessageBar({ messages }: { messages: string[] }) {
-  // Un solo texto combinado, duplicado, que se desplaza -50% de su propio
-  // ancho: como las dos copias son idénticas, el recorrido se ve continuo e
-  // infinito sin "salto" al reiniciar.
-  const combined = messages.join('     •     ') + '     •     ';
+  // Cada mensaje es su propio span con margen explícito alrededor del
+  // separador — espacios literales repetidos en el string NO sirven acá:
+  // HTML colapsa espacios consecutivos a uno solo al renderizar texto, así
+  // que el espaciado real tiene que venir de CSS (margin), no del string.
+  // El arreglo se duplica completo (mismo total en ambas mitades) para que
+  // el desplazamiento de -50% del propio ancho del contenedor sea continuo
+  // e infinito, sin "salto" al reiniciar.
+  const items = [...messages, ...messages];
 
   return (
     <div className="overflow-hidden">
@@ -39,12 +43,16 @@ function TopMessageBar({ messages }: { messages: string[] }) {
           animate={MARQUEE_ANIMATE}
           transition={MARQUEE_TRANSITION}
         >
-          <span className="text-[11px] sm:text-xs font-bold text-primary tracking-wide shrink-0">
-            {combined}
-          </span>
-          <span className="text-[11px] sm:text-xs font-bold text-primary tracking-wide shrink-0" aria-hidden="true">
-            {combined}
-          </span>
+          {items.map((msg, i) => (
+            <span key={i} className="flex items-center shrink-0">
+              <span className="text-[11px] sm:text-xs font-bold text-primary tracking-wide">
+                {msg}
+              </span>
+              <span className="text-primary/40 text-[11px] sm:text-xs mx-6 sm:mx-10" aria-hidden="true">
+                •
+              </span>
+            </span>
+          ))}
         </motion.div>
       </div>
     </div>
