@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Menu, X, BookOpen, Video, TrendingUp, LayoutDashboard, LogIn, UserPlus, ChevronLeft } from 'lucide-react';
@@ -75,6 +75,16 @@ export function Layout({ children, isLoggedIn = false, onOpenAuth, onLogout, use
   const navigate = useNavigate();
   const { lang, toggleLang } = useLanguage();
   const t = translations[lang];
+  // Parte 18: el primer mensaje de la cinta ("Aprovecha el 50%...") es del
+  // descuento de primer mes, exclusivo del curso de inglés (Parte 8/13/17) —
+  // nunca debe verse en la página de español. Se filtra por índice (no por
+  // texto) para que funcione igual sin importar el idioma de interfaz.
+  // useMemo evita crear un arreglo nuevo en cada render (TopMessageBar
+  // reinicia su rotación cuando la referencia de `messages` cambia).
+  const topBarMessages = useMemo(
+    () => (location.pathname === ROUTE_PATHS.SPANISH ? t.topBar.messages.slice(1) : t.topBar.messages),
+    [location.pathname, t.topBar.messages]
+  );
 
   // Scroll to top on every route change
   useEffect(() => {
@@ -236,7 +246,7 @@ export function Layout({ children, isLoggedIn = false, onOpenAuth, onLogout, use
           </div>
         </div>
 
-        <TopMessageBar messages={t.topBar.messages} />
+        <TopMessageBar messages={topBarMessages} />
 
         {/* Mobile Menu (solo navMode 'full') */}
         {navMode === 'full' && mobileMenuOpen && (

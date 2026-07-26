@@ -266,7 +266,7 @@ export const translations = {
         subtitle: 'Escríbenos por WhatsApp y te contamos todo sobre el curso de Español para Extranjeros.',
         cta: '📩 Escríbenos por WhatsApp',
       },
-      whatsappMessage: 'Hola! 🇪🇸 Quiero información sobre el curso de Español para Extranjeros (Spanish for Foreigners) y el 50% de descuento en el primer mes.',
+      whatsappMessage: 'Hola! 🇪🇸 Quiero información sobre el curso de Español para Extranjeros (Spanish for Foreigners).',
     },
     modal: {
       title: 'Arma tu plan mensual',
@@ -697,7 +697,7 @@ export const translations = {
         subtitle: "Message us on WhatsApp and we'll tell you everything about the Spanish for Foreigners course.",
         cta: '📩 Message us on WhatsApp',
       },
-      whatsappMessage: "Hi! 🇪🇸 I'd like information about the Spanish for Foreigners course and the 50% discount on the first month.",
+      whatsappMessage: "Hi! 🇪🇸 I'd like information about the Spanish for Foreigners course.",
     },
     modal: {
       title: 'Build your monthly plan',

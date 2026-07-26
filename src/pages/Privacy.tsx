@@ -12,7 +12,7 @@ interface PrivacyProps {
   userName?: string;
 }
 
-const LAST_UPDATED = '14 de abril de 2026';
+const LAST_UPDATED = '25 de julio de 2026';
 
 export default function Privacy({ isLoggedIn, onOpenAuth, onLogout, userName }: PrivacyProps) {
   const navigate = useNavigate();
@@ -24,7 +24,7 @@ export default function Privacy({ isLoggedIn, onOpenAuth, onLogout, userName }: 
     },
     {
       id: '2', title: '2. Datos que Recopilamos',
-      content: `Recopilamos únicamente los datos necesarios para brindarte el servicio:\n\n• Datos de registro: nombre, apellido y correo electrónico\n• Datos de uso: progreso en los cursos, unidades completadas, tiempo de estudio\n• Datos de pago: procesados por terceros (PayPal o PSE) — BLANG no almacena datos de tarjetas de crédito\n• Datos de sesiones: nombre, correo, teléfono y horarios cuando reservas sesiones en vivo\n• Datos de comunicación: mensajes enviados a través de formularios de contacto`,
+      content: `Recopilamos únicamente los datos necesarios para brindarte el servicio:\n\n• Datos de registro (curso de inglés): nombre, apellido y correo electrónico\n• Datos de uso: progreso en los cursos, unidades completadas, tiempo de estudio\n• Datos de pago: procesados por terceros (PayPal, Bold/PSE, Bancolombia o Bre-B según el método elegido) — BLANG no almacena datos de tarjetas de crédito ni de cuentas bancarias\n• Datos de "Arma tu plan": nombre, correo y preferencias de horario cuando armas tu plan de clases en vivo (inglés o español)\n• Formulario público de Español para Extranjeros: a diferencia del curso de inglés, este formulario no requiere crear una cuenta — el nombre y correo que ingresas se incluyen en un mensaje de WhatsApp que tú mismo envías, y no quedan guardados en nuestra base de datos a menos que además crees una cuenta con BLANG\n• Datos de comunicación: mensajes enviados a través de formularios de contacto`,
     },
     {
       id: '3', title: '3. Finalidad del Tratamiento',
@@ -36,7 +36,7 @@ export default function Privacy({ isLoggedIn, onOpenAuth, onLogout, userName }: 
     },
     {
       id: '5', title: '5. Compartición de Datos con Terceros',
-      content: `BLANG no vende ni alquila tus datos personales a terceros. Podemos compartir información limitada con:\n\n• Proveedores de pago (PayPal, PSE) para procesar transacciones — solo lo necesario para completar el pago\n• Proveedores de infraestructura tecnológica (Supabase para base de datos, servicios de email) bajo acuerdos de confidencialidad\n• Autoridades competentes cuando sea requerido por ley\n\nTodos los terceros con quienes compartimos datos están obligados a tratarlos con confidencialidad y solo para los fines indicados.`,
+      content: `BLANG no vende ni alquila tus datos personales a terceros. Podemos compartir información limitada con:\n\n• Proveedores de pago (PayPal, Bold/PSE, Bancolombia, Bre-B) para procesar transacciones — solo lo necesario para completar el pago\n• Proveedores de infraestructura tecnológica (Supabase para base de datos, servicios de email) bajo acuerdos de confidencialidad\n• Autoridades competentes cuando sea requerido por ley\n\nTodos los terceros con quienes compartimos datos están obligados a tratarlos con confidencialidad y solo para los fines indicados.`,
     },
     {
       id: '6', title: '6. Retención de Datos',
