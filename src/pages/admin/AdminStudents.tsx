@@ -872,15 +872,22 @@ export default function AdminStudents() {
       // 5. Sincronizar "Habilitar acceso al curso" con los niveles elegidos
       //    acá (Parte 20) — mismo mecanismo que grantLevelUnits/revokeLevelUnits,
       //    para que ambas pantallas sean siempre la misma fuente de verdad.
+      //    Parte 21 (bug crítico): hay que dejar is_active:false EXPLÍCITO para
+      //    los niveles NO elegidos, no solo omitirlos — un curso sin ninguna
+      //    fila en student_module_access cae de vuelta a la regla de "cuenta
+      //    activa = todo desbloqueado" en Dashboard.tsx, dándole al estudiante
+      //    acceso a niveles que el admin nunca activó.
       try {
         await adminDeleteByFilter('student_module_access', { student_id: studentId });
-        const selectedCourses = coursesForAccess.filter(c => form.levels.includes(c.level || ''));
-        if (selectedCourses.length > 0) {
+        if (coursesForAccess.length > 0) {
           const now = new Date().toISOString();
-          const records = selectedCourses.flatMap(c => [
-            { student_id: studentId, course_id: c.id, is_active: true, granted_at: now },
-            ...(c.units || []).map(u => ({ student_id: studentId, course_id: c.id, unit_id: u.id, is_active: true, granted_at: now })),
-          ]);
+          const records = coursesForAccess.flatMap(c => {
+            const active = form.levels.includes(c.level || '');
+            return [
+              { student_id: studentId, course_id: c.id, is_active: active, granted_at: now },
+              ...(c.units || []).map(u => ({ student_id: studentId, course_id: c.id, unit_id: u.id, is_active: active, granted_at: now })),
+            ];
+          });
           await adminInsert('student_module_access', records);
         }
       } catch (e) { console.error('[activatePlan] module access sync:', e); }
@@ -1052,14 +1059,15 @@ export default function AdminStudents() {
       const filters = unitId
         ? { student_id: studentId, course_id: courseId, unit_id: unitId }
         : { student_id: studentId, course_id: courseId };
-      // Siempre borrar primero para evitar duplicados
+      // Siempre borrar primero para evitar duplicados. Parte 21: insertamos SIEMPRE
+      // un registro con is_active explícito (true o false) — dejar la fila borrada
+      // en vez de is_active:false hacía que Dashboard.tsx cayera de vuelta a la
+      // regla de "cuenta activa = todo desbloqueado", ignorando la desactivación.
       await adminDeleteByFilter('student_module_access', filters);
-      if (newState) {
-        const record = unitId
-          ? { student_id: studentId, course_id: courseId, unit_id: unitId, is_active: true, granted_at: new Date().toISOString() }
-          : { student_id: studentId, course_id: courseId, is_active: true, granted_at: new Date().toISOString() };
-        await adminInsert('student_module_access', record);
-      }
+      const record = unitId
+        ? { student_id: studentId, course_id: courseId, unit_id: unitId, is_active: newState, granted_at: new Date().toISOString() }
+        : { student_id: studentId, course_id: courseId, is_active: newState, granted_at: new Date().toISOString() };
+      await adminInsert('student_module_access', record);
     } catch (e) {
       console.error('[toggleModuleAccess] error:', e);
       // Revertir UI si falló
@@ -1102,7 +1110,23 @@ export default function AdminStudents() {
   const revokeAllCourses = async (studentId: string) => {
     showMsg('success', '⏳ Deshabilitando todos los módulos...');
     try {
+      // Parte 21: dejar registros is_active:false explícitos (no solo borrar) —
+      // ver nota en toggleModuleAccess sobre por qué borrar sin más no bloquea nada.
+      const { data: allCourses } = await supabase.from('courses').select('id,level').eq('is_published', true);
       await adminDeleteByFilter('student_module_access', { student_id: studentId });
+      if (allCourses && allCourses.length > 0) {
+        const now = new Date().toISOString();
+        for (const c of allCourses as { id: string; level: string }[]) {
+          const { data: units } = await supabase.from('units').select('id').eq('course_id', c.id);
+          const records = [
+            { student_id: studentId, course_id: c.id, is_active: false, granted_at: now },
+            ...((units || []) as { id: string }[]).map(u => ({
+              student_id: studentId, course_id: c.id, unit_id: u.id, is_active: false, granted_at: now,
+            })),
+          ];
+          await adminInsert('student_module_access', records);
+        }
+      }
       setStudentModuleAccess(prev => ({ ...prev, [studentId]: [] }));
       await loadStudentModuleAccess(studentId);
       showMsg('success', '🔒 Todos los módulos deshabilitados');
@@ -1120,13 +1144,21 @@ export default function AdminStudents() {
     const units = course.units || [];
     const allIds = [course.id, ...units.map(u => u.id)];
     if (currentlyActive) {
-      // Deshabilitar nivel: actualizar UI y borrar registros del curso y sus unidades
+      // Deshabilitar nivel: actualizar UI y dejar is_active:false explícito en el
+      // curso y sus unidades (Parte 21 — borrar sin más no bloquea nada, ver nota
+      // en toggleModuleAccess).
       setStudentModuleAccess(prev => ({
         ...prev,
         [studentId]: (prev[studentId] || []).filter(id => !allIds.includes(id)),
       }));
       try {
+        const now = new Date().toISOString();
         await adminDeleteByFilter('student_module_access', { student_id: studentId, course_id: course.id });
+        const records = [
+          { student_id: studentId, course_id: course.id, is_active: false, granted_at: now },
+          ...units.map(u => ({ student_id: studentId, course_id: course.id, unit_id: u.id, is_active: false, granted_at: now })),
+        ];
+        await adminInsert('student_module_access', records);
       } catch (e) {
         console.error('[toggleLevelWithUnits] error deshabilitando:', e);
         showMsg('error', '❌ Error al deshabilitar el nivel.');
@@ -1176,15 +1208,23 @@ export default function AdminStudents() {
     await loadStudentModuleAccess(studentId);
   };
 
-  // Deshabilitar todas las unidades de un nivel
+  // Deshabilitar todas las unidades de un nivel — Parte 21: deja is_active:false
+  // explícito en vez de solo borrar (ver nota en toggleModuleAccess).
   const revokeLevelUnits = async (studentId: string, course: { id: string; units?: { id: string }[] }) => {
-    const allIds = [course.id, ...(course.units || []).map(u => u.id)];
+    const units = course.units || [];
+    const allIds = [course.id, ...units.map(u => u.id)];
     setStudentModuleAccess(prev => ({
       ...prev,
       [studentId]: (prev[studentId] || []).filter(id => !allIds.includes(id)),
     }));
     try {
+      const now = new Date().toISOString();
       await adminDeleteByFilter('student_module_access', { student_id: studentId, course_id: course.id });
+      const records = [
+        { student_id: studentId, course_id: course.id, is_active: false, granted_at: now },
+        ...units.map(u => ({ student_id: studentId, course_id: course.id, unit_id: u.id, is_active: false, granted_at: now })),
+      ];
+      await adminInsert('student_module_access', records);
     } catch (e) {
       console.error('[revokeLevelUnits] error:', e);
       showMsg('error', '❌ Error al deshabilitar el nivel.');
