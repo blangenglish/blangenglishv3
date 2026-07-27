@@ -12,7 +12,7 @@ interface TermsProps {
   userName?: string;
 }
 
-const LAST_UPDATED = '25 de julio de 2026';
+const LAST_UPDATED = '27 de julio de 2026';
 
 export default function Terms({ isLoggedIn, onOpenAuth, onLogout, userName }: TermsProps) {
   const navigate = useNavigate();
@@ -31,47 +31,55 @@ export default function Terms({ isLoggedIn, onOpenAuth, onLogout, userName }: Te
       content: `Para acceder a los servicios de BLANG debes crear una cuenta personal proporcionando información veraz, completa y actualizada. Cada cuenta es personal e intransferible — no está permitido compartir credenciales de acceso con terceros. Eres responsable de mantener la confidencialidad de tu contraseña y de todas las actividades que ocurran bajo tu cuenta. BLANG se reserva el derecho de suspender o cancelar cuentas que violen estos términos.`,
     },
     {
-      id: '4', title: '4. Aprendizaje Autónomo — Responsabilidad del Estudiante',
+      id: '4', title: '4. Menores de Edad y Registro de Cuentas',
+      content: `BLANG ofrece programas para niños (8–13 años) y jóvenes (14–17 años), además del programa para adultos. Para estudiantes menores de 18 años:\n\n• El registro de la cuenta, la aceptación de estos Términos y el pago del plan deben ser realizados por el padre, madre o tutor legal del menor — no por el menor directamente.\n• El adulto responsable es quien crea la cuenta, arma el plan de clases y coordina el pago; es el titular de la cuenta ante BLANG.\n• Los datos que se recopilan sobre el menor se limitan a lo necesario para prestar el servicio: nombre, grupo de edad (niños o jóvenes) y su progreso dentro de las clases.\n• El adulto responsable puede solicitar en cualquier momento el acceso, la corrección o la eliminación de los datos del menor, escribiendo a blangenglishlearning@blangenglish.com.\n• BLANG no recopila directamente datos de contacto del menor (correo, teléfono) — la comunicación sobre la cuenta se dirige siempre al adulto responsable.\n\nNota: esta cláusula describe el funcionamiento actual de la plataforma y está pendiente de revisión legal especializada en protección de datos de menores antes de su publicación definitiva.`,
+    },
+    {
+      id: '5', title: '5. Aprendizaje Autónomo — Responsabilidad del Estudiante',
       content: `BLANG es una plataforma de aprendizaje 100% autónomo. Esto significa que el estudiante es el principal responsable de su propio proceso de aprendizaje. BLANG proporciona las herramientas, el contenido estructurado y el apoyo técnico necesario, pero el avance y los resultados dependen exclusivamente de la constancia, dedicación y práctica de cada usuario.\n\nNo se garantiza que el estudiante alcance un nivel específico de inglés en un tiempo determinado. El tiempo necesario para adquirir fluidez varía según las bases previas, el tiempo dedicado al estudio y la regularidad de la práctica de cada persona.\n\nEl hecho de suscribirse a BLANG no reemplaza la responsabilidad personal del aprendizaje. Si el estudiante no dedica tiempo suficiente a practicar, los resultados serán limitados independientemente de la calidad del contenido ofrecido.`,
     },
     {
-      id: '5', title: '5. Precios, Pagos y Suscripciones',
-      content: `Los precios vigentes se muestran al armar tu plan dentro de la plataforma ("Arma tu plan"). Actualmente:\n\nCurso de inglés — autoaprendizaje:\n• Plan Mensual: $16 USD o $60,000 COP al mes (acceso completo a todos los cursos y módulos)\n• Plan Trimestral: $68 USD o $250,000 COP por 3 meses (acceso completo)\n• Primer mes con 50% de descuento — exclusivo del Plan Mensual, disponible una sola vez por cuenta\n\nClases en vivo 1 a 1 con profesor — inglés: precio en pesos colombianos (COP), calculado según las horas por día (1 o 2) y los días por semana (1 a 5) elegidos. Incluye plataforma de práctica con IA (ChatGPT sin costo adicional, o Speakology con cargo adicional de $82,000 COP cada 3 meses).\n\nClases en vivo 1 a 1 con profesor — Español para Extranjeros: precio en dólares (USD), desde $23 USD por hora con descuento según las horas y días elegidos (mínimo 2 días por semana). Incluye acceso obligatorio a Speakology IA con cargo adicional de aproximadamente $22 USD cada 3 meses. No requiere crear una cuenta para solicitar el plan.\n\nEl descuento del primer mes es exclusivo del curso de inglés y no aplica al curso de Español para Extranjeros bajo ninguna circunstancia.\n\nMétodos de pago aceptados:\n• PayPal (USD) — disponible para ambos cursos; único método aceptado para el curso de español\n• Bold / PSE (COP) — con recargo de transacción, solo para inglés\n• Transferencia Bancolombia (COP) — solo para inglés\n• Bre-B / Llave (COP) — solo para inglés\n\nEl proceso de pago se coordina por WhatsApp tras enviar tu solicitud desde "Arma tu plan". BLANG se reserva el derecho de modificar los precios con previo aviso. Los cambios de precio no afectarán períodos ya pagados.`,
+      id: '6', title: '6. Precios, Pagos y Suscripciones',
+      content: `Los precios vigentes se muestran al armar tu plan dentro de la plataforma ("Arma tu plan"). Actualmente:\n\nCurso de inglés — autoaprendizaje:\n• Plan Mensual: $16 USD o $60,000 COP al mes (acceso completo a todos los cursos y módulos)\n• Plan Trimestral: $68 USD o $250,000 COP por 3 meses (acceso completo)\n\nDescuento de primer mes (50%): exclusivo para cuentas nuevas que nunca han pagado ningún plan antes (ni mensual ni trimestral), sin importar si un plan anterior venció o fue cancelado. Aplica únicamente al Plan Mensual del curso de inglés — no aplica al Plan Trimestral ni al curso de Español para Extranjeros. No es acumulable con ninguna otra promoción o descuento. No es transferible entre cuentas. Es de uso único por cuenta: en cuanto se confirma el primer pago (con o sin descuento), la cuenta deja de ser elegible de forma permanente.\n\nClases en vivo 1 a 1 con profesor — inglés: precio en pesos colombianos (COP), calculado según las horas por día (1 o 2) y los días por semana (1 a 5) elegidos. Incluye plataforma de práctica con IA: ChatGPT está incluido sin costo adicional en cualquier plan; Speakology es una plataforma de práctica con IA más avanzada, opcional para inglés, con cargo adicional de $82,000 COP cada 3 meses.\n\nClases en vivo 1 a 1 con profesor — Español para Extranjeros: precio en dólares (USD), desde $23 USD por hora con descuento según las horas y días elegidos (mínimo 2 días por semana). A diferencia de inglés, el acceso a Speakology IA es obligatorio (no hay alternativa gratuita) y tiene un cargo adicional de aproximadamente $22 USD cada 3 meses. No requiere crear una cuenta para solicitar el plan, y nunca aplica el descuento de primer mes.\n\nMétodos de pago aceptados:\n• PayPal (USD) — disponible para ambos cursos; único método aceptado para el curso de español\n• Bold / PSE (COP) — con recargo de transacción, solo para inglés\n• Transferencia Bancolombia (COP) — solo para inglés\n• Bre-B / Llave (COP) — solo para inglés\n\nEl proceso de pago se coordina por WhatsApp tras enviar tu solicitud desde "Arma tu plan". BLANG se reserva el derecho de modificar los precios con previo aviso. Los cambios de precio no afectarán períodos ya pagados.`,
     },
     {
-      id: '6', title: '6. Política de Reembolsos',
+      id: '7', title: '7. Renovación de Planes',
+      content: `Cuando el plan mensual o trimestral de un estudiante vence, la cuenta pasa a una pantalla de "Renovar plan" que muestra la configuración del plan anterior (horas por día, días de clase, franja horaria y plataforma de práctica con IA elegidas la última vez).\n\nDesde esa pantalla, el estudiante puede:\n\n• Renovar igual — confirmar el mismo plan sin modificar nada, y proceder directamente al pago.\n• Modificar — cambiar cualquier detalle del plan (horas, días, horario, plataforma de IA) antes de confirmar el pago.\n\nEl descuento de primer mes no aparece en la pantalla de renovación, ya que está reservado exclusivamente para cuentas que nunca han pagado un plan antes (ver Sección 6).`,
+    },
+    {
+      id: '8', title: '8. Política de Reembolsos',
       content: `BLANG no realiza reembolsos por suscripciones una vez procesado el pago.\n\nEn caso de problemas técnicos graves atribuibles a BLANG que impidan el uso del servicio, se evaluará cada caso de forma individual.\n\nPara sesiones en vivo (inglés o español): no se realizará reembolso si el estudiante no asiste a la sesión agendada o si cancela con menos de 24 horas de anticipación. Las sesiones no asistidas se consideran realizadas.`,
     },
     {
-      id: '7', title: '7. Cancelación y Reprogramación de Sesiones en Vivo',
-      content: `Las sesiones en vivo son un servicio adicional con costo separado a la suscripción de cursos, y aplican tanto al curso de inglés como al de Español para Extranjeros. Para armar un plan, el estudiante usa "Arma tu plan" dentro de la plataforma, eligiendo horas por día, días de la semana y horario fijo. El curso de inglés requiere tener una cuenta creada; el curso de español no requiere cuenta — el plan se solicita directamente desde la página del curso.\n\nCancelaciones y reprogramaciones:\n\n• Cada clase puede cancelarse o reprogramarse con al menos 24 (veinticuatro) horas de anticipación, enviando la solicitud a blangenglishlearning@blangenglish.com.\n• Si la cancelación se realiza con menos de 24 horas de anticipación, la clase se considerará realizada y no habrá lugar a reembolso ni reprogramación sin costo adicional.\n• Si el profesor no se presenta a una clase por razones atribuibles a BLANG, se ofrecerá reprogramación o reembolso total de la clase afectada.`,
+      id: '9', title: '9. Sesiones en Vivo — Horario, Cancelación y Reprogramación',
+      content: `Las sesiones en vivo (inglés y español) se realizan por Google Meet, en el horario fijo semanal que el estudiante elige al armar su plan — el mismo día o días, y la misma franja horaria, cada semana. Es un servicio adicional con costo separado a la suscripción de cursos, y aplica tanto al curso de inglés como al de Español para Extranjeros. Para armar un plan, el estudiante usa "Arma tu plan" dentro de la plataforma. El curso de inglés requiere tener una cuenta creada; el curso de español no requiere cuenta — el plan se solicita directamente desde la página del curso.\n\nCancelaciones y reprogramaciones:\n\n• Cada clase puede cancelarse o reprogramarse con al menos 24 (veinticuatro) horas de anticipación, enviando la solicitud a blangenglishlearning@blangenglish.com.\n• Si la cancelación se realiza con menos de 24 horas de anticipación, la clase se considerará realizada y no habrá lugar a reembolso ni reprogramación sin costo adicional.\n• Si el profesor no se presenta a una clase por razones atribuibles a BLANG, se ofrecerá reprogramación o reembolso total de la clase afectada.`,
     },
     {
-      id: '8', title: '8. Propiedad Intelectual y Uso del Contenido',
+      id: '10', title: '10. Propiedad Intelectual y Uso del Contenido',
       content: `Todo el contenido de BLANG —incluyendo pero no limitado a: lecciones, textos, imágenes, audios, videos, ejercicios, metodología, diseño gráfico y materiales de práctica— es propiedad exclusiva de BLANG English Academy y está protegido por las leyes de propiedad intelectual aplicables.\n\nQueda estrictamente prohibido:\n\n• Copiar, reproducir, distribuir o compartir el contenido sin autorización escrita previa\n• Publicar materiales de la plataforma en redes sociales, grupos de WhatsApp u otras plataformas\n• Usar el contenido con fines comerciales\n• Modificar o crear obras derivadas del material de BLANG\n\nEl incumplimiento de estas disposiciones podrá resultar en la suspensión inmediata de la cuenta y posibles acciones legales.`,
     },
     {
-      id: '9', title: '9. Conducta del Usuario',
+      id: '11', title: '11. Conducta del Usuario',
       content: `Al usar BLANG te comprometes a:\n\n• Usar la plataforma exclusivamente para fines de aprendizaje personal\n• No intentar acceder a áreas restringidas del sistema\n• No realizar actividades que puedan dañar, interrumpir o sobrecargar los servidores\n• Respetar a los profesores durante las sesiones en vivo\n• No grabar sesiones en vivo sin el consentimiento explícito del profesor\n• Proporcionar información veraz en los formularios y comunicaciones`,
     },
     {
-      id: '10', title: '10. Disponibilidad del Servicio',
+      id: '12', title: '12. Disponibilidad del Servicio',
       content: `BLANG se esfuerza por mantener la plataforma disponible de manera continua. Sin embargo, pueden ocurrir interrupciones por mantenimiento, actualizaciones técnicas o causas de fuerza mayor. BLANG no se hace responsable por daños derivados de interrupciones temporales del servicio.\n\nNos reservamos el derecho de modificar, actualizar o discontinuar funcionalidades de la plataforma con previo aviso razonable.`,
     },
     {
-      id: '11', title: '11. Limitación de Responsabilidad',
-      content: `BLANG no garantiza resultados específicos de aprendizaje. La plataforma se ofrece "tal como está" para facilitar el aprendizaje autónomo del inglés. BLANG no será responsable por:\n\n• Falta de progreso debido a insuficiente práctica del estudiante\n• Pérdida de datos causada por fallos técnicos fuera de nuestro control\n• Incompatibilidad con dispositivos o navegadores no soportados\n• Daños indirectos o consecuentes derivados del uso de la plataforma`,
+      id: '13', title: '13. Limitación de Responsabilidad',
+      content: `BLANG no garantiza resultados específicos de aprendizaje. La plataforma se ofrece "tal como está" para facilitar el aprendizaje autónomo del inglés y del español. BLANG no será responsable por:\n\n• Falta de progreso debido a insuficiente práctica del estudiante\n• Pérdida de datos causada por fallos técnicos fuera de nuestro control\n• Incompatibilidad con dispositivos o navegadores no soportados\n• Daños indirectos o consecuentes derivados del uso de la plataforma`,
     },
     {
-      id: '12', title: '12. Modificaciones a los Términos',
+      id: '14', title: '14. Modificaciones a los Términos',
       content: `BLANG se reserva el derecho de actualizar estos Términos de Servicio en cualquier momento. Las modificaciones serán publicadas en esta página con la fecha de actualización. Si continúas usando la plataforma después de publicados los cambios, se considerará que aceptas los nuevos términos. Te recomendamos revisar esta página periódicamente.`,
     },
     {
-      id: '13', title: '13. Legislación Aplicable',
-      content: `Estos Términos de Servicio se rigen por las leyes de la República de Colombia. Cualquier disputa derivada del uso de BLANG será sometida a la jurisdicción de los tribunales competentes de Colombia.`,
+      id: '15', title: '15. Legislación Aplicable',
+      content: `Estos Términos de Servicio se rigen por las leyes de la República de Colombia. Cualquier disputa derivada del uso de BLANG será sometida a la jurisdicción de los tribunales competentes de Colombia.\n\nNota: esta cláusula es un punto de partida general y está pendiente de revisión legal antes de su publicación definitiva.`,
     },
     {
-      id: '14', title: '14. Contacto',
+      id: '16', title: '16. Contacto',
       content: `Si tienes preguntas sobre estos Términos de Servicio, puedes contactarnos por cualquiera de estos canales:\n\n• Correo electrónico: blangenglishlearning@blangenglish.com\n• Formulario de contacto en la sección de Preguntas Frecuentes\n• WhatsApp o Instagram (canales oficiales de BLANG)`,
     },
   ];
@@ -99,9 +107,17 @@ export default function Terms({ isLoggedIn, onOpenAuth, onLogout, userName }: Te
           {/* Intro */}
           <motion.div
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-            className="bg-primary/5 border border-primary/20 rounded-2xl p-6 mb-10 text-sm text-foreground/80 leading-relaxed"
+            className="bg-primary/5 border border-primary/20 rounded-2xl p-6 mb-4 text-sm text-foreground/80 leading-relaxed"
           >
             Por favor lee estos Términos de Servicio detenidamente antes de usar la plataforma BLANG English Academy. Al crear una cuenta o utilizar nuestros servicios, confirmas que has leído, comprendido y aceptado estos términos en su totalidad.
+          </motion.div>
+
+          {/* Aviso de revisión legal */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
+            className="bg-amber-50 border border-amber-200 rounded-2xl p-6 mb-10 text-sm text-amber-900 leading-relaxed"
+          >
+            ⚠️ <strong>Nota importante:</strong> este documento describe cómo funciona BLANG hoy y no reemplaza una revisión legal profesional. Recomendamos que un abogado revise estos Términos antes de su publicación definitiva, especialmente las secciones sobre menores de edad (Sección 4) y jurisdicción (Sección 15).
           </motion.div>
 
           {/* Sections */}

@@ -12,7 +12,7 @@ interface PrivacyProps {
   userName?: string;
 }
 
-const LAST_UPDATED = '25 de julio de 2026';
+const LAST_UPDATED = '27 de julio de 2026';
 
 export default function Privacy({ isLoggedIn, onOpenAuth, onLogout, userName }: PrivacyProps) {
   const navigate = useNavigate();
@@ -24,7 +24,7 @@ export default function Privacy({ isLoggedIn, onOpenAuth, onLogout, userName }: 
     },
     {
       id: '2', title: '2. Datos que Recopilamos',
-      content: `Recopilamos únicamente los datos necesarios para brindarte el servicio:\n\n• Datos de registro (curso de inglés): nombre, apellido y correo electrónico\n• Datos de uso: progreso en los cursos, unidades completadas, tiempo de estudio\n• Datos de pago: procesados por terceros (PayPal, Bold/PSE, Bancolombia o Bre-B según el método elegido) — BLANG no almacena datos de tarjetas de crédito ni de cuentas bancarias\n• Datos de "Arma tu plan": nombre, correo y preferencias de horario cuando armas tu plan de clases en vivo (inglés o español)\n• Formulario público de Español para Extranjeros: a diferencia del curso de inglés, este formulario no requiere crear una cuenta — el nombre y correo que ingresas se incluyen en un mensaje de WhatsApp que tú mismo envías, y no quedan guardados en nuestra base de datos a menos que además crees una cuenta con BLANG\n• Datos de comunicación: mensajes enviados a través de formularios de contacto`,
+      content: `Recopilamos únicamente los datos necesarios para brindarte el servicio:\n\n• Datos de registro (obligatorio para el curso de inglés antes de poder armar tu plan y ver el precio final): nombre, apellido y correo electrónico\n• Datos de "Arma tu plan": grupo de edad del estudiante (niños, jóvenes o adultos), horas por día, días de la semana y franja horaria elegidos, y plataforma de práctica con IA seleccionada\n• Datos de uso: progreso en los cursos, unidades completadas, tiempo de estudio\n• Datos de pago: procesados por terceros (PayPal, Bold/PSE, Bancolombia o Bre-B según el método elegido) — BLANG no almacena datos de tarjetas de crédito ni de cuentas bancarias\n• Formulario público de Español para Extranjeros: a diferencia del curso de inglés, este formulario no requiere crear una cuenta — el nombre y correo que ingresas se incluyen en un mensaje de WhatsApp que tú mismo envías, y no quedan guardados en nuestra base de datos a menos que además crees una cuenta con BLANG\n• Preferencia de idioma de la interfaz (español/inglés): se guarda en tu navegador para recordar tu elección en futuras visitas\n• Datos de comunicación: mensajes enviados a través de formularios de contacto`,
     },
     {
       id: '3', title: '3. Finalidad del Tratamiento',
@@ -36,7 +36,7 @@ export default function Privacy({ isLoggedIn, onOpenAuth, onLogout, userName }: 
     },
     {
       id: '5', title: '5. Compartición de Datos con Terceros',
-      content: `BLANG no vende ni alquila tus datos personales a terceros. Podemos compartir información limitada con:\n\n• Proveedores de pago (PayPal, Bold/PSE, Bancolombia, Bre-B) para procesar transacciones — solo lo necesario para completar el pago\n• Proveedores de infraestructura tecnológica (Supabase para base de datos, servicios de email) bajo acuerdos de confidencialidad\n• Autoridades competentes cuando sea requerido por ley\n\nTodos los terceros con quienes compartimos datos están obligados a tratarlos con confidencialidad y solo para los fines indicados.`,
+      content: `BLANG no vende ni alquila tus datos personales a terceros. Podemos compartir información limitada con:\n\n• Proveedores de pago (PayPal, Bold/PSE, Bancolombia, Bre-B) para procesar transacciones — solo lo necesario para completar el pago\n• WhatsApp: usamos WhatsApp para coordinar el pago y el horario de tus clases. Al enviar una solicitud desde "Arma tu plan" o desde el formulario de contacto, tu nombre, correo y los detalles del plan que armaste se comparten con nuestro equipo a través de esa conversación de WhatsApp, sujeto a los términos de privacidad propios de WhatsApp/Meta\n• Proveedores de infraestructura tecnológica (Supabase para base de datos, servicios de email) bajo acuerdos de confidencialidad\n• Autoridades competentes cuando sea requerido por ley\n\nTodos los terceros con quienes compartimos datos están obligados a tratarlos con confidencialidad y solo para los fines indicados.`,
     },
     {
       id: '6', title: '6. Retención de Datos',
@@ -60,7 +60,7 @@ export default function Privacy({ isLoggedIn, onOpenAuth, onLogout, userName }: 
     },
     {
       id: '11', title: '11. Datos de Menores de Edad',
-      content: `BLANG no está dirigido a menores de 13 años. No recopilamos conscientemente datos de menores sin el consentimiento verificado de sus padres o tutores legales. Si eres padre o tutor y crees que tu hijo ha proporcionado datos a BLANG, contáctanos para eliminar esa información.`,
+      content: `BLANG ofrece programas de aprendizaje para niños (8–13 años) y jóvenes (14–17 años), además de adultos. Para estudiantes menores de 18 años:\n\n• El registro de la cuenta y el pago del plan deben ser realizados por el padre, madre o tutor legal del menor — la cuenta queda a nombre del adulto responsable, no del menor.\n• Al armar el plan de clases, el adulto responsable proporciona el nombre del menor y su grupo de edad (niños o jóvenes); durante las clases se registra además su progreso de aprendizaje.\n• No recopilamos directamente datos de contacto del menor (correo electrónico, teléfono) — todas las comunicaciones sobre la cuenta se dirigen al adulto responsable que la creó.\n• El consentimiento del adulto responsable para el tratamiento de los datos del menor se entiende otorgado al crear la cuenta y aceptar esta Política de Privacidad.\n• El adulto responsable puede solicitar en cualquier momento el acceso, la corrección o la eliminación de los datos del menor, escribiendo a blangenglishlearning@blangenglish.com.\n\nNota: esta sección describe el funcionamiento actual de la plataforma y está pendiente de revisión legal especializada en protección de datos de menores antes de su publicación definitiva.`,
     },
     {
       id: '12', title: '12. Cambios en la Política de Privacidad',
@@ -95,9 +95,17 @@ export default function Privacy({ isLoggedIn, onOpenAuth, onLogout, userName }: 
           {/* Intro */}
           <motion.div
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-            className="bg-primary/5 border border-primary/20 rounded-2xl p-6 mb-10 text-sm text-foreground/80 leading-relaxed"
+            className="bg-primary/5 border border-primary/20 rounded-2xl p-6 mb-4 text-sm text-foreground/80 leading-relaxed"
           >
             En BLANG English Academy nos tomamos muy en serio la privacidad de nuestros usuarios. Esta política describe cómo recopilamos, usamos y protegemos tu información personal. Te recomendamos leerla con atención.
+          </motion.div>
+
+          {/* Aviso de revisión legal */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
+            className="bg-amber-50 border border-amber-200 rounded-2xl p-6 mb-10 text-sm text-amber-900 leading-relaxed"
+          >
+            ⚠️ <strong>Nota importante:</strong> este documento describe cómo funciona BLANG hoy y no reemplaza una revisión legal profesional. Recomendamos que un abogado revise esta Política de Privacidad antes de su publicación definitiva, especialmente la sección sobre datos de menores de edad (Sección 11).
           </motion.div>
 
           {/* Sections */}

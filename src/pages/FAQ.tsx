@@ -24,7 +24,7 @@ const ALL_FAQS = [
   {
     id: 'q1', category: 'General',
     question: '¿Qué es BLANG English Academy?',
-    answer: 'BLANG es una plataforma de aprendizaje de inglés en línea, diseñada para todo aquel que quiera aprender inglés desde su propia comodidad y tiempo. Ofrecemos cursos estructurados por unidades semanales, sesiones en vivo con profesores y práctica con inteligencia artificial, todo en un solo lugar.',
+    answer: 'BLANG es una plataforma de aprendizaje de idiomas en línea, diseñada para todo aquel que quiera aprender desde su propia comodidad y tiempo. Ofrecemos un curso de inglés estructurado por unidades semanales (niveles A1 a C1) con sesiones en vivo y práctica con inteligencia artificial, y un curso de Español para Extranjeros con clases en vivo 1 a 1 con profesor.',
   },
   {
     id: 'q2', category: 'General',
@@ -40,6 +40,16 @@ const ALL_FAQS = [
     id: 'q4', category: 'General',
     question: '¿Necesito instalar algún programa o app?',
     answer: 'No. BLANG funciona directamente desde tu navegador web (Chrome, Firefox, Safari, etc.). Solo necesitas acceso a internet. Puedes usar computador, tablet o celular.',
+  },
+  {
+    id: 'q35', category: 'General',
+    question: '¿Tienen cursos para niños y adolescentes?',
+    answer: 'Sí. Al armar tu plan de clases en vivo con profesor puedes elegir entre tres grupos: Niños (8–13 años), con sesiones más cortas y dinámicas con juegos y acompañamiento constante; Jóvenes (14–17 años), con enfoque en conversación real y preparación académica; y Adultos, con metodología por niveles y horario flexible. El contenido y la dinámica de las clases varían según el grupo de edad elegido. Para menores de edad, el registro de la cuenta y el pago los debe hacer el padre, madre o tutor legal.',
+  },
+  {
+    id: 'q36', category: 'General',
+    question: '¿Puedo cambiar el idioma de la página?',
+    answer: 'Sí. En la barra superior encontrarás un selector de idioma (ES/EN) para cambiar el idioma de la interfaz del sitio en cualquier momento; tu elección se guarda para tus próximas visitas. Esto es independiente del idioma que estás aprendiendo — por ejemplo, puedes navegar el sitio en inglés mientras aprendes español, o en español mientras aprendes inglés.',
   },
   // 📚 Cursos y Metodología
   {
@@ -76,27 +86,32 @@ const ALL_FAQS = [
   {
     id: 'q10', category: 'Precios',
     question: '¿Cuánto cuesta BLANG?',
-    answer: 'El plan mensual cuesta $16 USD o $60,000 COP al mes. Puedes empezar gratis con 7 días de prueba.',
-  },
-  {
-    id: 'q11', category: 'Precios',
-    question: '¿Hay prueba gratis?',
-    answer: 'Sí. Puedes probar BLANG gratis por 7 días sin necesidad de tarjeta de crédito. Al terminar los 7 días, si decides continuar, activa tu plan mensual por $16 USD o $60,000 COP al mes.',
+    answer: 'El plan mensual del curso de inglés cuesta $16 USD o $60,000 COP al mes, y el plan trimestral $68 USD o $250,000 COP por 3 meses (acceso completo a todos los cursos y módulos). Las cuentas que se registran por primera vez y nunca han pagado antes acceden a 50% de descuento en su primer mes, exclusivo del Plan Mensual. El curso de Español para Extranjeros tiene una estructura de precio distinta, en dólares — ver la pregunta "¿Ofrecen clases de español?".',
   },
   {
     id: 'q12', category: 'Precios',
     question: '¿Qué métodos de pago aceptan?',
-    answer: 'Aceptamos PayPal (disponible desde cualquier país del mundo) y Bold — PSE (para pagos desde Colombia). El proceso de pago y las instrucciones se coordinan escribiéndonos por WhatsApp al +57 323 640 5246.',
+    answer: 'Para el curso de inglés aceptamos PayPal (USD, disponible desde cualquier país), Bold/PSE (COP, con recargo de transacción), transferencia Bancolombia y Bre-B/Llave — estos últimos tres para pagos desde Colombia. Para el curso de Español para Extranjeros solo aceptamos PayPal en dólares (USD). El proceso de pago se coordina escribiéndonos por WhatsApp al +57 323 640 5246.',
   },
   {
     id: 'q13', category: 'Precios',
     question: '¿Se hacen reembolsos?',
-    answer: 'No se realizan reembolsos una vez procesado el pago. Te recomendamos aprovechar los 7 días de prueba gratuita para conocer la plataforma antes de suscribirte. Si tienes algún problema técnico, escríbenos y lo resolveremos.',
+    answer: 'No se realizan reembolsos una vez procesado el pago. Si tienes algún problema técnico grave atribuible a BLANG, escríbenos y evaluaremos tu caso.',
   },
   {
     id: 'q14', category: 'Precios',
     question: '¿Puedo cancelar mi suscripción cuando quiera?',
     answer: 'Sí, puedes cancelar tu suscripción en cualquier momento. Tu acceso continuará hasta el final del período ya pagado y no se realizarán cargos adicionales.',
+  },
+  {
+    id: 'q32', category: 'Precios',
+    question: '¿Cómo funciona el descuento del primer mes?',
+    answer: 'Las cuentas que se registran por primera vez y nunca han pagado ningún plan antes acceden a 50% de descuento en su primer mes — no es un mes gratis, es la mitad del precio normal. Este descuento es exclusivo del Plan Mensual del curso de inglés: no aplica al Plan Trimestral ni al curso de Español para Extranjeros. Es de uso único por cuenta — en cuanto se confirma tu primer pago (con o sin descuento), la cuenta deja de ser elegible para siempre, incluso si ese plan luego vence o lo cancelas.',
+  },
+  {
+    id: 'q33', category: 'Precios',
+    question: '¿Qué pasa cuando vence mi plan mensual?',
+    answer: 'Cuando tu plan vence, tu cuenta te muestra una pantalla de "Renovar plan" con la misma configuración que tenías antes (horas por día, días de clase, franja horaria y plataforma de práctica con IA) para que la confirmes tal cual o la modifiques antes de pagar. El descuento del primer mes no aparece en esta pantalla, porque ya usaste tu cuenta para pagar un plan antes.',
   },
   // 🎥 Sesiones en Vivo
   {
@@ -140,11 +155,22 @@ const ALL_FAQS = [
     question: '¿La práctica con IA reemplaza las clases en vivo?',
     answer: 'No, son complementos. Los prompts para ChatGPT te permiten practicar en cualquier momento sin horarios, ideal para reforzar el contenido a tu ritmo. Las sesiones en vivo con nuestros profesores te dan la oportunidad de practicar con una persona real, con pronunciación natural y conversaciones más espontáneas. Las sesiones en vivo son un servicio adicional con costo separado.',
   },
+  // 🇪🇸 Español para Extranjeros
+  {
+    id: 'q34', category: 'Español',
+    question: '¿Ofrecen clases de español?',
+    answer: 'Sí, tenemos un curso de Español para Extranjeros con clases en vivo 1 a 1 con profesor. A diferencia del curso de inglés, el pago es únicamente en dólares (USD) a través de PayPal, y el precio se calcula por hora y por día (desde $23 USD por hora, con descuento según cuántas horas y días elijas) en vez de por nivel. Puedes armar tu plan directamente desde la página de Español, sin necesidad de crear una cuenta.',
+  },
   // 🔒 Cuenta y Seguridad
   {
     id: 'q22', category: 'Cuenta',
     question: '¿Cómo creo mi cuenta?',
-    answer: 'Haz clic en "Registrarse gratis" en la parte superior de la página, completa el formulario con tu nombre y correo electrónico y listo. Empezarás automáticamente tu prueba gratuita de 7 días.',
+    answer: 'Haz clic en "Registrarse" en la parte superior de la página y completa el formulario con tu nombre y correo electrónico. Después de registrarte te llevamos directo a "Arma tu plan" para que elijas cómo quieres aprender y veas el precio final antes de pagar.',
+  },
+  {
+    id: 'q37', category: 'Cuenta',
+    question: '¿Necesito registrarme para ver los precios?',
+    answer: 'Para el curso de inglés, sí — necesitas registrarte o iniciar sesión antes de poder armar tu plan y ver el precio final. Para el curso de Español para Extranjeros no es necesario crear una cuenta: puedes armar tu plan y ver el precio directamente desde la página del curso.',
   },
   {
     id: 'q23', category: 'Cuenta',
@@ -185,7 +211,7 @@ const ALL_FAQS = [
   },
 ];
 
-const CATEGORIES = ['Todas', 'General', 'Precios', 'IA', 'Cuenta', 'Soporte'];
+const CATEGORIES = ['Todas', 'General', 'Cursos', 'Precios', 'Sesiones', 'IA', 'Español', 'Cuenta', 'Progreso', 'Soporte'];
 
 const CONTACT_CATEGORIES = ['Pregunta', 'Petición', 'Queja', 'Reclamo'];
 
