@@ -142,7 +142,7 @@ function PayPalHostedButton() {
 // Usado en prueba_finalizada, deshabilitado y activo_cancelado.
 function PlanSelectorWithDelete({
   defaultName, defaultEmail, userId,
-  hasPreviousConfig, previousConfig, onOpenPlan,
+  hasPreviousConfig, previousConfig, onOpenPlan, discountEligible,
   trialView, setTrialView,
   trialDeleteReason, setTrialDeleteReason,
   trialDeleteSent, setTrialDeleteSent,
@@ -152,6 +152,7 @@ function PlanSelectorWithDelete({
   hasPreviousConfig: boolean;
   previousConfig?: any;
   onOpenPlan: (opts?: { reviewOnly?: boolean }) => void;
+  discountEligible: boolean;
   trialView: string; setTrialView: (v: any) => void;
   trialDeleteReason: string; setTrialDeleteReason: (v: string) => void;
   trialDeleteSent: boolean; setTrialDeleteSent: (v: boolean) => void;
@@ -173,7 +174,7 @@ function PlanSelectorWithDelete({
   // Vista por defecto: Caso A/B + link eliminar cuenta
   return (
     <div className="space-y-3">
-      <PlanCaseAB hasPreviousConfig={hasPreviousConfig} previousConfig={previousConfig} onOpen={onOpenPlan} />
+      <PlanCaseAB hasPreviousConfig={hasPreviousConfig} previousConfig={previousConfig} onOpen={onOpenPlan} discountEligible={discountEligible} />
       <div className="text-center pt-1">
         <button
           className="text-xs text-muted-foreground hover:text-destructive transition-colors underline-offset-2 hover:underline"
@@ -294,6 +295,7 @@ function PlanCaseAB({
   hasPreviousConfig,
   previousConfig,
   onOpen,
+  discountEligible,
 }: {
   hasPreviousConfig: boolean;
   previousConfig?: {
@@ -302,6 +304,10 @@ function PlanCaseAB({
     franja?: string | null; iaPlatform?: string | null;
   };
   onOpen: (opts?: { reviewOnly?: boolean }) => void;
+  // Parte 18: viene de !studentProfile?.has_ever_paid — cubre el caso donde
+  // un admin activó un plan pagado manualmente sin que el estudiante haya
+  // pasado antes por "Arma tu plan" (hasPreviousConfig seguiría en false).
+  discountEligible: boolean;
 }) {
   if (!hasPreviousConfig) {
     // ── Caso A: usuario nuevo, nunca ha armado un plan ──
@@ -311,7 +317,8 @@ function PlanCaseAB({
         <div>
           <h3 className="font-extrabold text-lg mb-1">Arma tu plan</h3>
           <p className="text-sm text-muted-foreground">
-            Elige cómo quieres aprender: clases en vivo con profesor o por tu cuenta. Las cuentas nuevas acceden a 50% de descuento en su primer mes.
+            Elige cómo quieres aprender: clases en vivo con profesor o por tu cuenta.
+            {discountEligible && ' Las cuentas nuevas acceden a 50% de descuento en su primer mes.'}
           </p>
         </div>
         <Button
@@ -808,6 +815,12 @@ const [showPaypalModal, setShowPaypalModal] = useState(false);
     trial_end_date?: string;
     created_at?: string;
     first_month_discount_used?: boolean;
+    // Parte 18: true de forma permanente en cuanto la cuenta tenga al menos un
+    // pago real confirmado (event_type='payment_approved' en payment_history,
+    // amount_usd>0), sin importar si el plan actual venció o fue cancelado.
+    // Única fuente de verdad para elegibilidad del descuento "primer mes 50%"
+    // — reemplaza first_month_discount_used/live_class_config para este fin.
+    has_ever_paid?: boolean;
     live_class_config?: {
       edad: 'kids' | 'teens' | 'adults';
       modo: 'self' | 'teacher';
@@ -887,14 +900,20 @@ const [loadingUnits, setLoadingUnits] = useState<string | null>(null);
   }, [isLoggedIn]);
 
   // Parte 12: abre "Arma tu plan" — reviewOnly=true para "Renovar igual"
-  // (Caso B, sin descuento), reviewOnly=false para usuario nuevo (Caso A, con
-  // descuento si aplica) o para "Modificar" un plan anterior.
+  // (Caso B), reviewOnly=false para usuario nuevo (Caso A) o para "Modificar"
+  // un plan anterior.
+  // Parte 18: la elegibilidad al descuento ya NO depende de si hay una
+  // config previa (`cfg`, que solo indica que se envió una solicitud alguna
+  // vez, con o sin pago real) — se basa exclusivamente en has_ever_paid, que
+  // solo pasa a true cuando un admin confirma un pago real. Así, alguien que
+  // armó un plan antes pero nunca pagó (ej. quedó "pendiente_pago") sigue
+  // viendo el descuento; alguien que sí pagó (aunque su plan ya venció o fue
+  // cancelado) lo pierde para siempre.
   const openArmaTuPlan = (opts?: { reviewOnly?: boolean }) => {
     const cfg = studentProfile?.live_class_config || undefined;
     setPlanModalOptions({
       reviewOnly: !!opts?.reviewOnly,
-      // No debe mostrarse el descuento de primer mes a quien ya tuvo un plan (Caso B).
-      discountEligible: cfg ? false : !studentProfile?.first_month_discount_used,
+      discountEligible: !studentProfile?.has_ever_paid,
       prefill: cfg,
     });
     setShowClasesModal(true);
@@ -1109,7 +1128,7 @@ useEffect(() => {
       Promise.all([
         supabase
           .from('student_profiles')
-          .select('full_name, english_level, onboarding_step, is_admin_only, birthday, country, city, education_level, education_other, account_enabled, account_status, trial_active, trial_start_date, trial_end_date, created_at, first_month_discount_used, live_class_config')
+          .select('full_name, english_level, onboarding_step, is_admin_only, birthday, country, city, education_level, education_other, account_enabled, account_status, trial_active, trial_start_date, trial_end_date, created_at, first_month_discount_used, has_ever_paid, live_class_config')
           .eq('id', userId)
           .maybeSingle(),
         supabase
@@ -2582,6 +2601,7 @@ useEffect(() => {
                             hasPreviousConfig={!!studentProfile?.live_class_config}
                             previousConfig={studentProfile?.live_class_config}
                             onOpen={openArmaTuPlan}
+                            discountEligible={!studentProfile?.has_ever_paid}
                           />
                         </div>
                       );
@@ -2693,6 +2713,7 @@ useEffect(() => {
                                 hasPreviousConfig={!!studentProfile?.live_class_config}
                                 previousConfig={studentProfile?.live_class_config}
                                 onOpen={openArmaTuPlan}
+                                discountEligible={!studentProfile?.has_ever_paid}
                               />
                             </div>
                           )}
@@ -2771,6 +2792,7 @@ useEffect(() => {
                             hasPreviousConfig={!!studentProfile?.live_class_config}
                             previousConfig={studentProfile?.live_class_config}
                             onOpenPlan={openArmaTuPlan}
+                            discountEligible={!studentProfile?.has_ever_paid}
                             trialView={trialView} setTrialView={setTrialView}
                             trialDeleteReason={trialDeleteReason} setTrialDeleteReason={setTrialDeleteReason}
                             trialDeleteSent={trialDeleteSent} setTrialDeleteSent={setTrialDeleteSent}
@@ -2830,6 +2852,7 @@ useEffect(() => {
                             hasPreviousConfig={!!studentProfile?.live_class_config}
                             previousConfig={studentProfile?.live_class_config}
                             onOpenPlan={openArmaTuPlan}
+                            discountEligible={!studentProfile?.has_ever_paid}
                             trialView={trialView} setTrialView={setTrialView}
                             trialDeleteReason={trialDeleteReason} setTrialDeleteReason={setTrialDeleteReason}
                             trialDeleteSent={trialDeleteSent} setTrialDeleteSent={setTrialDeleteSent}
@@ -2890,6 +2913,7 @@ useEffect(() => {
                             hasPreviousConfig={!!studentProfile?.live_class_config}
                             previousConfig={studentProfile?.live_class_config}
                             onOpenPlan={openArmaTuPlan}
+                            discountEligible={!studentProfile?.has_ever_paid}
                             trialView={trialView} setTrialView={setTrialView}
                             trialDeleteReason={trialDeleteReason} setTrialDeleteReason={setTrialDeleteReason}
                             trialDeleteSent={trialDeleteSent} setTrialDeleteSent={setTrialDeleteSent}
@@ -3687,7 +3711,7 @@ useEffect(() => {
         defaultPayMethod={planModalOptions?.prefill?.payMethod}
         reviewOnly={!!planModalOptions?.reviewOnly}
         userId={currentUserId}
-        discountEligible={planModalOptions ? !!planModalOptions.discountEligible : !studentProfile?.first_month_discount_used}
+        discountEligible={planModalOptions ? !!planModalOptions.discountEligible : !studentProfile?.has_ever_paid}
         onDiscountUsed={() => { if (currentUserId) refreshProfile(currentUserId); }}
       />
     </div>
