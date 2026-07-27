@@ -44,6 +44,7 @@ interface StudentRow {
   onboarding_step?: string;
   is_admin_only?: boolean;
   account_enabled?: boolean;
+  has_ever_paid?: boolean;
   subscription?: {
     plan_slug?: string;
     plan_name: string;
@@ -514,22 +515,22 @@ export default function AdminStudents() {
   const [studentPayHistory, setStudentPayHistory] = useState<Record<string, PayHistRow[]>>({});
 
   // Estado del formulario de activación manual de plan
+  const ALL_LEVEL_CODES = ['A1', 'A2', 'B1', 'B2', 'C1'];
   const LEVEL_OPTIONS = ['A1', 'A2', 'B1', 'B2', 'C1', 'Todas', 'Ninguna'];
   const [activationForm, setActivationForm] = useState<Record<string, {
     activationDate: string;
     amount: string;
     method: string;
-    level: string;
+    levels: string[];
     notes: string;
-    plan: 'trial' | 'mensual' | 'trimestral';
+    plan: 'descuento50' | 'mensual' | 'trimestral';
   }>>({});
   const [activating, setActivating] = useState<string | null>(null);
-  const [activatingTrial, setActivatingTrial] = useState<string | null>(null);
   const defaultActivationForm = () => ({
     activationDate: new Date().toISOString().split('T')[0],
     amount: '16',
     method: 'paypal',
-    level: 'Todas',
+    levels: [...ALL_LEVEL_CODES],
     notes: '',
     plan: 'mensual' as const,
   });
@@ -542,6 +543,24 @@ export default function AdminStudents() {
       ...prev,
       [studentId]: { ...(prev[studentId] || defaultActivationForm()), [field]: value },
     }));
+  };
+  // Parte 20: cada nivel se marca/desmarca de forma independiente — "Todas" y
+  // "Ninguna" son atajos de selección masiva, no valores del propio arreglo.
+  const toggleActivationLevel = (studentId: string, code: string) => {
+    setActivationForm(prev => {
+      const current = prev[studentId] || defaultActivationForm();
+      let levels: string[];
+      if (code === 'Todas') {
+        levels = [...ALL_LEVEL_CODES];
+      } else if (code === 'Ninguna') {
+        levels = [];
+      } else {
+        levels = current.levels.includes(code)
+          ? current.levels.filter(l => l !== code)
+          : [...current.levels, code];
+      }
+      return { ...prev, [studentId]: { ...current, levels } };
+    });
   };
 
   const loadPaymentHistory = async (studentId: string, forceReload = false) => {
@@ -769,17 +788,24 @@ export default function AdminStudents() {
       const fmtShort = (d: Date) => d.toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
       const fmtLong  = (d: Date) => d.toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' });
 
-      // Determinar datos del plan
+      // Determinar datos del plan (Parte 20: "7 días gratis" ya no existe —
+      // se reemplaza por "50% descuento", que sigue siendo Plan Mensual real,
+      // solo que cobrado a mitad de precio).
       const planMap = {
-        trial:      { slug: 'free_trial',  name: '7 días gratis',   days: 7,  accountStatus: 'active_trial', subStatus: 'trial'  },
-        mensual:    { slug: 'monthly',     name: 'Plan Mensual',     days: 30, accountStatus: 'active',       subStatus: 'active' },
-        trimestral: { slug: 'trimestral',  name: 'Plan Trimestral',  days: 90, accountStatus: 'active',       subStatus: 'active' },
+        descuento50: { slug: 'monthly',    name: 'Plan Mensual (50% descuento)', days: 30, accountStatus: 'active', subStatus: 'active' },
+        mensual:     { slug: 'monthly',    name: 'Plan Mensual',                 days: 30, accountStatus: 'active', subStatus: 'active' },
+        trimestral:  { slug: 'trimestral', name: 'Plan Trimestral',              days: 90, accountStatus: 'active', subStatus: 'active' },
       };
       const planInfo = planMap[form.plan] || planMap.mensual;
       const periodEnd = new Date(activationDate.getTime() + planInfo.days * 24 * 60 * 60 * 1000);
       const amount = parseFloat(form.amount) || 0;
+      const levelSummary = form.levels.length === ALL_LEVEL_CODES.length
+        ? 'Todas'
+        : form.levels.length === 0
+        ? 'Ninguna'
+        : form.levels.join(', ');
 
-      // 1. Edge function — maneja acceso a módulos + correo al estudiante
+      // 1. Edge function — envía el correo de activación al estudiante
       const { data: result, error } = await supabase.functions.invoke('admin-update-student', {
         body: {
           action: 'activate_plan',
@@ -787,7 +813,7 @@ export default function AdminStudents() {
           activation_date: activationDate.toISOString(),
           amount_usd: amount,
           payment_method: form.method,
-          level: form.level,
+          level: levelSummary,
           notes: form.notes || '',
           plan_slug: planInfo.slug,
           plan_name: planInfo.name,
@@ -800,7 +826,6 @@ export default function AdminStudents() {
       }
 
       // 2. Asegurar que subscriptions tiene el plan_slug correcto (fallback si edge no lo guarda)
-      const isTrial = form.plan === 'trial';
       const subPayload: Record<string, unknown> = {
         plan_slug:        planInfo.slug,
         plan_name:        planInfo.name,
@@ -810,12 +835,9 @@ export default function AdminStudents() {
         account_enabled:  true,
         approved_by_admin: true,
         current_period_end: periodEnd.toISOString(),
-        trial_active:     isTrial,
+        trial_active:     false,
         updated_at:       new Date().toISOString(),
       };
-      if (isTrial) {
-        subPayload.trial_ends_at = periodEnd.toISOString();
-      }
       // Fix: usar filters:{student_id} en lugar de id: studentId
       // (subscriptions.id !== studentId — el update anterior filtraba 0 filas silenciosamente)
       try {
@@ -829,13 +851,9 @@ export default function AdminStudents() {
         const profilePayload: Record<string, unknown> = {
           account_enabled: true,
           account_status:  planInfo.accountStatus,
-          trial_active:    isTrial,
+          trial_active:    false,
           updated_at:      new Date().toISOString(),
         };
-        if (isTrial) {
-          profilePayload.trial_start_date = activationDate.toISOString();
-          profilePayload.trial_end_date   = periodEnd.toISOString();
-        }
         await adminUpdate('student_profiles', profilePayload, studentId);
       } catch(e) { console.error('[activatePlan] profile update:', e); }
 
@@ -851,7 +869,24 @@ export default function AdminStudents() {
         });
       } catch(e) { console.error('[activatePlan] history insert:', e); }
 
-      // 5. Actualizar estado local
+      // 5. Sincronizar "Habilitar acceso al curso" con los niveles elegidos
+      //    acá (Parte 20) — mismo mecanismo que grantLevelUnits/revokeLevelUnits,
+      //    para que ambas pantallas sean siempre la misma fuente de verdad.
+      try {
+        await adminDeleteByFilter('student_module_access', { student_id: studentId });
+        const selectedCourses = coursesForAccess.filter(c => form.levels.includes(c.level || ''));
+        if (selectedCourses.length > 0) {
+          const now = new Date().toISOString();
+          const records = selectedCourses.flatMap(c => [
+            { student_id: studentId, course_id: c.id, is_active: true, granted_at: now },
+            ...(c.units || []).map(u => ({ student_id: studentId, course_id: c.id, unit_id: u.id, is_active: true, granted_at: now })),
+          ]);
+          await adminInsert('student_module_access', records);
+        }
+      } catch (e) { console.error('[activatePlan] module access sync:', e); }
+      await loadStudentModuleAccess(studentId);
+
+      // 6. Actualizar estado local
       const updatedSub = result?.subscription || { ...subPayload, student_id: studentId };
       setStudents(prev => prev.map(s =>
         s.id !== studentId ? s : { ...s, account_enabled: true, subscription: updatedSub as any }
@@ -862,16 +897,18 @@ export default function AdminStudents() {
       setStudentPayHistory(prev => { const n = { ...prev }; delete n[studentId]; return n; });
       loadPaymentHistory(studentId, true);
 
-      // Preparar formulario para el próximo cobro
+      // Preparar formulario para el próximo cobro — el descuento de primer mes
+      // no puede volver a elegirse (Parte 18/20), así que el próximo cobro
+      // arranca en Plan Mensual normal.
       setActivationForm(prev => ({
         ...prev,
         [studentId]: {
           activationDate: periodEnd.toISOString().split('T')[0],
-          amount: String(amount),
+          amount: form.plan === 'descuento50' ? '16' : String(amount),
           method: form.method,
-          level:  form.level === 'Ninguna' ? 'Todas' : form.level,
+          levels: form.levels.length === 0 ? [...ALL_LEVEL_CODES] : form.levels,
           notes:  '',
-          plan:   form.plan,
+          plan:   form.plan === 'descuento50' ? 'mensual' : form.plan,
         },
       }));
     } finally {
@@ -1551,7 +1588,7 @@ export default function AdminStudents() {
                           {tab === 'cuenta' && (() => {
                             const af = getActivationForm(student.id);
                             const activationDateObj = af.activationDate ? new Date(af.activationDate + 'T12:00:00') : new Date();
-                            const periodDays = af.plan === 'trial' ? 7 : af.plan === 'trimestral' ? 90 : 30;
+                            const periodDays = af.plan === 'trimestral' ? 90 : 30;
                             const periodEnd = new Date(activationDateObj.getTime() + periodDays * 24 * 60 * 60 * 1000);
                             const fmtD = (d: Date) => d.toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' });
                             const sub = student.subscription;
@@ -1621,31 +1658,41 @@ export default function AdminStudents() {
                                 </div>
                                 <div className="p-5 space-y-4">
 
-                                  {/* Selector de plan */}
+                                  {/* Selector de plan — Parte 20: "7 días gratis" ya no existe (Partes
+                                      1 y 11); se reemplaza por "50% descuento", que solo puede elegirse
+                                      si la cuenta nunca ha pagado antes (Parte 18: has_ever_paid). */}
                                   <div>
                                     <Label className="text-xs font-semibold text-muted-foreground mb-2 block">📋 Plan</Label>
                                     <div className="grid grid-cols-3 gap-2">
                                       {([
-                                        { id: 'trial',      label: '🎁 7 días gratis',   amt: 0  },
-                                        { id: 'mensual',    label: '📅 Plan Mensual',     amt: 15 },
-                                        { id: 'trimestral', label: '🗓️ Plan Trimestral',  amt: 68 },
-                                      ] as const).map(p => (
+                                        { id: 'descuento50', label: '🎉 50% descuento',   amt: 8  },
+                                        { id: 'mensual',     label: '📅 Plan Mensual',     amt: 16 },
+                                        { id: 'trimestral',  label: '🗓️ Plan Trimestral',  amt: 68 },
+                                      ] as const).map(p => {
+                                        const disabled = p.id === 'descuento50' && !!student.has_ever_paid;
+                                        return (
                                         <button
                                           key={p.id}
                                           type="button"
+                                          disabled={disabled}
+                                          title={disabled ? 'Esta cuenta ya tiene un pago registrado — no aplica el descuento del primer mes' : undefined}
                                           onClick={() => {
+                                            if (disabled) return;
                                             setActivationField(student.id, 'plan', p.id);
                                             setActivationField(student.id, 'amount', String(p.amt));
                                           }}
                                           className={`py-2.5 px-2 rounded-xl text-xs font-bold border-2 transition-all text-center leading-tight ${
-                                            af.plan === p.id
+                                            disabled
+                                              ? 'bg-muted/40 border-border/30 text-muted-foreground/40 cursor-not-allowed'
+                                              : af.plan === p.id
                                               ? 'bg-primary text-white border-primary shadow-sm'
                                               : 'bg-background border-border/50 text-muted-foreground hover:border-primary/50'
                                           }`}
                                         >
                                           {p.label}
                                         </button>
-                                      ))}
+                                        );
+                                      })}
                                     </div>
                                   </div>
 
@@ -1670,53 +1717,61 @@ export default function AdminStudents() {
                                     </div>
                                   </div>
 
-                                  {/* Monto + método (oculto para prueba gratuita) */}
-                                  {af.plan !== 'trial' && (
-                                    <div className="grid grid-cols-2 gap-3">
-                                      <div>
-                                        <Label className="text-xs font-semibold text-muted-foreground mb-1.5 block">💰 Monto cobrado (USD)</Label>
-                                        <Input
-                                          type="number"
-                                          value={af.amount}
-                                          onChange={e => setActivationField(student.id, 'amount', e.target.value)}
-                                          className="rounded-xl text-sm h-9"
-                                          min="0" step="0.01"
-                                        />
-                                      </div>
-                                      <div>
-                                        <Label className="text-xs font-semibold text-muted-foreground mb-1.5 block">💳 Método de pago</Label>
-                                        <select
-                                          value={af.method}
-                                          onChange={e => setActivationField(student.id, 'method', e.target.value)}
-                                          className="w-full h-9 rounded-xl border border-input bg-background px-3 text-sm"
-                                        >
-                                          <option value="paypal">PayPal (USD)</option>
-                                          <option value="bold_pse">Bold / PSE (COP)</option>
-                                          <option value="transferencia">Transferencia</option>
-                                          <option value="efectivo">Efectivo</option>
-                                        </select>
-                                      </div>
+                                  {/* Monto + método — Parte 20: siempre visible (ya no existe un plan
+                                      gratuito de $0 que justifique ocultarlos) */}
+                                  <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                      <Label className="text-xs font-semibold text-muted-foreground mb-1.5 block">💰 Monto cobrado (USD)</Label>
+                                      <Input
+                                        type="number"
+                                        value={af.amount}
+                                        onChange={e => setActivationField(student.id, 'amount', e.target.value)}
+                                        className="rounded-xl text-sm h-9"
+                                        min="0" step="0.01"
+                                      />
                                     </div>
-                                  )}
+                                    <div>
+                                      <Label className="text-xs font-semibold text-muted-foreground mb-1.5 block">💳 Método de pago</Label>
+                                      <select
+                                        value={af.method}
+                                        onChange={e => setActivationField(student.id, 'method', e.target.value)}
+                                        className="w-full h-9 rounded-xl border border-input bg-background px-3 text-sm"
+                                      >
+                                        <option value="paypal">PayPal (USD)</option>
+                                        <option value="bold_pse">Bold / PSE (COP)</option>
+                                        <option value="transferencia">Transferencia</option>
+                                        <option value="efectivo">Efectivo</option>
+                                      </select>
+                                    </div>
+                                  </div>
 
-                                  {/* Unidades a habilitar */}
+                                  {/* Unidades a habilitar — Parte 20: cada nivel se marca/desmarca de
+                                      forma independiente; "Todas"/"Ninguna" son atajos de selección
+                                      masiva, resaltados solo cuando coinciden con la selección actual. */}
                                   <div>
                                     <Label className="text-xs font-semibold text-muted-foreground mb-2 block">📚 Unidades a habilitar</Label>
                                     <div className="flex flex-wrap gap-1.5">
-                                      {LEVEL_OPTIONS.map(lvl => (
+                                      {LEVEL_OPTIONS.map(lvl => {
+                                        const selected = lvl === 'Todas'
+                                          ? af.levels.length === ALL_LEVEL_CODES.length
+                                          : lvl === 'Ninguna'
+                                          ? af.levels.length === 0
+                                          : af.levels.includes(lvl);
+                                        return (
                                         <button
                                           key={lvl}
                                           type="button"
-                                          onClick={() => setActivationField(student.id, 'level', lvl)}
+                                          onClick={() => toggleActivationLevel(student.id, lvl)}
                                           className={`px-3 py-1.5 rounded-full text-xs font-bold border-2 transition-all ${
-                                            af.level === lvl
+                                            selected
                                               ? lvl === 'Ninguna' ? 'bg-orange-500 text-white border-orange-500' : 'bg-primary text-white border-primary'
                                               : lvl === 'Ninguna' ? 'bg-background border-orange-300 text-orange-600 hover:border-orange-500' : 'bg-background border-border/50 text-muted-foreground hover:border-primary/50'
                                           }`}
                                         >
                                           {lvl === 'Todas' ? '🌟 Todas' : lvl === 'Ninguna' ? '🧪 Ninguna (Examen)' : `📖 ${lvl}`}
                                         </button>
-                                      ))}
+                                        );
+                                      })}
                                     </div>
                                   </div>
 
@@ -1738,7 +1793,7 @@ export default function AdminStudents() {
                                     onClick={() => setConfirmAction({
                                       open: true,
                                       title: `✅ ¿Activar plan para ${student.full_name}?`,
-                                      msg: `${af.plan === 'trial' ? '7 días gratis' : af.plan === 'mensual' ? 'Plan Mensual' : 'Plan Trimestral'} · ${fmtD(activationDateObj)} → ${fmtD(periodEnd)} · Acceso: ${af.level === 'Todas' ? 'todos los niveles' : af.level === 'Ninguna' ? 'ninguno (examen)' : 'nivel ' + af.level}${af.plan !== 'trial' ? ' · $' + af.amount + ' USD' : ''}`,
+                                      msg: `${af.plan === 'descuento50' ? 'Plan Mensual (50% descuento)' : af.plan === 'mensual' ? 'Plan Mensual' : 'Plan Trimestral'} · ${fmtD(activationDateObj)} → ${fmtD(periodEnd)} · Acceso: ${af.levels.length === ALL_LEVEL_CODES.length ? 'todos los niveles' : af.levels.length === 0 ? 'ninguno (examen)' : 'nivel(es) ' + af.levels.join(', ')} · $${af.amount} USD`,
                                       fn: async () => activatePlanManual(student.id),
                                     })}
                                   >
