@@ -155,13 +155,15 @@ export default function AdminEnglishForStudents() {
   const [pdfUrl, setPdfUrl] = useState('');
   const [publishing, setPublishing] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  // Parte 22: tarjetas colapsables + editar + previsualizar
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  // Parte 22: editar + previsualizar. Parte 23: el colapso es por categoría
+  // completa (no por tarjeta individual — se descarta el expandedIds de la
+  // Parte 22). Empiezan colapsadas por defecto.
   const [editingId, setEditingId] = useState<string | null>(null);
   const [previewSection, setPreviewSection] = useState<DBSection | null>(null);
+  const [collapsedModules, setCollapsedModules] = useState<Set<ModuleId>>(new Set(MODULES.map((m) => m.id)));
 
-  const toggleExpanded = (id: string) => {
-    setExpandedIds(prev => {
+  const toggleModuleCollapsed = (id: ModuleId) => {
+    setCollapsedModules(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id); else next.add(id);
       return next;
@@ -351,65 +353,65 @@ export default function AdminEnglishForStudents() {
           </motion.div>
         )}
 
-        {/* Secciones agrupadas */}
-        {!loadingData && grouped.map(({ module: m, items }) => (
+        {/* Secciones agrupadas — Parte 23: el colapso es por categoría completa,
+            no por tarjeta individual (se descarta el expandedIds de la Parte 22). */}
+        {!loadingData && grouped.map(({ module: m, items }) => {
+          const isCollapsed = collapsedModules.has(m.id);
+          return (
           <motion.div key={m.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
-            <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => toggleModuleCollapsed(m.id)}
+              className="w-full flex items-center gap-3 text-left select-none"
+            >
               <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${m.gradient} flex items-center justify-center text-lg shadow-sm`}>{m.emoji}</div>
-              <div>
+              <div className="flex-1 min-w-0">
                 <h2 className="font-bold text-base">{m.label}</h2>
                 <p className="text-xs text-muted-foreground">{items.length} sección{items.length !== 1 ? 'es' : ''} publicadas</p>
               </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {items.map((sec) => {
-                const isExpanded = expandedIds.has(sec.id);
-                return (
-                <motion.div key={sec.id} layout initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }}>
-                  <Card className={`ring-1 ${m.ring} bg-gradient-to-br ${m.softBg} border-border/50 overflow-hidden`}>
-                    {isExpanded && sec.image_path && (
-                      <div className="relative h-32 overflow-hidden">
-                        <img src={storageUrl(sec.image_path)} alt={sec.title} className="w-full h-full object-cover" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-                      </div>
-                    )}
-                    {/* Parte 22: la cabecera es clicable para colapsar/expandir — solo
-                        título, etiqueta, estado y fecha se ven por defecto. */}
-                    <CardHeader
-                      className="pb-2 flex flex-row items-start justify-between gap-2 pt-3 cursor-pointer select-none"
-                      onClick={() => toggleExpanded(sec.id)}
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Badge className={`text-[10px] ${m.badge} border-0`}>{m.label}</Badge>
-                          <Badge className="text-[10px] bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300 border-0 gap-1">
-                            <Globe className="w-2.5 h-2.5" /> Publicado
-                          </Badge>
+              <span className="text-muted-foreground shrink-0">
+                {isCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+              </span>
+            </button>
+            {!isCollapsed && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {items.map((sec) => (
+                  <motion.div key={sec.id} layout initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }}>
+                    <Card className={`ring-1 ${m.ring} bg-gradient-to-br ${m.softBg} border-border/50 overflow-hidden`}>
+                      {sec.image_path && (
+                        <div className="relative h-32 overflow-hidden">
+                          <img src={storageUrl(sec.image_path)} alt={sec.title} className="w-full h-full object-cover" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                         </div>
-                        <CardTitle className={`text-sm font-bold leading-snug ${isExpanded ? '' : 'line-clamp-2'}`}>{sec.title}</CardTitle>
-                        <p className="text-[10px] text-muted-foreground/60 pt-1">
-                          {new Date(sec.created_at).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' })}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
-                        <Button variant="ghost" size="icon" className="w-7 h-7 text-muted-foreground hover:text-primary"
-                          title="Previsualizar" onClick={() => setPreviewSection(sec)}>
-                          <Eye className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="w-7 h-7 text-muted-foreground hover:text-primary"
-                          title="Editar" onClick={() => openEditModal(sec)}>
-                          <Pencil className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="w-7 h-7 text-muted-foreground hover:text-destructive"
-                          title="Eliminar" disabled={deletingId === sec.id} onClick={() => handleDelete(sec.id)}>
-                          {deletingId === sec.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                        </Button>
-                        <span className="w-7 h-7 flex items-center justify-center text-muted-foreground">
-                          {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                        </span>
-                      </div>
-                    </CardHeader>
-                    {isExpanded && (
+                      )}
+                      <CardHeader className="pb-2 flex flex-row items-start justify-between gap-2 pt-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Badge className={`text-[10px] ${m.badge} border-0`}>{m.label}</Badge>
+                            <Badge className="text-[10px] bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300 border-0 gap-1">
+                              <Globe className="w-2.5 h-2.5" /> Publicado
+                            </Badge>
+                          </div>
+                          <CardTitle className="text-sm font-bold leading-snug">{sec.title}</CardTitle>
+                          <p className="text-[10px] text-muted-foreground/60 pt-1">
+                            {new Date(sec.created_at).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' })}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-0.5 shrink-0">
+                          <Button variant="ghost" size="icon" className="w-7 h-7 text-muted-foreground hover:text-primary"
+                            title="Previsualizar" onClick={() => setPreviewSection(sec)}>
+                            <Eye className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="w-7 h-7 text-muted-foreground hover:text-primary"
+                            title="Editar" onClick={() => openEditModal(sec)}>
+                            <Pencil className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="w-7 h-7 text-muted-foreground hover:text-destructive"
+                            title="Eliminar" disabled={deletingId === sec.id} onClick={() => handleDelete(sec.id)}>
+                            {deletingId === sec.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                          </Button>
+                        </div>
+                      </CardHeader>
                       <CardContent className="pt-0 pb-3 space-y-1.5">
                         {sec.rich_text && (
                           <div className="text-xs text-muted-foreground" dangerouslySetInnerHTML={{ __html: sec.rich_text }} />
@@ -437,14 +439,14 @@ export default function AdminEnglishForStudents() {
                           </div>
                         )}
                       </CardContent>
-                    )}
-                  </Card>
-                </motion.div>
-                );
-              })}
-            </div>
+                    </Card>
+                  </motion.div>
+                ))}
+              </div>
+            )}
           </motion.div>
-        ))}
+          );
+        })}
       </div>
 
       {/* ── MODAL ─────────────────────────────────────────────────────────── */}
