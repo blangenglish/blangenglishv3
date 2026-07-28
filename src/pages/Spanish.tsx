@@ -17,7 +17,7 @@ import { translations } from '@/lib/translations';
 // 2. Si existen módulos especiales equivalentes a "English for you"
 //    (Pronunciación, Contextos, Mundo Real, etc.) para español — por ahora
 //    esta página no incluye esa sección.
-// 3. El 50% de descuento del primer mes (Parte 8) es exclusivo del curso de
+// 3. El 25% de descuento del primer mes (Parte 8, Parte 24) es exclusivo del curso de
 //    inglés — NUNCA aplica a español bajo ninguna circunstancia (no hay
 //    botón ni badge de descuento en PlanEspanolModal.tsx).
 //

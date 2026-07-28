@@ -72,18 +72,19 @@ const LEVELS_STYLE = [
 
 const VALID_AGE_GROUPS = ['kids', 'teens', 'adults'];
 
-// ── Promoción: 50% de descuento en el primer mes del plan de cursos ──────────
+// ── Promoción: 25% de descuento en el primer mes del plan de cursos ──────────
 // (reemplaza la prueba gratis; Parte 8 no la modifica — sigue siendo la promo
 // de registro para el plan base de cursos, mostrada en el CTA final).
+// Parte 24: bajó de 50% a 25% — se paga el 75% del precio, no la mitad.
 const PRECIO_MENSUAL_COP = 60000;
 const PRECIO_MENSUAL_USD = 16;
-const PRECIO_MENSUAL_COP_DESC = PRECIO_MENSUAL_COP / 2;
-const PRECIO_MENSUAL_USD_DESC = PRECIO_MENSUAL_USD / 2;
+const PRECIO_MENSUAL_COP_DESC = Math.round(PRECIO_MENSUAL_COP * 0.75);
+const PRECIO_MENSUAL_USD_DESC = Math.round(PRECIO_MENSUAL_USD * 0.75 * 100) / 100;
 // "Desde $37,500 COP/clase" es el mismo precio de referencia que ya se mostraba
 // en esta tarjeta antes de la promoción — no es un precio nuevo inventado. Desde
-// la Parte 8, el 50% de descuento del primer mes de "Arma tu plan" (clases en
+// la Parte 8, el 25% de descuento del primer mes de "Arma tu plan" (clases en
 // vivo) ya no se muestra acá de forma pública: se convirtió en el botón
-// "Primer mes 50%" dentro del modal, disponible solo una vez por cuenta
+// "Primer mes 25%" dentro del modal, disponible solo una vez por cuenta
 // (ver ClasesVirtualesModal.tsx).
 const PRECIO_CLASE_BASE = 37500;
 

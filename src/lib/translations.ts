@@ -11,11 +11,12 @@ export const translations = {
       langToggleLabel: 'EN', // muestra el idioma AL QUE se puede cambiar
     },
     // Parte 15: barra fina y angosta encima del header, con mensajes que
-    // rotan solos. El de 50% es un gancho — no dice "gratis" porque es un
-    // descuento, no un mes gratuito (y solo aplica a Plan Mensual, Parte 13).
+    // rotan solos. El de 25% (Parte 24: antes 50%) es un gancho — no dice
+    // "gratis" porque es un descuento, no un mes gratuito (y solo aplica a
+    // Plan Mensual, Parte 13).
     topBar: {
       messages: [
-        'Aprovecha el 50% en tu primer mes',
+        'Aprovecha el 25% en tu primer mes',
         'Speak up and Stand out with Blang',
         'Aprende otro idioma hoy',
         'Metodología progresiva',
@@ -71,14 +72,14 @@ export const translations = {
           lockedDesc: 'Crea tu cuenta gratis para armar tu plan de clases 1 a 1',
           per: 'COP por clase · Según tu plan mensual',
           bullets: ['Corrección en tiempo real', 'Feedback personalizado', 'Cancela con 24h de anticipación'],
-          discountTeaser: '🎉 Las cuentas nuevas acceden a 50% de descuento en su primer mes de clases',
+          discountTeaser: '🎉 Las cuentas nuevas acceden a 25% de descuento en su primer mes de clases',
           cta: 'Registrarse gratis',
           loginCta: 'Ya tengo cuenta',
         },
         trust: { title: 'Profesores verificados', desc: 'Bilingües con experiencia comprobada en enseñanza de inglés' },
       },
       compactHero: {
-        badge: '🎉 ¡50% de descuento en tu primer mes!',
+        badge: '🎉 ¡25% de descuento en tu primer mes!',
         subtitle: 'Aprende inglés desde ya 🌎',
         cta: '¡Crear mi cuenta gratis! 🚀',
       },
@@ -150,7 +151,7 @@ export const translations = {
         comingSoonSub: 'Regístrate para ser el primero en acceder',
         unlockCta: 'Regístrate para acceder',
         finalCta: 'Desbloquear todos los módulos',
-        finalSub: '50% de descuento en tu primer mes · Sin compromisos',
+        finalSub: '25% de descuento en tu primer mes · Sin compromisos',
       },
       nivelTest: {
         title: 'Conoce tu nivel de inglés',
@@ -163,7 +164,7 @@ export const translations = {
         title: '¿Cómo funciona el pago?',
         subtitle: 'Proceso simple, sin sorpresas',
         steps: [
-          { title: 'Regístrate', desc: 'Crea tu cuenta en segundos y activa tu plan con 50% de descuento en el primer mes.' },
+          { title: 'Regístrate', desc: 'Crea tu cuenta en segundos y activa tu plan con 25% de descuento en el primer mes.' },
           { title: 'Contáctanos', desc: 'Escríbenos y te indicamos cómo realizar el pago.' },
           { title: 'Activa tu plan', desc: 'Confirmado el pago, activamos tu cuenta en máximo 24 horas hábiles.' },
         ],
@@ -173,11 +174,11 @@ export const translations = {
       },
       faqTitle: 'Preguntas frecuentes',
       faq: [
-        { q: '¿Cuánto cuesta el plan?', a: 'Tu primer mes tiene 50% de descuento. Luego solo $16 USD ó $60,000 COP al mes. Sin contratos ni compromisos.' },
+        { q: '¿Cuánto cuesta el plan?', a: 'Tu primer mes tiene 25% de descuento. Luego solo $16 USD ó $60,000 COP al mes. Sin contratos ni compromisos.' },
         { q: '¿Cómo puedo pagar?', a: 'Aceptamos transferencia bancaria o pago por PayPal. Escríbenos y te indicamos el método más conveniente para ti.' },
         { q: '¿Puedo cancelar cuando quiera?', a: '¡Claro! No hay contratos ni compromisos. Cancelas cuando quieras desde tu perfil, sin cargos ocultos.' },
         { q: '¿Las sesiones en vivo son incluidas?', a: 'Las sesiones 1 a 1 no están incluidas en el plan mensual de cursos — arma tu propio plan de clases en vivo eligiendo días, horas y horario, desde $37,500 COP por clase.' },
-        { q: '¿Hay compromiso al empezar?', a: 'No. Sin contratos ni compromisos, y tu primer mes tiene 50% de descuento. Cancelas cuando quieras.' },
+        { q: '¿Hay compromiso al empezar?', a: 'No. Sin contratos ni compromisos, y tu primer mes tiene 25% de descuento. Cancelas cuando quieras.' },
       ],
       reviews: {
         badge: 'Reseñas reales',
@@ -189,7 +190,7 @@ export const translations = {
       },
       ctaFinal: {
         emoji: '🚀',
-        title: '¡Empieza con 50% de descuento!',
+        title: '¡Empieza con 25% de descuento!',
         subtitle: (usd: number, cop: number) => `Tu primer mes por $${usd} USD o $${cop.toLocaleString('es-CO')} COP. Luego $16 USD o $60,000 COP al mes 🎊`,
         register: 'Registrarse gratis 🎉',
         login: 'Ya tengo cuenta',
@@ -290,7 +291,7 @@ export const translations = {
       },
       selected: '✓ Seleccionado',
       // Parte 8: botón de descuento del primer mes, disponible una sola vez por cuenta.
-      discountOfferTitle: 'Primer mes 50%',
+      discountOfferTitle: 'Primer mes 25%',
       discountOfferDesc: 'Disponible solo una vez por cuenta',
       discountAppliedTitle: '¡Descuento aplicado!',
       discountAppliedDesc: 'Se aplicará a tu primer mes al enviar la solicitud',
@@ -362,7 +363,7 @@ export const translations = {
         chatgptLine: 'Uso de ChatGPT — sin costo adicional',
         precio: '💰 *PRECIO*',
         clasesAlMes: (n: number, label: string) => `Clases al mes: ${n} ${label}s`,
-        discountApplied: 'Primer mes con 50% de descuento aplicado',
+        discountApplied: 'Primer mes con 25% de descuento aplicado',
         precioConDescuento: 'Precio con descuento',
         precioLabel: 'Precio',
         activacionSpeakology: (fee: string) => `Activación Speakology IA (c/3 meses): ${fee} COP`,
@@ -446,7 +447,7 @@ export const translations = {
     },
     topBar: {
       messages: [
-        'Get 50% off your first month',
+        'Get 25% off your first month',
         'Speak up and Stand out with Blang',
         'Learn another language today',
         'Progressive methodology',
@@ -502,14 +503,14 @@ export const translations = {
           lockedDesc: 'Create your free account to build your 1-on-1 class plan',
           per: 'COP per class · Based on your monthly plan',
           bullets: ['Real-time correction', 'Personalized feedback', 'Cancel with 24h notice'],
-          discountTeaser: '🎉 New accounts get 50% off their first month of classes',
+          discountTeaser: '🎉 New accounts get 25% off their first month of classes',
           cta: 'Sign up for free',
           loginCta: 'I already have an account',
         },
         trust: { title: 'Verified teachers', desc: 'Bilingual, with proven English-teaching experience' },
       },
       compactHero: {
-        badge: '🎉 50% off your first month!',
+        badge: '🎉 25% off your first month!',
         subtitle: 'Learn English starting now 🌎',
         cta: 'Create my free account! 🚀',
       },
@@ -581,7 +582,7 @@ export const translations = {
         comingSoonSub: 'Sign up to be the first to access it',
         unlockCta: 'Sign up to access',
         finalCta: 'Unlock all modules',
-        finalSub: "50% off your first month · No commitments",
+        finalSub: "25% off your first month · No commitments",
       },
       nivelTest: {
         title: 'Find out your English level',
@@ -594,7 +595,7 @@ export const translations = {
         title: 'How does payment work?',
         subtitle: 'Simple process, no surprises',
         steps: [
-          { title: 'Sign up', desc: 'Create your account in seconds and activate your plan with 50% off your first month.' },
+          { title: 'Sign up', desc: 'Create your account in seconds and activate your plan with 25% off your first month.' },
           { title: 'Contact us', desc: "Message us and we'll tell you how to make the payment." },
           { title: 'Activate your plan', desc: 'Once payment is confirmed, we activate your account within 24 business hours.' },
         ],
@@ -604,11 +605,11 @@ export const translations = {
       },
       faqTitle: 'Frequently asked questions',
       faq: [
-        { q: 'How much does the plan cost?', a: "Your first month has 50% off. After that, it's just $16 USD or $60,000 COP per month. No contracts, no commitments." },
+        { q: 'How much does the plan cost?', a: "Your first month has 25% off. After that, it's just $16 USD or $60,000 COP per month. No contracts, no commitments." },
         { q: 'How can I pay?', a: "We accept bank transfer or PayPal. Message us and we'll help you find the most convenient method for you." },
         { q: 'Can I cancel anytime?', a: 'Of course! There are no contracts or commitments. Cancel anytime from your profile, with no hidden fees.' },
         { q: 'Are live sessions included?', a: '1-on-1 sessions are not included in the monthly course plan — build your own live class plan by choosing days, hours, and schedule, starting at $37,500 COP per class.' },
-        { q: 'Is there a commitment to get started?', a: 'No. No contracts or commitments, and your first month has 50% off. Cancel anytime.' },
+        { q: 'Is there a commitment to get started?', a: 'No. No contracts or commitments, and your first month has 25% off. Cancel anytime.' },
       ],
       reviews: {
         badge: 'Real reviews',
@@ -620,7 +621,7 @@ export const translations = {
       },
       ctaFinal: {
         emoji: '🚀',
-        title: 'Start with 50% off!',
+        title: 'Start with 25% off!',
         subtitle: (usd: number, cop: number) => `Your first month for $${usd} USD or $${cop.toLocaleString('en-US')} COP. Then $16 USD or $60,000 COP per month 🎊`,
         register: 'Sign up for free 🎉',
         login: 'I already have an account',
@@ -720,7 +721,7 @@ export const translations = {
         teacher: { title: '👨‍🏫 With a teacher', desc: 'Live classes with a fixed weekly schedule' },
       },
       selected: '✓ Selected',
-      discountOfferTitle: 'First month 50% off',
+      discountOfferTitle: 'First month 25% off',
       discountOfferDesc: 'Available only once per account',
       discountAppliedTitle: 'Discount applied!',
       discountAppliedDesc: "It will be applied to your first month when you send the request",
@@ -791,7 +792,7 @@ export const translations = {
         chatgptLine: 'Use of ChatGPT — no extra cost',
         precio: '💰 *PRICE*',
         clasesAlMes: (n: number, label: string) => `Classes per month: ${n} ${label}s`,
-        discountApplied: 'First month with 50% discount applied',
+        discountApplied: 'First month with 25% discount applied',
         precioConDescuento: 'Discounted price',
         precioLabel: 'Price',
         activacionSpeakology: (fee: string) => `Speakology AI activation (every 3 months): ${fee} COP`,

@@ -240,7 +240,9 @@ export function ClasesVirtualesModal({
   const discountApplicablePlan = !isAutoestudio || planAutoestudio === 'mensual';
   const showDiscountToggle = !!userId && discountEligible && discountApplicablePlan;
   const discountActive = discountApplied && discountApplicablePlan;
-  const baseFinal = discountActive ? Math.round(precioSinDescuento / 2) : precioSinDescuento;
+  // Parte 24: el descuento de primer mes bajó de 50% a 25% — se paga el 75%
+  // del precio, no la mitad.
+  const baseFinal = discountActive ? Math.round(precioSinDescuento * 0.75) : precioSinDescuento;
   const totalFinal = baseFinal + iaFee;
   const PSE_SURCHARGE = 10_000;
   const effectiveTotal = payMethod === 'bold' ? totalFinal + PSE_SURCHARGE : totalFinal;

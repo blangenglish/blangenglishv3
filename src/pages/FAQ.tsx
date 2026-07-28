@@ -86,7 +86,7 @@ const ALL_FAQS = [
   {
     id: 'q10', category: 'Precios',
     question: '¿Cuánto cuesta BLANG?',
-    answer: 'El plan mensual del curso de inglés cuesta $16 USD o $60,000 COP al mes, y el plan trimestral $68 USD o $250,000 COP por 3 meses (acceso completo a todos los cursos y módulos). Las cuentas que se registran por primera vez y nunca han pagado antes acceden a 50% de descuento en su primer mes, exclusivo del Plan Mensual. El curso de Español para Extranjeros tiene una estructura de precio distinta, en dólares — ver la pregunta "¿Ofrecen clases de español?".',
+    answer: 'El plan mensual del curso de inglés cuesta $16 USD o $60,000 COP al mes, y el plan trimestral $68 USD o $250,000 COP por 3 meses (acceso completo a todos los cursos y módulos). Las cuentas que se registran por primera vez y nunca han pagado antes acceden a 25% de descuento en su primer mes, exclusivo del Plan Mensual. El curso de Español para Extranjeros tiene una estructura de precio distinta, en dólares — ver la pregunta "¿Ofrecen clases de español?".',
   },
   {
     id: 'q12', category: 'Precios',
@@ -106,7 +106,7 @@ const ALL_FAQS = [
   {
     id: 'q32', category: 'Precios',
     question: '¿Cómo funciona el descuento del primer mes?',
-    answer: 'Las cuentas que se registran por primera vez y nunca han pagado ningún plan antes acceden a 50% de descuento en su primer mes — no es un mes gratis, es la mitad del precio normal. Este descuento es exclusivo del Plan Mensual del curso de inglés: no aplica al Plan Trimestral ni al curso de Español para Extranjeros. Es de uso único por cuenta — en cuanto se confirma tu primer pago (con o sin descuento), la cuenta deja de ser elegible para siempre, incluso si ese plan luego vence o lo cancelas.',
+    answer: 'Las cuentas que se registran por primera vez y nunca han pagado ningún plan antes acceden a 25% de descuento en su primer mes — no es un mes gratis, es un cuarto menos del precio normal. Este descuento es exclusivo del Plan Mensual del curso de inglés: no aplica al Plan Trimestral ni al curso de Español para Extranjeros. Es de uso único por cuenta — en cuanto se confirma tu primer pago (con o sin descuento), la cuenta deja de ser elegible para siempre, incluso si ese plan luego vence o lo cancelas.',
   },
   {
     id: 'q33', category: 'Precios',

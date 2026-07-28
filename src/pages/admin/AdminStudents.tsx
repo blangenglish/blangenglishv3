@@ -523,7 +523,7 @@ export default function AdminStudents() {
     method: string;
     levels: string[];
     notes: string;
-    plan: 'descuento50' | 'mensual' | 'trimestral';
+    plan: 'descuento25' | 'mensual' | 'trimestral';
   }>>({});
   const [activating, setActivating] = useState<string | null>(null);
   const defaultActivationForm = () => ({
@@ -789,10 +789,10 @@ export default function AdminStudents() {
       const fmtLong  = (d: Date) => d.toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' });
 
       // Determinar datos del plan (Parte 20: "7 días gratis" ya no existe —
-      // se reemplaza por "50% descuento", que sigue siendo Plan Mensual real,
-      // solo que cobrado a mitad de precio).
+      // se reemplaza por "25% descuento", que sigue siendo Plan Mensual real,
+      // solo que cobrado con un cuarto menos de precio — Parte 24: antes 50%).
       const planMap = {
-        descuento50: { slug: 'monthly',    name: 'Plan Mensual (50% descuento)', days: 30, accountStatus: 'active', subStatus: 'active' },
+        descuento25: { slug: 'monthly',    name: 'Plan Mensual (25% descuento)', days: 30, accountStatus: 'active', subStatus: 'active' },
         mensual:     { slug: 'monthly',    name: 'Plan Mensual',                 days: 30, accountStatus: 'active', subStatus: 'active' },
         trimestral:  { slug: 'trimestral', name: 'Plan Trimestral',              days: 90, accountStatus: 'active', subStatus: 'active' },
       };
@@ -911,11 +911,11 @@ export default function AdminStudents() {
         ...prev,
         [studentId]: {
           activationDate: periodEnd.toISOString().split('T')[0],
-          amount: form.plan === 'descuento50' ? '16' : String(amount),
+          amount: form.plan === 'descuento25' ? '16' : String(amount),
           method: form.method,
           levels: form.levels.length === 0 ? [...ALL_LEVEL_CODES] : form.levels,
           notes:  '',
-          plan:   form.plan === 'descuento50' ? 'mensual' : form.plan,
+          plan:   form.plan === 'descuento25' ? 'mensual' : form.plan,
         },
       }));
     } finally {
@@ -1699,17 +1699,18 @@ export default function AdminStudents() {
                                 <div className="p-5 space-y-4">
 
                                   {/* Selector de plan — Parte 20: "7 días gratis" ya no existe (Partes
-                                      1 y 11); se reemplaza por "50% descuento", que solo puede elegirse
-                                      si la cuenta nunca ha pagado antes (Parte 18: has_ever_paid). */}
+                                      1 y 11); se reemplaza por "25% descuento" (Parte 24: antes 50%), que
+                                      solo puede elegirse si la cuenta nunca ha pagado antes (Parte 18:
+                                      has_ever_paid). */}
                                   <div>
                                     <Label className="text-xs font-semibold text-muted-foreground mb-2 block">📋 Plan</Label>
                                     <div className="grid grid-cols-3 gap-2">
                                       {([
-                                        { id: 'descuento50', label: '🎉 50% descuento',   amt: 8  },
+                                        { id: 'descuento25', label: '🎉 25% descuento',   amt: 12 },
                                         { id: 'mensual',     label: '📅 Plan Mensual',     amt: 16 },
                                         { id: 'trimestral',  label: '🗓️ Plan Trimestral',  amt: 68 },
                                       ] as const).map(p => {
-                                        const disabled = p.id === 'descuento50' && !!student.has_ever_paid;
+                                        const disabled = p.id === 'descuento25' && !!student.has_ever_paid;
                                         return (
                                         <button
                                           key={p.id}
@@ -1833,7 +1834,7 @@ export default function AdminStudents() {
                                     onClick={() => setConfirmAction({
                                       open: true,
                                       title: `✅ ¿Activar plan para ${student.full_name}?`,
-                                      msg: `${af.plan === 'descuento50' ? 'Plan Mensual (50% descuento)' : af.plan === 'mensual' ? 'Plan Mensual' : 'Plan Trimestral'} · ${fmtD(activationDateObj)} → ${fmtD(periodEnd)} · Acceso: ${af.levels.length === ALL_LEVEL_CODES.length ? 'todos los niveles' : af.levels.length === 0 ? 'ninguno (examen)' : 'nivel(es) ' + af.levels.join(', ')} · $${af.amount} USD`,
+                                      msg: `${af.plan === 'descuento25' ? 'Plan Mensual (25% descuento)' : af.plan === 'mensual' ? 'Plan Mensual' : 'Plan Trimestral'} · ${fmtD(activationDateObj)} → ${fmtD(periodEnd)} · Acceso: ${af.levels.length === ALL_LEVEL_CODES.length ? 'todos los niveles' : af.levels.length === 0 ? 'ninguno (examen)' : 'nivel(es) ' + af.levels.join(', ')} · $${af.amount} USD`,
                                       fn: async () => activatePlanManual(student.id),
                                     })}
                                   >

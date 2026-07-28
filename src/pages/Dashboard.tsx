@@ -318,7 +318,7 @@ function PlanCaseAB({
           <h3 className="font-extrabold text-lg mb-1">Arma tu plan</h3>
           <p className="text-sm text-muted-foreground">
             Elige cómo quieres aprender: clases en vivo con profesor o por tu cuenta.
-            {discountEligible && ' Las cuentas nuevas acceden a 50% de descuento en su primer mes.'}
+            {discountEligible && ' Las cuentas nuevas acceden a 25% de descuento en su primer mes.'}
           </p>
         </div>
         <Button
@@ -818,7 +818,7 @@ const [showPaypalModal, setShowPaypalModal] = useState(false);
     // Parte 18: true de forma permanente en cuanto la cuenta tenga al menos un
     // pago real confirmado (event_type='payment_approved' en payment_history,
     // amount_usd>0), sin importar si el plan actual venció o fue cancelado.
-    // Única fuente de verdad para elegibilidad del descuento "primer mes 50%"
+    // Única fuente de verdad para elegibilidad del descuento "primer mes 25%"
     // — reemplaza first_month_discount_used/live_class_config para este fin.
     has_ever_paid?: boolean;
     live_class_config?: {

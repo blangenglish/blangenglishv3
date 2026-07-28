@@ -75,7 +75,7 @@ export function Layout({ children, isLoggedIn = false, onOpenAuth, onLogout, use
   const navigate = useNavigate();
   const { lang, toggleLang } = useLanguage();
   const t = translations[lang];
-  // Parte 18: el primer mensaje de la cinta ("Aprovecha el 50%...") es del
+  // Parte 18: el primer mensaje de la cinta ("Aprovecha el 25%...") es del
   // descuento de primer mes, exclusivo del curso de inglés (Parte 8/13/17) —
   // nunca debe verse en la página de español. Se filtra por índice (no por
   // texto) para que funcione igual sin importar el idioma de interfaz.
