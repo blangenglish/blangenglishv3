@@ -11,11 +11,12 @@ import { Label } from '@/components/ui/label';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { adminInsert, adminDelete, adminSelect } from '@/lib/adminWrite';
+import { adminInsert, adminUpdate, adminDelete, adminSelect } from '@/lib/adminWrite';
 import {
   PenLine, BookOpen, Headphones, BookMarked, Library,
-  Plus, X, ChevronRight, Sparkles, Trash2,
+  Plus, X, ChevronRight, ChevronDown, ChevronUp, Sparkles, Trash2,
   ImageIcon, Music2, FileText, Upload, Globe, Loader2, Code2,
+  Pencil, Eye, Download,
 } from 'lucide-react';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
@@ -154,6 +155,18 @@ export default function AdminEnglishForStudents() {
   const [pdfUrl, setPdfUrl] = useState('');
   const [publishing, setPublishing] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  // Parte 22: tarjetas colapsables + editar + previsualizar
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [previewSection, setPreviewSection] = useState<DBSection | null>(null);
+
+  const toggleExpanded = (id: string) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
 
   // ── Cargar secciones ──────────────────────────────────────────────────────
   useEffect(() => { loadSections(); }, []);
@@ -181,13 +194,29 @@ export default function AdminEnglishForStudents() {
     setAudioMode('file'); setAudioUrl('');
     setPdfMode('file'); setPdfUrl('');
   };
-  const openModal = () => { resetForm(); setStep('select'); setSelectedModule(null); setModalOpen(true); };
-  const closeModal = () => setModalOpen(false);
+  const openModal = () => { resetForm(); setEditingId(null); setStep('select'); setSelectedModule(null); setModalOpen(true); };
+  const closeModal = () => { setModalOpen(false); setEditingId(null); };
   const handleSelectModule = (id: ModuleId) => { setSelectedModule(id); setStep('form'); };
+
+  // Parte 22: editar — reusa el mismo modal/paso 'form', precargado y sin las
+  // zonas de subida de imagen/audio/pdf (edición se limita a título y contenido,
+  // tal como se pidió; para cambiar un archivo hay que eliminar y crear de nuevo).
+  const openEditModal = (sec: DBSection) => {
+    resetForm();
+    setEditingId(sec.id);
+    setSelectedModule(sec.module_id);
+    setFormTitle(sec.title);
+    setFormRichText(sec.rich_text || '');
+    setFormEmbedHtml(sec.embed_html || '');
+    setStep('form');
+    setModalOpen(true);
+  };
 
   const mod = selectedModule ? getModule(selectedModule) : null;
   const isRichText = mod?.type === 'richtext';
   const isListening = mod?.type === 'listening';
+
+  const canSaveEdit = () => formTitle.trim().length > 0;
 
   const canPublish = () => {
     if (!formTitle.trim() || !selectedModule) return false;
@@ -240,6 +269,26 @@ export default function AdminEnglishForStudents() {
       await loadSections();
     } catch (err) {
       toast({ title: 'Error al publicar', description: String(err), variant: 'destructive' });
+    } finally {
+      setPublishing(false);
+    }
+  };
+
+  // ── Guardar edición (Parte 22) — solo título y contenido, no archivos ──────
+  const handleSaveEdit = async () => {
+    if (!editingId || !formTitle.trim()) return;
+    setPublishing(true);
+    try {
+      await adminUpdate('english_for_students_sections', {
+        title: formTitle.trim(),
+        rich_text: isRichText ? formRichText : undefined,
+        embed_html: formEmbedHtml.trim() || null,
+      }, editingId);
+      toast({ title: 'Cambios guardados ✅' });
+      closeModal();
+      await loadSections();
+    } catch (err) {
+      toast({ title: 'Error al guardar', description: String(err), variant: 'destructive' });
     } finally {
       setPublishing(false);
     }
@@ -313,16 +362,23 @@ export default function AdminEnglishForStudents() {
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {items.map((sec) => (
+              {items.map((sec) => {
+                const isExpanded = expandedIds.has(sec.id);
+                return (
                 <motion.div key={sec.id} layout initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }}>
                   <Card className={`ring-1 ${m.ring} bg-gradient-to-br ${m.softBg} border-border/50 overflow-hidden`}>
-                    {sec.image_path && (
+                    {isExpanded && sec.image_path && (
                       <div className="relative h-32 overflow-hidden">
                         <img src={storageUrl(sec.image_path)} alt={sec.title} className="w-full h-full object-cover" />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                       </div>
                     )}
-                    <CardHeader className="pb-2 flex flex-row items-start justify-between gap-2 pt-3">
+                    {/* Parte 22: la cabecera es clicable para colapsar/expandir — solo
+                        título, etiqueta, estado y fecha se ven por defecto. */}
+                    <CardHeader
+                      className="pb-2 flex flex-row items-start justify-between gap-2 pt-3 cursor-pointer select-none"
+                      onClick={() => toggleExpanded(sec.id)}
+                    >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <Badge className={`text-[10px] ${m.badge} border-0`}>{m.label}</Badge>
@@ -330,46 +386,62 @@ export default function AdminEnglishForStudents() {
                             <Globe className="w-2.5 h-2.5" /> Publicado
                           </Badge>
                         </div>
-                        <CardTitle className="text-sm font-bold leading-snug line-clamp-2">{sec.title}</CardTitle>
+                        <CardTitle className={`text-sm font-bold leading-snug ${isExpanded ? '' : 'line-clamp-2'}`}>{sec.title}</CardTitle>
+                        <p className="text-[10px] text-muted-foreground/60 pt-1">
+                          {new Date(sec.created_at).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' })}
+                        </p>
                       </div>
-                      <Button variant="ghost" size="icon" className="w-7 h-7 text-muted-foreground hover:text-destructive shrink-0"
-                        disabled={deletingId === sec.id} onClick={() => handleDelete(sec.id)}>
-                        {deletingId === sec.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                      </Button>
+                      <div className="flex items-center gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                        <Button variant="ghost" size="icon" className="w-7 h-7 text-muted-foreground hover:text-primary"
+                          title="Previsualizar" onClick={() => setPreviewSection(sec)}>
+                          <Eye className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="w-7 h-7 text-muted-foreground hover:text-primary"
+                          title="Editar" onClick={() => openEditModal(sec)}>
+                          <Pencil className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="w-7 h-7 text-muted-foreground hover:text-destructive"
+                          title="Eliminar" disabled={deletingId === sec.id} onClick={() => handleDelete(sec.id)}>
+                          {deletingId === sec.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                        </Button>
+                        <span className="w-7 h-7 flex items-center justify-center text-muted-foreground">
+                          {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                        </span>
+                      </div>
                     </CardHeader>
-                    <CardContent className="pt-0 pb-3 space-y-1.5">
-                      {sec.rich_text && (
-                        <p className="text-xs text-muted-foreground line-clamp-2" dangerouslySetInnerHTML={{ __html: sec.rich_text }} />
-                      )}
-                      {sec.audio_path && (
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Music2 className="w-3.5 h-3.5 text-orange-500 shrink-0" />
-                          <span className="truncate">
-                            {sec.audio_path.startsWith('http') ? '🔗 URL externa' : sec.audio_path.split('/').pop()}
-                          </span>
-                        </div>
-                      )}
-                      {sec.pdf_path && (
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <FileText className="w-3.5 h-3.5 text-red-500 shrink-0" />
-                          <span className="truncate">
-                            {sec.pdf_path.startsWith('http') ? '🔗 URL externa' : sec.pdf_path.split('/').pop()}
-                          </span>
-                        </div>
-                      )}
-                      {sec.embed_html && (
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Code2 className="w-3.5 h-3.5 text-violet-500 shrink-0" />
-                          <span className="truncate">Contenido embebido (HTML)</span>
-                        </div>
-                      )}
-                      <p className="text-[10px] text-muted-foreground/60 pt-0.5">
-                        {new Date(sec.created_at).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' })}
-                      </p>
-                    </CardContent>
+                    {isExpanded && (
+                      <CardContent className="pt-0 pb-3 space-y-1.5">
+                        {sec.rich_text && (
+                          <div className="text-xs text-muted-foreground" dangerouslySetInnerHTML={{ __html: sec.rich_text }} />
+                        )}
+                        {sec.audio_path && (
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <Music2 className="w-3.5 h-3.5 text-orange-500 shrink-0" />
+                            <span className="truncate">
+                              {sec.audio_path.startsWith('http') ? '🔗 URL externa' : sec.audio_path.split('/').pop()}
+                            </span>
+                          </div>
+                        )}
+                        {sec.pdf_path && (
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <FileText className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                            <span className="truncate">
+                              {sec.pdf_path.startsWith('http') ? '🔗 URL externa' : sec.pdf_path.split('/').pop()}
+                            </span>
+                          </div>
+                        )}
+                        {sec.embed_html && (
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <Code2 className="w-3.5 h-3.5 text-violet-500 shrink-0" />
+                            <span className="truncate">Contenido embebido (HTML)</span>
+                          </div>
+                        )}
+                      </CardContent>
+                    )}
                   </Card>
                 </motion.div>
-              ))}
+                );
+              })}
             </div>
           </motion.div>
         ))}
@@ -420,13 +492,17 @@ export default function AdminEnglishForStudents() {
                   {/* Cabecera fija */}
                   <div className="flex items-center justify-between gap-3 px-6 py-4 border-b border-border shrink-0">
                     <div className="flex items-center gap-3">
-                      <button onClick={() => setStep('select')} className="text-muted-foreground hover:text-foreground transition-colors" title="Volver">
-                        <ChevronRight className="w-4 h-4 rotate-180" />
-                      </button>
+                      {!editingId && (
+                        <button onClick={() => setStep('select')} className="text-muted-foreground hover:text-foreground transition-colors" title="Volver">
+                          <ChevronRight className="w-4 h-4 rotate-180" />
+                        </button>
+                      )}
                       <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${mod.gradient} flex items-center justify-center text-lg shadow-sm shrink-0`}>{mod.emoji}</div>
                       <div>
-                        <h2 className="text-base font-extrabold leading-tight">Nueva sección · {mod.label}</h2>
-                        <p className="text-xs text-muted-foreground">{isRichText ? 'Texto enriquecido + imagen' : 'Audio + PDF worksheet'}</p>
+                        <h2 className="text-base font-extrabold leading-tight">{editingId ? 'Editar sección' : 'Nueva sección'} · {mod.label}</h2>
+                        <p className="text-xs text-muted-foreground">
+                          {editingId ? 'Título y contenido — para cambiar archivos, elimina y crea de nuevo' : isRichText ? 'Texto enriquecido + imagen' : 'Audio + PDF worksheet'}
+                        </p>
                       </div>
                     </div>
                     <Button variant="ghost" size="icon" className="shrink-0" onClick={closeModal}><X className="w-4 h-4" /></Button>
@@ -448,27 +524,29 @@ export default function AdminEnglishForStudents() {
                           <Label className="text-sm font-semibold">Contenido <span className="text-destructive">*</span></Label>
                           <RichTextEditor content={formRichText} onChange={setFormRichText} placeholder={`Escribe el contenido de ${mod.label.toLowerCase()}...`} />
                         </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-sm font-semibold">Imagen <span className="text-muted-foreground font-normal">(opcional)</span></Label>
-                          <div className="flex gap-2 mb-2">
-                            <button type="button" onClick={() => setImageMode('file')}
-                              className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors ${imageMode === 'file' ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground hover:text-foreground'}`}>
-                              📁 Subir archivo
-                            </button>
-                            <button type="button" onClick={() => setImageMode('url')}
-                              className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors ${imageMode === 'url' ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground hover:text-foreground'}`}>
-                              🔗 URL externa
-                            </button>
+                        {!editingId && (
+                          <div className="space-y-1.5">
+                            <Label className="text-sm font-semibold">Imagen <span className="text-muted-foreground font-normal">(opcional)</span></Label>
+                            <div className="flex gap-2 mb-2">
+                              <button type="button" onClick={() => setImageMode('file')}
+                                className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors ${imageMode === 'file' ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground hover:text-foreground'}`}>
+                                📁 Subir archivo
+                              </button>
+                              <button type="button" onClick={() => setImageMode('url')}
+                                className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors ${imageMode === 'url' ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground hover:text-foreground'}`}>
+                                🔗 URL externa
+                              </button>
+                            </div>
+                            {imageMode === 'file' ? (
+                              <ImageUploadZone preview={formImagePreview} fileName={formImageFile?.name ?? null}
+                                onFile={(f, p) => { setFormImageFile(f); setFormImagePreview(p); }}
+                                onClear={() => { setFormImageFile(null); setFormImagePreview(null); }} />
+                            ) : (
+                              <Input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)}
+                                placeholder="https://drive.google.com/uc?export=view&id=..." className="text-sm" />
+                            )}
                           </div>
-                          {imageMode === 'file' ? (
-                            <ImageUploadZone preview={formImagePreview} fileName={formImageFile?.name ?? null}
-                              onFile={(f, p) => { setFormImageFile(f); setFormImagePreview(p); }}
-                              onClear={() => { setFormImageFile(null); setFormImagePreview(null); }} />
-                          ) : (
-                            <Input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)}
-                              placeholder="https://drive.google.com/uc?export=view&id=..." className="text-sm" />
-                          )}
-                        </div>
+                        )}
                         <div className="space-y-1.5">
                           <Label className="text-sm font-semibold flex items-center gap-1.5">
                             <Code2 className="w-3.5 h-3.5" /> Código HTML embebido <span className="text-muted-foreground font-normal">(opcional)</span>
@@ -495,6 +573,7 @@ export default function AdminEnglishForStudents() {
                     {/* AUDIO + PDF */}
                     {isListening && (
                       <>
+                        {!editingId && (
                         <div className="space-y-1.5">
                           <Label className="text-sm font-semibold">Archivo de audio <span className="text-muted-foreground font-normal">(opcional)</span></Label>
                           <div className="flex gap-2 mb-2">
@@ -517,6 +596,8 @@ export default function AdminEnglishForStudents() {
                               placeholder="https://drive.google.com/file/d/.../view" className="text-sm" />
                           )}
                         </div>
+                        )}
+                        {!editingId && (
                         <div className="space-y-1.5">
                           <Label className="text-sm font-semibold">PDF Worksheet <span className="text-muted-foreground font-normal">(opcional)</span></Label>
                           <div className="flex gap-2 mb-2">
@@ -539,6 +620,7 @@ export default function AdminEnglishForStudents() {
                               placeholder="https://drive.google.com/file/d/.../preview" className="text-sm" />
                           )}
                         </div>
+                        )}
                         <div className="space-y-1.5">
                           <Label className="text-sm font-semibold flex items-center gap-1.5">
                             <Code2 className="w-3.5 h-3.5" /> Código HTML embebido <span className="text-muted-foreground font-normal">(opcional)</span>
@@ -566,15 +648,109 @@ export default function AdminEnglishForStudents() {
                   {/* Pie fijo */}
                   <div className="px-6 py-4 border-t border-border bg-muted/20 shrink-0 flex flex-col sm:flex-row gap-3">
                     <Button variant="outline" className="sm:w-auto w-full" onClick={closeModal}>Cancelar</Button>
-                    <Button className={`flex-1 gap-2 bg-gradient-to-r ${mod.gradient} text-white border-0 hover:opacity-90 disabled:opacity-50`}
-                      disabled={!canPublish() || publishing} onClick={handlePublish}>
-                      {publishing
-                        ? <><Loader2 className="w-4 h-4 animate-spin" /> Publicando...</>
-                        : <><Globe className="w-4 h-4" /> Publicar sección</>}
-                    </Button>
+                    {editingId ? (
+                      <Button className={`flex-1 gap-2 bg-gradient-to-r ${mod.gradient} text-white border-0 hover:opacity-90 disabled:opacity-50`}
+                        disabled={!canSaveEdit() || publishing} onClick={handleSaveEdit}>
+                        {publishing
+                          ? <><Loader2 className="w-4 h-4 animate-spin" /> Guardando...</>
+                          : <><Pencil className="w-4 h-4" /> Guardar cambios</>}
+                      </Button>
+                    ) : (
+                      <Button className={`flex-1 gap-2 bg-gradient-to-r ${mod.gradient} text-white border-0 hover:opacity-90 disabled:opacity-50`}
+                        disabled={!canPublish() || publishing} onClick={handlePublish}>
+                        {publishing
+                          ? <><Loader2 className="w-4 h-4 animate-spin" /> Publicando...</>
+                          : <><Globe className="w-4 h-4" /> Publicar sección</>}
+                      </Button>
+                    )}
                   </div>
                 </>
               )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── MODAL DE PREVISUALIZACIÓN (Parte 22) ────────────────────────────
+          Espeja exactamente cómo src/pages/EnglishModule.tsx renderiza cada
+          sección para el estudiante, sin publicar nada ni salir del admin. */}
+      <AnimatePresence>
+        {previewSection && (
+          <motion.div key="preview-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setPreviewSection(null)}>
+            <motion.div key="preview-panel" initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }} transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+              className="bg-background border border-border rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}>
+              <div className="sticky top-0 bg-background/95 backdrop-blur border-b border-border/50 px-6 py-4 flex items-center justify-between z-10">
+                <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+                  <Eye className="w-4 h-4" /> Vista previa — así lo ve el estudiante
+                </div>
+                <Button variant="ghost" size="icon" onClick={() => setPreviewSection(null)}><X className="w-4 h-4" /></Button>
+              </div>
+
+              <div className="px-6 pt-6 pb-4 border-b border-border/40">
+                <h2 className="text-lg font-bold text-foreground">{previewSection.title}</h2>
+              </div>
+
+              <div className="p-6 space-y-5">
+                {previewSection.rich_text && (
+                  <div
+                    className="prose prose-sm dark:prose-invert max-w-none text-foreground/90 leading-relaxed"
+                    dangerouslySetInnerHTML={{ __html: previewSection.rich_text }}
+                  />
+                )}
+
+                {previewSection.image_path && (
+                  <div className="rounded-xl overflow-hidden border border-border/40">
+                    <img
+                      src={storageUrl(previewSection.image_path)}
+                      alt={previewSection.title}
+                      className="w-full object-cover"
+                      onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                    />
+                  </div>
+                )}
+
+                {previewSection.embed_html && (
+                  <div
+                    className="rounded-xl overflow-hidden [&_iframe]:w-full [&_iframe]:rounded-xl"
+                    dangerouslySetInnerHTML={{ __html: previewSection.embed_html }}
+                  />
+                )}
+
+                {previewSection.audio_path && (
+                  <div className="bg-muted/40 rounded-xl p-4 flex flex-col gap-3">
+                    <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                      <Headphones className="w-4 h-4 text-primary" /> Audio
+                    </div>
+                    <audio controls className="w-full" src={storageUrl(previewSection.audio_path)}>
+                      Tu navegador no soporta la reproducción de audio.
+                    </audio>
+                  </div>
+                )}
+
+                {previewSection.pdf_path && (
+                  <div className="bg-muted/40 rounded-xl p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                        <FileText className="w-4 h-4 text-primary" /> Worksheet / PDF
+                      </div>
+                      <a href={storageUrl(previewSection.pdf_path)} target="_blank" rel="noopener noreferrer" download>
+                        <Button size="sm" variant="outline" className="rounded-lg gap-1.5 text-xs">
+                          <Download className="w-3.5 h-3.5" /> Descargar
+                        </Button>
+                      </a>
+                    </div>
+                    <iframe
+                      src={`${storageUrl(previewSection.pdf_path)}#toolbar=0`}
+                      className="w-full rounded-lg border border-border/40"
+                      style={{ height: '480px' }}
+                      title={previewSection.title}
+                    />
+                  </div>
+                )}
+              </div>
             </motion.div>
           </motion.div>
         )}
