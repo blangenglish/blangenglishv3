@@ -146,8 +146,28 @@ function AppRoutes() {
     setTimeout(() => navigate(ROUTE_PATHS.DASHBOARD), 300);
   };
 
+  // Cierre de sesión resiliente. Antes, un signOut() que fallara cortaba la
+  // función y dejaba al usuario "dentro" (con la sesión aún guardada, así que
+  // recargar tampoco lo sacaba). Ahora: si el signOut global falla se intenta
+  // el local, el estado de React se limpia SIEMPRE, y como último recurso se
+  // borran a mano las llaves de sesión de Supabase en sessionStorage.
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+    } catch (e) {
+      console.error('[logout] signOut global falló, intentando local:', e);
+      try {
+        await supabase.auth.signOut({ scope: 'local' });
+      } catch (e2) {
+        console.error('[logout] signOut local también falló, limpiando storage:', e2);
+        try {
+          Object.keys(window.sessionStorage)
+            .filter(k => k.startsWith('sb-') || k.includes('supabase.auth'))
+            .forEach(k => window.sessionStorage.removeItem(k));
+        } catch (_) { /* storage inaccesible — el estado local igual se limpia abajo */ }
+      }
+    }
     setIsLoggedIn(false);
     setUserName('');
     setUserId('');

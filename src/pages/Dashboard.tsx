@@ -1559,9 +1559,14 @@ useEffect(() => {
     setPwForm({ current: '', newPw: '', confirm: '' });
   };
 
+  // El cierre de sesión lo hace App.tsx (onLogout), que ya llama a signOut y
+  // limpia el estado. Antes acá se llamaba a signOut() TAMBIÉN, y esa doble
+  // llamada rompía el logout: la segunda fallaba con "session missing" y App
+  // nunca llegaba a limpiar su estado, dejando al usuario dentro.
   const handleLogout = async () => {
+    if (onLogout) { onLogout(); return; }
+    // Fallback por si el Dashboard se monta sin onLogout.
     try { await supabase.auth.signOut(); } catch (_) {}
-    if (onLogout) onLogout();
     navigate(ROUTE_PATHS.HOME);
   };
 
