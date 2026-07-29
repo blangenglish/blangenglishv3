@@ -14,7 +14,7 @@ type ViewMode = AuthModal | 'forgot' | 'forgot_sent';
 interface AuthModalsProps {
   open: AuthModal;
   onClose: () => void;
-  onLogin: (email: string, name: string, userId?: string, isAdmin?: boolean, country?: string, city?: string, isNewReg?: boolean) => void;
+  onLogin: (email: string, name: string, userId?: string, isAdmin?: boolean, country?: string, city?: string, isNewReg?: boolean, program?: 'english' | 'spanish') => void;
 }
 
 // Popular countries list
@@ -118,6 +118,10 @@ export function AuthModals({ open, onClose, onLogin }: AuthModalsProps) {
   const [password, setPassword] = useState('');
 
   // Register fields
+  // Parte 25: programa elegido en el registro — determina para siempre qué
+  // contenido ve la cuenta (inglés sigue el flujo de la Parte 8 sin cambios;
+  // español queda pendiente de activación manual tras "Arma tu plan").
+  const [program, setProgram] = useState<'english' | 'spanish'>('english');
   const [name, setName] = useState('');
   const [birthday, setBirthday] = useState('');
   const [education, setEducation] = useState('');
@@ -139,6 +143,7 @@ export function AuthModals({ open, onClose, onLogin }: AuthModalsProps) {
       setForgotEmail('');
       setConfirmPassword('');
       setLoginTab('student');
+      setProgram('english');
     }
   }, [open]);
 
@@ -235,13 +240,21 @@ export function AuthModals({ open, onClose, onLogin }: AuthModalsProps) {
 
         if (!registroOk) throw new Error('No se pudo completar el registro');
 
+        // Parte 25: escribir siempre "program" de forma explícita, sin importar
+        // si el registro pasó por la edge function o el fallback directo — la
+        // edge function (desplegada aparte, fuera de este repo) no conoce este
+        // campo nuevo, así que no podemos confiar en que lo guarde por su cuenta.
+        if (userId) {
+          try { await supabase.from('student_profiles').update({ program }).eq('id', userId); } catch (_) { /* no crítico */ }
+        }
+
         // Intento de login automático
         const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({ email, password });
         if (!loginError && loginData.user) {
           const displayName = loginData.user.user_metadata?.full_name || name || 'Estudiante';
           setSuccess(true);
           setTimeout(() => {
-            onLogin(email, displayName, loginData.user!.id, false, country || undefined, city || undefined, true);
+            onLogin(email, displayName, loginData.user!.id, false, country || undefined, city || undefined, true, program);
             onClose();
             setSuccess(false);
           }, 1200);
@@ -557,6 +570,36 @@ export function AuthModals({ open, onClose, onLogin }: AuthModalsProps) {
               {/* ── REGISTER STEP 1: Basic info ── */}
               {!success && !isLogin && regStep === 1 && mode === 'register' && (
                 <form onSubmit={handleNextStep} className="space-y-4">
+                  {/* Parte 25: selección de programa — determina para siempre qué
+                      contenido ve la cuenta (el equipo puede cambiarlo manualmente
+                      después desde el panel admin si hace falta). */}
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium">¿Qué quieres aprender? 🎯</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setProgram('english')}
+                        className={`py-3 rounded-xl font-bold text-sm border-2 transition-all ${
+                          program === 'english'
+                            ? 'border-primary bg-primary/10 text-primary shadow-sm'
+                            : 'border-border/50 text-muted-foreground hover:border-primary/40 hover:text-foreground'
+                        }`}
+                      >
+                        🇬🇧 Inglés
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setProgram('spanish')}
+                        className={`py-3 rounded-xl font-bold text-sm border-2 transition-all ${
+                          program === 'spanish'
+                            ? 'border-primary bg-primary/10 text-primary shadow-sm'
+                            : 'border-border/50 text-muted-foreground hover:border-primary/40 hover:text-foreground'
+                        }`}
+                      >
+                        🇪🇸 Español para extranjeros
+                      </button>
+                    </div>
+                  </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="name" className="text-sm font-medium">Tu nombre completo 😊</Label>
                     <div className="relative">

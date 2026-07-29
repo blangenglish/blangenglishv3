@@ -111,7 +111,7 @@ function AppRoutes() {
     return () => subscription.unsubscribe();
   }, [isAdminRoute]);
 
-  const handleLogin = (email: string, name: string, uid?: string, isAdmin?: boolean, country?: string, city?: string, isNewReg?: boolean) => {
+  const handleLogin = (email: string, name: string, uid?: string, isAdmin?: boolean, country?: string, city?: string, isNewReg?: boolean, program?: 'english' | 'spanish') => {
     setIsLoggedIn(true);
     setUserName(name);
     setUserEmail(email);
@@ -129,7 +129,13 @@ function AppRoutes() {
     // trimestral). Si el CTA de origen ya dejó un grupo de edad guardado (Parte 8),
     // lo respetamos; si no, solo marcamos que hay que abrir el modal.
     if (isNewReg) {
-      if (!sessionStorage.getItem(OPEN_PLAN_AFTER_AUTH_KEY)) {
+      // Parte 25: si el registro fue para el programa de Español, el Dashboard
+      // debe abrir "Arma tu plan" de español (PlanEspanolModal) en vez del de
+      // inglés — la elección del formulario de registro tiene prioridad sobre
+      // cualquier flag de grupo de edad que ya hubiera quedado guardado.
+      if (program === 'spanish') {
+        sessionStorage.setItem(OPEN_PLAN_AFTER_AUTH_KEY, 'spanish');
+      } else if (!sessionStorage.getItem(OPEN_PLAN_AFTER_AUTH_KEY)) {
         sessionStorage.setItem(OPEN_PLAN_AFTER_AUTH_KEY, '1');
       }
       setTimeout(() => navigate(ROUTE_PATHS.DASHBOARD), 300);

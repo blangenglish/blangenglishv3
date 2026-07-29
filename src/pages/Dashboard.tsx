@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { EnglishForYou } from '@/components/EnglishForYou';
 import { ClasesVirtualesModal } from '@/components/ClasesVirtualesModal';
+import { PlanEspanolModal } from '@/components/PlanEspanolModal';
 import { MUNDO_REAL_TOPICS, MR_CATEGORIES } from '@/pages/MundoRealData';
 
 interface DashboardProps {
@@ -59,7 +60,7 @@ const FAQ_QUICK = [
   { q: '¿Qué pasa si tengo un problema técnico?', a: 'Escríbenos usando el formulario de la sección de Preguntas Frecuentes o por nuestros canales de WhatsApp e Instagram.' },
 ];
 
-interface DBCourseRow { id: string; emoji: string; title: string; level: string; total_units: number; is_published: boolean; sort_order: number; description: string; required_level?: string; }
+interface DBCourseRow { id: string; emoji: string; title: string; level: string; total_units: number; is_published: boolean; sort_order: number; description: string; required_level?: string; program?: string; }
 interface DBUnitRow { id: string; course_id: string; title: string; description: string; sort_order: number; is_published: boolean; }
 
 // ── PayPal Hosted Button (oficial SDK) ──
@@ -821,6 +822,9 @@ const [showPaypalModal, setShowPaypalModal] = useState(false);
     // Única fuente de verdad para elegibilidad del descuento "primer mes 25%"
     // — reemplaza first_month_discount_used/live_class_config para este fin.
     has_ever_paid?: boolean;
+    // Parte 25: programa elegido en el registro ('english' | 'spanish') — para
+    // siempre determina qué contenido ve la cuenta, salvo cambio manual admin.
+    program?: string;
     live_class_config?: {
       edad: 'kids' | 'teens' | 'adults';
       modo: 'self' | 'teacher';
@@ -878,6 +882,10 @@ const [loadingUnits, setLoadingUnits] = useState<string | null>(null);
   const [modalCopied, setModalCopied] = useState(false);
 
   const [showClasesModal, setShowClasesModal] = useState(false);
+  // Parte 25: "Arma tu plan" de Español (PlanEspanolModal), abierto en modo
+  // autenticado tras un registro con programa='spanish' — separado de
+  // showClasesModal porque son componentes distintos con reglas distintas.
+  const [showPlanEspanolModal, setShowPlanEspanolModal] = useState(false);
   // Grupo de edad que venía preseleccionado desde la tarjeta de la pantalla de
   // bienvenida (Parte 3), pasado a través del CTA "Regístrate e inicia sesión"
   // del primer bloque de EnglishProgram.tsx (Parte 8).
@@ -895,6 +903,9 @@ const [loadingUnits, setLoadingUnits] = useState<string | null>(null);
     const flag = sessionStorage.getItem(OPEN_PLAN_AFTER_AUTH_KEY);
     if (!flag) return;
     sessionStorage.removeItem(OPEN_PLAN_AFTER_AUTH_KEY);
+    // Parte 25: si el registro fue para el programa de Español, se abre
+    // PlanEspanolModal en vez del armador de plan de inglés.
+    if (flag === 'spanish') { setShowPlanEspanolModal(true); return; }
     if (flag === 'kids' || flag === 'teens' || flag === 'adults') setPendingAgeGroup(flag);
     setShowClasesModal(true);
   }, [isLoggedIn]);
@@ -1128,7 +1139,7 @@ useEffect(() => {
       Promise.all([
         supabase
           .from('student_profiles')
-          .select('full_name, english_level, onboarding_step, is_admin_only, birthday, country, city, education_level, education_other, account_enabled, account_status, trial_active, trial_start_date, trial_end_date, created_at, first_month_discount_used, has_ever_paid, live_class_config')
+          .select('full_name, english_level, onboarding_step, is_admin_only, birthday, country, city, education_level, education_other, account_enabled, account_status, trial_active, trial_start_date, trial_end_date, created_at, first_month_discount_used, has_ever_paid, live_class_config, program')
           .eq('id', userId)
           .maybeSingle(),
         supabase
@@ -1328,6 +1339,21 @@ useEffect(() => {
   const isProfileActive = profStatus === 'active' && profEnabled === true;
   // Cuenta deshabilitada según el perfil (tiene prioridad máxima)
   const isProfileDisabled = profStatus === 'disabled' || (profEnabled === false && profStatus !== 'active_trial');
+
+  // Parte 25: el programa elegido en el registro determina para siempre qué
+  // cursos ve la cuenta — se filtra acá (capa de datos), no solo con filas de
+  // acceso denegado, para que una cuenta de un programa jamás pueda llegar a
+  // ver ni por accidente los cursos del otro programa.
+  const isSpanishProgram = studentProfile?.program === 'spanish';
+  const visibleCourses = dbCourses.filter(c => (c.program || 'english') === (studentProfile?.program || 'english'));
+
+  // Si una cuenta de programa Español queda en un tab exclusivo de inglés
+  // (estado residual de otra sesión, etc.), volver a "Mis Niveles".
+  useEffect(() => {
+    if (isSpanishProgram && (activeTab === 'english' || activeTab === 'sesion' || activeTab === 'pagos')) {
+      setActiveTab('cursos');
+    }
+  }, [isSpanishProgram, activeTab]);
 
   /**
    * isCourseVisible — ÚNICA fuente de verdad para bloqueo/acceso de cursos.
@@ -1657,14 +1683,25 @@ useEffect(() => {
 
               {/* Nav items */}
               <nav className="p-2">
-                {([
-                  { id: 'cursos',      icon: BookOpen, label: 'Mis Cursos' },
-                  { id: 'english',    icon: Sparkles,  label: 'English for you!' },
-                  { id: 'sesion',   icon: Video,       label: 'Clases en Vivo' },
-                  { id: 'cuenta',   icon: User,        label: 'Cuenta' },
-                  { id: 'pagos',    icon: CreditCard,  label: 'Pagos' },
-                  { id: 'ayuda',    icon: HelpCircle,  label: 'Ayuda' },
-                ] as { id: TabId; icon: React.ElementType; label: string }[]).map(({ id, icon: Icon, label }) => (
+                {(( isSpanishProgram
+                  // Parte 25: cuentas de programa Español no tienen contenido
+                  // "English for you!" ni el armador de clases en vivo / pagos
+                  // self-serve de inglés — esas piezas quedan para una parte
+                  // futura dedicada al programa de español.
+                  ? [
+                    { id: 'cursos', icon: BookOpen,   label: 'Mis Niveles' },
+                    { id: 'cuenta', icon: User,        label: 'Cuenta' },
+                    { id: 'ayuda',  icon: HelpCircle,  label: 'Ayuda' },
+                  ]
+                  : [
+                    { id: 'cursos',      icon: BookOpen, label: 'Mis Cursos' },
+                    { id: 'english',    icon: Sparkles,  label: 'English for you!' },
+                    { id: 'sesion',   icon: Video,       label: 'Clases en Vivo' },
+                    { id: 'cuenta',   icon: User,        label: 'Cuenta' },
+                    { id: 'pagos',    icon: CreditCard,  label: 'Pagos' },
+                    { id: 'ayuda',    icon: HelpCircle,  label: 'Ayuda' },
+                  ]
+                ) as { id: TabId; icon: React.ElementType; label: string }[]).map(({ id, icon: Icon, label }) => (
                   <button
                     key={id}
                     onClick={() => setActiveTab(id)}
@@ -1736,7 +1773,55 @@ useEffect(() => {
             <AnimatePresence mode="wait">
 
               {/* ─── CURSOS ─── */}
-              {activeTab === 'cursos' && (
+              {activeTab === 'cursos' && (isSpanishProgram ? (
+                <motion.div key="cursos-es" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+                  {/* Parte 25: vista placeholder para cuentas de programa Español —
+                      el contenido real (7 partes por unidad) queda para una parte
+                      futura dedicada, igual que english_for_students_sections lo
+                      fue para inglés; acá solo se refleja el estado de la cuenta y
+                      los niveles que el admin haya habilitado. */}
+                  <div className="mb-6">
+                    <h1 className="text-2xl md:text-3xl font-extrabold mb-1">Tus niveles de Español 🇪🇸</h1>
+                    <p className="text-muted-foreground text-sm">Aquí verás tus niveles habilitados una vez tu cuenta esté activa.</p>
+                  </div>
+
+                  {!isProfileActive && (
+                    <div className="bg-violet-50 border-2 border-violet-300 rounded-2xl p-5 mb-5">
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 bg-violet-100 rounded-xl flex items-center justify-center shrink-0 text-lg">⏳</div>
+                        <div className="flex-1">
+                          <p className="font-extrabold text-violet-900">Cuenta pendiente de activación</p>
+                          <p className="text-sm text-violet-800 mt-1">Te contactaremos por WhatsApp para confirmar tu pago y activar tu acceso. Este proceso es manual, no automático.</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {visibleCourses.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                      <p>No hay niveles disponibles aún.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {visibleCourses.map((course) => {
+                        const isVisible = isProfileActive && isCourseVisible(course);
+                        return (
+                          <div key={course.id} className={`rounded-2xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 to-purple-50 p-5 flex items-center gap-3 ${!isVisible ? 'opacity-60' : ''}`}>
+                            <span className={`text-3xl ${!isVisible ? 'grayscale opacity-50' : ''}`}>{course.emoji}</span>
+                            <div className="flex-1 min-w-0">
+                              <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-violet-100 text-violet-700 inline-block mb-0.5">{course.level}</span>
+                              <h3 className="font-bold text-sm leading-snug">{course.title}</h3>
+                              <p className="text-xs text-muted-foreground">{isVisible ? 'Contenido en preparación' : 'Bloqueado'}</p>
+                            </div>
+                            {!isVisible && <Lock className="w-4 h-4 text-muted-foreground shrink-0" />}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </motion.div>
+              ) : (
                 <motion.div key="cursos" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
 
                   {/* Renewal alert */}
@@ -2027,7 +2112,7 @@ useEffect(() => {
                       <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
                       <p className="text-sm">Cargando cursos...</p>
                     </div>
-                  ) : dbCourses.length === 0 ? (
+                  ) : visibleCourses.length === 0 ? (
                     <div className="text-center py-12 text-muted-foreground">
                       <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-30" />
                       <p>No hay cursos disponibles aún.</p>
@@ -2035,7 +2120,7 @@ useEffect(() => {
                   ) : null}
 
                   <div className="space-y-4">
-                    {dbCourses.map((course) => {
+                    {visibleCourses.map((course) => {
                       const colors = LEVEL_COLORS[course.level] || LEVEL_COLORS['A1'];
                       const isOpen = expandedCourse === course.id;
                       const units = courseUnits[course.id] || [];
@@ -2164,7 +2249,7 @@ useEffect(() => {
                     })}
                   </div>
                 </motion.div>
-              )}
+              ))}
 
               {/* ─── SESIÓN CON PROFESOR ─── */}
               {activeTab === 'sesion' && (
@@ -3713,6 +3798,15 @@ useEffect(() => {
         userId={currentUserId}
         discountEligible={planModalOptions ? !!planModalOptions.discountEligible : !studentProfile?.has_ever_paid}
         onDiscountUsed={() => { if (currentUserId) refreshProfile(currentUserId); }}
+      />
+
+      {/* ── MODAL: ARMA TU PLAN — ESPAÑOL (Parte 25, modo cuenta ya registrada) ── */}
+      <PlanEspanolModal
+        open={showPlanEspanolModal}
+        onClose={() => setShowPlanEspanolModal(false)}
+        defaultName={profileForm.name || userName || ''}
+        defaultEmail={currentEmail || ''}
+        accountPending
       />
     </div>
   );

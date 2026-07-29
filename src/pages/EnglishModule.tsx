@@ -35,9 +35,10 @@ interface EnglishModuleProps {
   onOpenAuth?: (modal: any) => void;
   onLogout?: () => void;
   userName?: string;
+  userId?: string;
 }
 
-export default function EnglishModule({ isLoggedIn, onOpenAuth, onLogout, userName }: EnglishModuleProps) {
+export default function EnglishModule({ isLoggedIn, onOpenAuth, onLogout, userName, userId }: EnglishModuleProps) {
   const { moduleSlug } = useParams<{ moduleSlug: string }>();
   const navigate = useNavigate();
 
@@ -46,6 +47,16 @@ export default function EnglishModule({ isLoggedIn, onOpenAuth, onLogout, userNa
 
   const [sections, setSections] = useState<Section[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // Parte 25: este módulo es contenido exclusivo de inglés — una cuenta de
+  // programa Español jamás debe poder verlo, ni siquiera navegando directo
+  // por URL (el tab del sidebar ya está oculto, esto es defensa adicional).
+  useEffect(() => {
+    if (!userId) return;
+    supabase.from('student_profiles').select('program').eq('id', userId).maybeSingle().then(({ data }) => {
+      if (data?.program === 'spanish') navigate(ROUTE_PATHS.DASHBOARD, { replace: true });
+    });
+  }, [userId, navigate]);
 
   useEffect(() => {
     if (!isDBModule || !moduleSlug) return;

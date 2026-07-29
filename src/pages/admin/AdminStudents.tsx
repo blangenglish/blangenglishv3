@@ -45,6 +45,9 @@ interface StudentRow {
   is_admin_only?: boolean;
   account_enabled?: boolean;
   has_ever_paid?: boolean;
+  // Parte 25: programa de la cuenta ('english' | 'spanish') — determina para
+  // siempre qué contenido ve el estudiante, salvo cambio manual acá.
+  program?: string;
   subscription?: {
     plan_slug?: string;
     plan_name: string;
@@ -493,7 +496,7 @@ export default function AdminStudents() {
       setSavingAccount(null);
     }
   };
-  const [coursesForAccess, setCoursesForAccess] = useState<Array<{id: string; title: string; emoji: string; level?: string; units?: Array<{id: string; title: string}>}>>([]);
+  const [coursesForAccess, setCoursesForAccess] = useState<Array<{id: string; title: string; emoji: string; level?: string; program?: string; units?: Array<{id: string; title: string}>}>>([]);
   const [studentModuleAccess, setStudentModuleAccess] = useState<Record<string, string[]>>({});
   const [expandedAccessLevel, setExpandedAccessLevel] = useState<Record<string, string | null>>({});
   const [resetSent, setResetSent] = useState<string | null>(null);
@@ -524,31 +527,36 @@ export default function AdminStudents() {
     levels: string[];
     notes: string;
     plan: 'descuento25' | 'mensual' | 'trimestral';
+    program: 'english' | 'spanish';
   }>>({});
   const [activating, setActivating] = useState<string | null>(null);
-  const defaultActivationForm = () => ({
+  // Parte 25: el programa por defecto del formulario es el que ya tiene la
+  // cuenta (elegido en el registro) — el admin puede cambiarlo acá si hace falta.
+  const defaultActivationForm = (studentProgram?: string) => ({
     activationDate: new Date().toISOString().split('T')[0],
     amount: '16',
     method: 'paypal',
     levels: [...ALL_LEVEL_CODES],
     notes: '',
     plan: 'mensual' as const,
+    program: (studentProgram === 'spanish' ? 'spanish' : 'english') as 'english' | 'spanish',
   });
-  const getActivationForm = (studentId: string) => activationForm[studentId] || defaultActivationForm();
+  const getActivationForm = (studentId: string) =>
+    activationForm[studentId] || defaultActivationForm(students.find(s => s.id === studentId)?.program);
   const setActivationField = (studentId: string, field: string, value: string) => {
     // Bug fix: usar prev[studentId] en lugar de getActivationForm() para evitar leer
     // estado stale cuando hay dos setActivationField consecutivos en el mismo evento
     // (p.ej. al hacer clic en un plan: se actualizan 'plan' y 'amount' al mismo tiempo).
     setActivationForm(prev => ({
       ...prev,
-      [studentId]: { ...(prev[studentId] || defaultActivationForm()), [field]: value },
+      [studentId]: { ...(prev[studentId] || defaultActivationForm(students.find(s => s.id === studentId)?.program)), [field]: value },
     }));
   };
   // Parte 20: cada nivel se marca/desmarca de forma independiente — "Todas" y
   // "Ninguna" son atajos de selección masiva, no valores del propio arreglo.
   const toggleActivationLevel = (studentId: string, code: string) => {
     setActivationForm(prev => {
-      const current = prev[studentId] || defaultActivationForm();
+      const current = prev[studentId] || defaultActivationForm(students.find(s => s.id === studentId)?.program);
       let levels: string[];
       if (code === 'Todas') {
         levels = [...ALL_LEVEL_CODES];
@@ -846,12 +854,15 @@ export default function AdminStudents() {
         try { await adminInsert('subscriptions', { student_id: studentId, ...subPayload }); } catch(e) { console.error('[activatePlan] sub insert:', e); }
       }
 
-      // 3. Asegurar account_status correcto en student_profiles
+      // 3. Asegurar account_status correcto en student_profiles — Parte 25:
+      //    también se escribe acá el Programa elegido por el admin (por
+      //    defecto el que la cuenta ya tenía desde el registro).
       try {
         const profilePayload: Record<string, unknown> = {
           account_enabled: true,
           account_status:  planInfo.accountStatus,
           trial_active:    false,
+          program:         form.program,
           updated_at:      new Date().toISOString(),
         };
         await adminUpdate('student_profiles', profilePayload, studentId);
@@ -877,11 +888,16 @@ export default function AdminStudents() {
       //    fila en student_module_access cae de vuelta a la regla de "cuenta
       //    activa = todo desbloqueado" en Dashboard.tsx, dándole al estudiante
       //    acceso a niveles que el admin nunca activó.
+      // Parte 25: solo se sincronizan los cursos del Programa elegido — los
+      // cursos del otro programa ni se tocan (Dashboard.tsx ya los filtra por
+      // completo a nivel de carga de datos, así que no hace falta escribir
+      // filas is_active:false para ellos).
       try {
         await adminDeleteByFilter('student_module_access', { student_id: studentId });
-        if (coursesForAccess.length > 0) {
+        const coursesForProgram = coursesForAccess.filter(c => (c.program || 'english') === form.program);
+        if (coursesForProgram.length > 0) {
           const now = new Date().toISOString();
-          const records = coursesForAccess.flatMap(c => {
+          const records = coursesForProgram.flatMap(c => {
             const active = form.levels.includes(c.level || '');
             return [
               { student_id: studentId, course_id: c.id, is_active: active, granted_at: now },
@@ -896,7 +912,7 @@ export default function AdminStudents() {
       // 6. Actualizar estado local
       const updatedSub = result?.subscription || { ...subPayload, student_id: studentId };
       setStudents(prev => prev.map(s =>
-        s.id !== studentId ? s : { ...s, account_enabled: true, subscription: updatedSub as any }
+        s.id !== studentId ? s : { ...s, account_enabled: true, program: form.program, subscription: updatedSub as any }
       ));
 
       showMsg('success', `✅ ${planInfo.name} activado · Vence ${fmtLong(periodEnd)}`);
@@ -916,6 +932,7 @@ export default function AdminStudents() {
           levels: form.levels.length === 0 ? [...ALL_LEVEL_CODES] : form.levels,
           notes:  '',
           plan:   form.plan === 'descuento25' ? 'mensual' : form.plan,
+          program: form.program,
         },
       }));
     } finally {
@@ -1024,7 +1041,7 @@ export default function AdminStudents() {
 
   // Load courses for module access management
   const loadCoursesForAccess = useCallback(async () => {
-    const { data: courses } = await supabase.from('courses').select('id, title, emoji, level').order('sort_order');
+    const { data: courses } = await supabase.from('courses').select('id, title, emoji, level, program').order('sort_order');
     if (!courses) return;
     const coursesWithUnits = await Promise.all(courses.map(async (c) => {
       const { data: units } = await supabase.from('units').select('id, title').eq('course_id', c.id).order('sort_order');
@@ -1084,7 +1101,9 @@ export default function AdminStudents() {
   const grantAllCourses = async (studentId: string) => {
     showMsg('success', '⏳ Habilitando todos los módulos...');
     try {
-      const { data: allCourses } = await supabase.from('courses').select('id,level').eq('is_published', true);
+      // Parte 25: solo los cursos del Programa real de esta cuenta.
+      const studentProgram = students.find(s => s.id === studentId)?.program || 'english';
+      const { data: allCourses } = await supabase.from('courses').select('id,level').eq('is_published', true).eq('program', studentProgram);
       if (allCourses && allCourses.length > 0) {
         for (const c of allCourses as { id: string; level: string }[]) {
           const { data: units } = await supabase.from('units').select('id').eq('course_id', c.id);
@@ -1112,7 +1131,9 @@ export default function AdminStudents() {
     try {
       // Parte 21: dejar registros is_active:false explícitos (no solo borrar) —
       // ver nota en toggleModuleAccess sobre por qué borrar sin más no bloquea nada.
-      const { data: allCourses } = await supabase.from('courses').select('id,level').eq('is_published', true);
+      // Parte 25: solo los cursos del Programa real de esta cuenta.
+      const studentProgram = students.find(s => s.id === studentId)?.program || 'english';
+      const { data: allCourses } = await supabase.from('courses').select('id,level').eq('is_published', true).eq('program', studentProgram);
       await adminDeleteByFilter('student_module_access', { student_id: studentId });
       if (allCourses && allCourses.length > 0) {
         const now = new Date().toISOString();
@@ -1698,10 +1719,37 @@ export default function AdminStudents() {
                                 </div>
                                 <div className="p-5 space-y-4">
 
+                                  {/* Selector de Programa — Parte 25: determina qué cursos/niveles se
+                                      sincronizan en "Habilitar acceso al curso" al activar el plan. Por
+                                      defecto refleja lo que la cuenta ya eligió en el registro. */}
+                                  <div>
+                                    <Label className="text-xs font-semibold text-muted-foreground mb-2 block">🌐 Programa</Label>
+                                    <div className="grid grid-cols-2 gap-2">
+                                      {([
+                                        { id: 'english', label: '🇬🇧 Inglés' },
+                                        { id: 'spanish', label: '🇪🇸 Español' },
+                                      ] as const).map(p => (
+                                        <button
+                                          key={p.id}
+                                          type="button"
+                                          onClick={() => setActivationField(student.id, 'program', p.id)}
+                                          className={`py-2.5 px-2 rounded-xl text-xs font-bold border-2 transition-all text-center ${
+                                            af.program === p.id
+                                              ? 'bg-primary text-white border-primary shadow-sm'
+                                              : 'bg-background border-border/50 text-muted-foreground hover:border-primary/50'
+                                          }`}
+                                        >
+                                          {p.label}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+
                                   {/* Selector de plan — Parte 20: "7 días gratis" ya no existe (Partes
                                       1 y 11); se reemplaza por "25% descuento" (Parte 24: antes 50%), que
                                       solo puede elegirse si la cuenta nunca ha pagado antes (Parte 18:
-                                      has_ever_paid). */}
+                                      has_ever_paid) y nunca para el programa de Español (Parte 17/25: el
+                                      descuento de primer mes es exclusivo de inglés). */}
                                   <div>
                                     <Label className="text-xs font-semibold text-muted-foreground mb-2 block">📋 Plan</Label>
                                     <div className="grid grid-cols-3 gap-2">
@@ -1710,13 +1758,13 @@ export default function AdminStudents() {
                                         { id: 'mensual',     label: '📅 Plan Mensual',     amt: 16 },
                                         { id: 'trimestral',  label: '🗓️ Plan Trimestral',  amt: 68 },
                                       ] as const).map(p => {
-                                        const disabled = p.id === 'descuento25' && !!student.has_ever_paid;
+                                        const disabled = p.id === 'descuento25' && (!!student.has_ever_paid || af.program === 'spanish');
                                         return (
                                         <button
                                           key={p.id}
                                           type="button"
                                           disabled={disabled}
-                                          title={disabled ? 'Esta cuenta ya tiene un pago registrado — no aplica el descuento del primer mes' : undefined}
+                                          title={disabled ? (af.program === 'spanish' ? 'El descuento de primer mes no aplica al programa de Español' : 'Esta cuenta ya tiene un pago registrado — no aplica el descuento del primer mes') : undefined}
                                           onClick={() => {
                                             if (disabled) return;
                                             setActivationField(student.id, 'plan', p.id);
@@ -1834,7 +1882,7 @@ export default function AdminStudents() {
                                     onClick={() => setConfirmAction({
                                       open: true,
                                       title: `✅ ¿Activar plan para ${student.full_name}?`,
-                                      msg: `${af.plan === 'descuento25' ? 'Plan Mensual (25% descuento)' : af.plan === 'mensual' ? 'Plan Mensual' : 'Plan Trimestral'} · ${fmtD(activationDateObj)} → ${fmtD(periodEnd)} · Acceso: ${af.levels.length === ALL_LEVEL_CODES.length ? 'todos los niveles' : af.levels.length === 0 ? 'ninguno (examen)' : 'nivel(es) ' + af.levels.join(', ')} · $${af.amount} USD`,
+                                      msg: `Programa: ${af.program === 'spanish' ? 'Español' : 'Inglés'} · ${af.plan === 'descuento25' ? 'Plan Mensual (25% descuento)' : af.plan === 'mensual' ? 'Plan Mensual' : 'Plan Trimestral'} · ${fmtD(activationDateObj)} → ${fmtD(periodEnd)} · Acceso: ${af.levels.length === ALL_LEVEL_CODES.length ? 'todos los niveles' : af.levels.length === 0 ? 'ninguno (examen)' : 'nivel(es) ' + af.levels.join(', ')} · $${af.amount} USD`,
                                       fn: async () => activatePlanManual(student.id),
                                     })}
                                   >
@@ -2033,11 +2081,13 @@ export default function AdminStudents() {
                                   </div>
                                 </div>
 
-                                {/* ── Cards de nivel ── */}
+                                {/* ── Cards de nivel — Parte 25: solo los cursos del Programa real de
+                                    esta cuenta (nunca mezclados con el otro programa) ── */}
                                 <div className="p-4 space-y-2">
-                                  {coursesForAccess.length === 0 ? (
+                                  {(() => { const studentCourses = coursesForAccess.filter(c => (c.program || 'english') === (student.program || 'english'));
+                                  return studentCourses.length === 0 ? (
                                     <p className="text-sm text-muted-foreground text-center py-6">No hay cursos disponibles</p>
-                                  ) : coursesForAccess.map(course => {
+                                  ) : studentCourses.map(course => {
                                     const granted     = studentModuleAccess[student.id] || [];
                                     const courseActive = granted.includes(course.id) || (course.units || []).some(u => granted.includes(u.id));
                                     const units        = course.units || [];
@@ -2133,7 +2183,7 @@ export default function AdminStudents() {
                                         )}
                                       </div>
                                     );
-                                  })}
+                                  }); })()}
                                 </div>
                               </div>
 

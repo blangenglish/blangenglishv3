@@ -387,7 +387,15 @@ export const translations = {
     modalEspanol: {
       title: 'Arma tu plan de Español',
       subtitle: 'Con profesor · Horario fijo · Desde $184.00 USD/mes',
-      success: { title: '¡Listo! 🎉', descPre: 'Se abrió WhatsApp con tu solicitud. Toca ', descStrong: 'Enviar', descPost: ' en WhatsApp para completarla.', close: 'Cerrar' },
+      success: {
+        title: '¡Listo! 🎉', descPre: 'Se abrió WhatsApp con tu solicitud. Toca ', descStrong: 'Enviar', descPost: ' en WhatsApp para completarla.', close: 'Cerrar',
+        // Parte 25: mensaje mostrado cuando el modal se abre desde una cuenta ya
+        // registrada (Dashboard, tras elegir "Español" en el registro) — a
+        // diferencia del mensaje público de arriba, acá ya existe una cuenta que
+        // queda pendiente de activación manual, no solo una solicitud por WhatsApp.
+        accountTitle: '¡Cuenta creada! 🎉',
+        accountDesc: 'Tu cuenta fue creada y tu solicitud fue enviada por WhatsApp. Te contactaremos para confirmar tu pago y activar tu acceso a las clases.',
+      },
       nombreLabel: 'Nombre completo *',
       nombrePlaceholder: 'Tu nombre completo',
       correoLabel: 'Correo electrónico *',
@@ -812,7 +820,11 @@ export const translations = {
     modalEspanol: {
       title: 'Build your Spanish plan',
       subtitle: 'With a teacher · Fixed schedule · From $184.00 USD/month',
-      success: { title: 'All set! 🎉', descPre: 'WhatsApp opened with your request. Tap ', descStrong: 'Send', descPost: ' in WhatsApp to complete it.', close: 'Close' },
+      success: {
+        title: 'All set! 🎉', descPre: 'WhatsApp opened with your request. Tap ', descStrong: 'Send', descPost: ' in WhatsApp to complete it.', close: 'Close',
+        accountTitle: 'Account created! 🎉',
+        accountDesc: 'Your account was created and your request was sent via WhatsApp. We will contact you to confirm your payment and activate your access to classes.',
+      },
       nombreLabel: 'Full name *',
       nombrePlaceholder: 'Your full name',
       correoLabel: 'Email address *',

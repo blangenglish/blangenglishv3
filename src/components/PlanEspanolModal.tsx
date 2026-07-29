@@ -24,6 +24,11 @@ interface PlanEspanolModalProps {
   onClose: () => void;
   defaultName?: string;
   defaultEmail?: string;
+  // Parte 25: true cuando el modal se abre desde una cuenta ya registrada
+  // (Dashboard, justo tras elegir "Español" en el registro) — cambia el
+  // mensaje de éxito para reflejar que la cuenta ya existe y queda pendiente
+  // de activación manual, no solo que se envió una solicitud por WhatsApp.
+  accountPending?: boolean;
 }
 
 const DIA_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri'] as const;
@@ -59,6 +64,7 @@ export function PlanEspanolModal({
   onClose,
   defaultName = '',
   defaultEmail = '',
+  accountPending = false,
 }: PlanEspanolModalProps) {
   const { lang } = useLanguage();
   const t = translations[lang].modalEspanol;
@@ -188,9 +194,9 @@ export function PlanEspanolModal({
               <div className="w-16 h-16 rounded-full bg-violet-100 flex items-center justify-center mx-auto mb-4">
                 <Check className="w-8 h-8 text-primary" />
               </div>
-              <h4 className="text-xl font-bold mb-3">{t.success.title}</h4>
+              <h4 className="text-xl font-bold mb-3">{accountPending ? t.success.accountTitle : t.success.title}</h4>
               <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
-                {t.success.descPre}<strong>{t.success.descStrong}</strong>{t.success.descPost}
+                {accountPending ? t.success.accountDesc : (<>{t.success.descPre}<strong>{t.success.descStrong}</strong>{t.success.descPost}</>)}
               </p>
               <Button className="rounded-full bg-[#111111] hover:bg-[#111111]/90 text-white px-8 transition-colors" onClick={onClose}>
                 {t.success.close}
