@@ -170,6 +170,10 @@ export function ClasesVirtualesModal({
   const [iaPlatform, setIaPlatform] = useState<'mensual' | 'trimestral'>(defaultIaPlatform || 'mensual');
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  // Parte 27: se guarda el mensaje ya compuesto para que el botón "Enviar por
+  // WhatsApp" de la pantalla de confirmación pueda reabrirlo tal cual, sin
+  // recomponerlo (y sin depender de que el usuario no haya cambiado nada).
+  const [sentMessage, setSentMessage] = useState('');
   const [error, setError] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
   // Parte 8: descuento de primer mes, gateado por cuenta (no por sesión/navegador).
@@ -201,6 +205,7 @@ export function ClasesVirtualesModal({
       setPayMethod(defaultPayMethod || 'bold');
       setIaPlatform(defaultIaPlatform || 'mensual');
       setSent(false);
+      setSentMessage('');
       setError('');
       setTermsAccepted(false);
       setDiscountApplied(false);
@@ -306,6 +311,7 @@ export function ClasesVirtualesModal({
       t.whatsapp.termsAccepted,
     ].filter(line => line !== null).join('\n');
     openWhatsApp(mensaje);
+    setSentMessage(mensaje);
     setSent(true);
 
     // Parte 12: persistimos la configuración enviada para poder mostrarla luego
@@ -376,18 +382,81 @@ export function ClasesVirtualesModal({
 
         <div className="p-6 space-y-5">
           {sent ? (
-            /* ── Éxito ── */
-            <div className="text-center py-8">
-              <div className="w-16 h-16 rounded-full bg-violet-100 flex items-center justify-center mx-auto mb-4">
-                <Check className="w-8 h-8 text-primary" />
+            /* ── Confirmación (Parte 27): la cuenta queda pendiente de activación
+                 manual; se muestra el resumen enviado y se puede reabrir WhatsApp ── */
+            <div className="py-4">
+              <div className="text-center">
+                <div className="w-16 h-16 rounded-full bg-violet-100 flex items-center justify-center mx-auto mb-4">
+                  <Check className="w-8 h-8 text-primary" />
+                </div>
+                <h4 className="text-xl font-bold mb-2">{t.success.pendingTitle}</h4>
+                <p className="text-muted-foreground text-sm mb-5 leading-relaxed">
+                  {t.success.pendingDesc}
+                </p>
               </div>
-              <h4 className="text-xl font-bold mb-3">{t.success.title}</h4>
-              <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
-                {t.success.descPre}<strong>{t.success.descStrong}</strong>{t.success.descPost}
-              </p>
-              <Button className="rounded-full bg-[#111111] hover:bg-[#111111]/90 text-white px-8 transition-colors" onClick={onClose}>
-                {t.success.close}
+
+              {/* Resumen del plan enviado */}
+              <div className="rounded-2xl border-2 border-violet-200 bg-violet-50/60 overflow-hidden mb-4 text-left">
+                <div className="bg-violet-600 px-4 py-2.5">
+                  <p className="text-white text-sm font-bold">📋 {t.success.resumenTitle}</p>
+                </div>
+                <div className="px-4 py-3 space-y-1.5 text-sm">
+                  {isAutoestudio ? (
+                    <div className="flex justify-between gap-3">
+                      <span className="text-muted-foreground">{t.success.resumenPlan}</span>
+                      <span className="font-semibold text-right">{autoestudioPlan.label}</span>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex justify-between gap-3">
+                        <span className="text-muted-foreground">{t.success.resumenDuracion}</span>
+                        <span className="font-semibold text-right">{t.horaSuffix(horasDia)}</span>
+                      </div>
+                      <div className="flex justify-between gap-3">
+                        <span className="text-muted-foreground">{t.success.resumenDias}</span>
+                        <span className="font-semibold text-right">{diasSemana}</span>
+                      </div>
+                      <div className="flex justify-between gap-3">
+                        <span className="text-muted-foreground">{t.success.resumenDiasElegidos}</span>
+                        <span className="font-semibold text-right">{diasSel.map(diaLabel).join(', ')}</span>
+                      </div>
+                      <div className="flex justify-between gap-3">
+                        <span className="text-muted-foreground">{t.success.resumenHorario}</span>
+                        <span className="font-semibold text-right">{franja}</span>
+                      </div>
+                    </>
+                  )}
+                  <div className="flex justify-between gap-3 pt-2 mt-1 border-t border-violet-200">
+                    <span className="font-bold">{t.success.resumenTotal}</span>
+                    <span className="font-extrabold text-violet-700 text-right">
+                      {formatCOP(effectiveTotal)} COP
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Nota de activación — mismo estándar de 24 h hábiles del resto del sitio */}
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 mb-4">
+                <p className="text-xs text-amber-800 font-semibold">{t.success.activacionNota}</p>
+              </div>
+
+              {/* Reenviar por WhatsApp — mismo comportamiento que el envío original */}
+              <Button
+                className="w-full rounded-xl font-bold py-6 bg-[#25D366] hover:bg-[#25D366]/90 text-white transition-colors mb-1"
+                onClick={() => openWhatsApp(sentMessage)}
+              >
+                <span className="flex items-center gap-2">
+                  <Send className="w-4 h-4" />
+                  {t.success.whatsappBtn}
+                </span>
               </Button>
+              <p className="text-[11px] text-muted-foreground text-center mb-4">{t.success.whatsappHint}</p>
+
+              <div className="text-center">
+                <Button variant="outline" className="rounded-full px-8" onClick={onClose}>
+                  {t.success.close}
+                </Button>
+              </div>
             </div>
           ) : (
             <>

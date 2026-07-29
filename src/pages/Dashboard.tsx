@@ -1347,6 +1347,18 @@ useEffect(() => {
   const isSpanishProgram = studentProfile?.program === 'spanish';
   const visibleCourses = dbCourses.filter(c => (c.program || 'english') === (studentProfile?.program || 'english'));
 
+  // Parte 27: "pendiente de activación" = la cuenta ya envió su solicitud de plan
+  // pero el equipo todavía no confirma el pago ni la activa manualmente. Se
+  // distingue de la cuenta recién registrada que aún no ha armado ningún plan
+  // (esa sigue viendo el banner de "Elige un plan"): el marcador es
+  // live_class_config, que se persiste justo al enviar la solicitud.
+  const isPendingActivation =
+    !profileLoading &&
+    !isProfileActive &&
+    !isProfileDisabled &&
+    (profStatus === 'pending' || profStatus === 'pending_payment') &&
+    !!studentProfile?.live_class_config;
+
   // Si una cuenta de programa Español queda en un tab exclusivo de inglés
   // (estado residual de otra sesión, etc.), volver a "Mis Niveles".
   useEffect(() => {
@@ -1790,8 +1802,9 @@ useEffect(() => {
                       <div className="flex items-start gap-3">
                         <div className="w-10 h-10 bg-violet-100 rounded-xl flex items-center justify-center shrink-0 text-lg">⏳</div>
                         <div className="flex-1">
-                          <p className="font-extrabold text-violet-900">Cuenta pendiente de activación</p>
-                          <p className="text-sm text-violet-800 mt-1">Te contactaremos por WhatsApp para confirmar tu pago y activar tu acceso. Este proceso es manual, no automático.</p>
+                          <p className="font-extrabold text-violet-900">Tu cuenta aún no ha sido activada</p>
+                          <p className="text-sm text-violet-800 mt-1">Te contactaremos pronto por WhatsApp para confirmar tu pago y activar tu acceso. Este proceso es manual, no automático.</p>
+                          <p className="text-xs text-violet-700 mt-2 font-semibold">⏱ Activación en máx. 24 h hábiles tras confirmar el pago.</p>
                         </div>
                       </div>
                     </div>
@@ -2016,7 +2029,29 @@ useEffect(() => {
 
                   {/* ── Banner: sin suscripción o cancelada → ir a pagos ── */}
                   {/* No mostrar si: cargando | plan de pago cancelado dentro del período (activo_cancelado) | pago pendiente */}
-                  {!profileLoading && (!subscription || subscription.status === 'cancelled') &&
+                  {/* Parte 27: cuenta pendiente de activación — ya envió su solicitud
+                      y espera que el equipo confirme el pago por WhatsApp. Reemplaza
+                      al banner de "Elige un plan" (que solo aplica a quien todavía
+                      no ha armado su plan). Los módulos ya quedan bloqueados por
+                      isCourseVisible, esto solo comunica el estado con claridad. */}
+                  {isPendingActivation && (
+                    <div className="bg-amber-50 border-2 border-amber-400 rounded-2xl p-5 mb-5">
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center shrink-0">
+                          <Lock className="w-5 h-5 text-amber-600" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-extrabold text-amber-900">⏳ Tu cuenta aún no ha sido activada</p>
+                          <p className="text-sm text-amber-800 mt-1">
+                            Recibimos tu solicitud. Te contactaremos pronto por WhatsApp para confirmar tu pago y activar tu acceso.
+                          </p>
+                          <p className="text-xs text-amber-700 mt-2 font-semibold">⏱ Activación en máx. 24 h hábiles tras confirmar el pago.</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {!profileLoading && !isPendingActivation && (!subscription || subscription.status === 'cancelled') &&
                    studentProfile?.account_status !== 'pending_payment' &&
                    !(subscription?.status === 'cancelled' && subscription?.current_period_end && new Date(subscription.current_period_end) > new Date()) &&
                    (

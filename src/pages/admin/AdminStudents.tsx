@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { supabase } from '@/integrations/supabase/client';
-import { adminInsert, adminUpdate, adminDelete, adminDeleteByFilter, adminUpsert } from '@/lib/adminWrite';
+import { adminInsert, adminUpdate, adminDelete, adminDeleteByFilter, adminUpsert, adminSelect } from '@/lib/adminWrite';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -44,7 +44,17 @@ interface StudentRow {
   onboarding_step?: string;
   is_admin_only?: boolean;
   account_enabled?: boolean;
+  account_status?: string;
   has_ever_paid?: boolean;
+  // Parte 27: config del plan que el estudiante envió desde "Arma tu plan" —
+  // permite mostrar qué solicitó sin tener que abrir la ficha completa.
+  live_class_config?: {
+    modo?: string;
+    planAutoestudio?: string | null;
+    horasDia?: number | null;
+    diasSemana?: number | null;
+    franja?: string | null;
+  } | null;
   // Parte 25: programa de la cuenta ('english' | 'spanish') — determina para
   // siempre qué contenido ve el estudiante, salvo cambio manual acá.
   program?: string;
@@ -504,6 +514,9 @@ export default function AdminStudents() {
   const [sessionRequests, setSessionRequests] = useState<SessionRequestRow[]>([]);
   const [sessionReqExpanded, setSessionReqExpanded] = useState<string | null>(null);
   const [adminTab, setAdminTab] = useState<'students' | 'sessions'>('students');
+  // Parte 27: filtro para ver de un vistazo todas las solicitudes pendientes de
+  // activación (de ambos programas) sin buscarlas una por una.
+  const [onlyPending, setOnlyPending] = useState(false);
   const [confirmAction, setConfirmAction] = useState<{ open: boolean; title: string; msg: string; fn: () => Promise<void> }>({
     open: false, title: '', msg: '', fn: async () => {}
   });
@@ -619,6 +632,24 @@ export default function AdminStudents() {
           progress: s.progress || [],
         }));
 
+      // Parte 27: la edge function 'list_all_students' vive fuera de este repo y
+      // no necesariamente devuelve los campos añadidos después (program de la
+      // Parte 25, account_status y live_class_config de la Parte 27). Se
+      // completan acá con una consulta aparte vía service_role para que el
+      // filtro de "pendientes de activación" no dependa de esa edge.
+      try {
+        // callEdge ya devuelve payload.data, así que esto es directamente el array.
+        const extraRows = await adminSelect('student_profiles', { select: 'id, account_status, program, live_class_config' }) as Array<{ id: string; account_status?: string; program?: string; live_class_config?: StudentRow['live_class_config'] }> | null;
+        if (Array.isArray(extraRows) && extraRows.length > 0) {
+          const byId = new Map(extraRows.map(r => [r.id, r]));
+          setStudents(rows.map(s => {
+            const e = byId.get(s.id);
+            return e ? { ...s, account_status: e.account_status ?? s.account_status, program: e.program ?? s.program, live_class_config: e.live_class_config ?? s.live_class_config } : s;
+          }));
+          return;
+        }
+      } catch (e) { console.error('[loadStudents] merge de campos extra:', e); }
+
       setStudents(rows);
     } catch (err) {
       console.error('loadStudents error:', err);
@@ -640,10 +671,23 @@ export default function AdminStudents() {
 
   useEffect(() => { loadSessionRequests(); }, [loadSessionRequests]);
 
-  const filtered = students.filter(s =>
-    s.full_name.toLowerCase().includes(search.toLowerCase()) ||
-    (s.email || '').toLowerCase().includes(search.toLowerCase())
-  );
+  // Parte 27: una cuenta está "pendiente de activación" cuando ya envió su
+  // solicitud de plan pero el equipo todavía no confirmó el pago ni la activó.
+  // Mismo criterio que usa Dashboard.tsx para mostrarle el aviso al estudiante.
+  const isPendingActivation = (s: StudentRow) =>
+    s.account_enabled !== false &&
+    (s.account_status === 'pending' || s.account_status === 'pending_payment') &&
+    s.subscription?.status !== 'active' &&
+    !!s.live_class_config;
+
+  const pendingCount = students.filter(isPendingActivation).length;
+
+  const filtered = students
+    .filter(s => !onlyPending || isPendingActivation(s))
+    .filter(s =>
+      s.full_name.toLowerCase().includes(search.toLowerCase()) ||
+      (s.email || '').toLowerCase().includes(search.toLowerCase())
+    );
 
   const startEdit = (s: StudentRow) => {
     setEditingId(s.id);
@@ -1303,7 +1347,7 @@ export default function AdminStudents() {
             { icon: <Users className="w-5 h-5 text-primary" />, value: students.length, label: 'Total', bg: 'bg-primary/5 border-primary/10' },
             { icon: <TrendingUp className="w-5 h-5 text-green-600" />, value: students.filter(s => s.subscription?.status === 'active' && s.subscription?.plan_slug !== 'free_admin').length, label: 'Activos', bg: 'bg-green-50 border-green-100' },
             { icon: <Calendar className="w-5 h-5 text-blue-600" />, value: students.filter(s => s.subscription?.status === 'trial').length, label: 'En prueba', bg: 'bg-blue-50 border-blue-100' },
-            { icon: <Clock className="w-5 h-5 text-red-500" />, value: students.filter(s => s.subscription?.approved_by_admin === false && s.subscription?.account_enabled === false && s.subscription?.status !== 'cancelled').length, label: 'Pendientes', bg: 'bg-red-50 border-red-100' },
+            { icon: <Clock className="w-5 h-5 text-red-500" />, value: pendingCount, label: 'Pend. activación', bg: 'bg-red-50 border-red-100' },
             { icon: <Gift className="w-5 h-5 text-violet-600" />, value: students.filter(s => s.subscription?.plan_slug === 'free_admin' && s.subscription?.status === 'active').length, label: 'Gratuitos', bg: 'bg-violet-50 border-violet-100' },
             { icon: <CreditCard className="w-5 h-5 text-amber-600" />, value: `$${students.filter(s => s.subscription?.plan_slug !== 'free_admin').reduce((a, s) => a + (s.subscription?.amount_usd || 0), 0).toFixed(0)} USD`, label: 'Ingresos', bg: 'bg-amber-50 border-amber-100' },
           ].map((s, i) => (
@@ -1316,13 +1360,39 @@ export default function AdminStudents() {
         </div>
 
 
+        {/* Parte 27: filtro de solicitudes pendientes de activación (ambos programas) */}
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <button
+            type="button"
+            onClick={() => setOnlyPending(false)}
+            className={`px-4 py-2 rounded-xl text-sm font-bold border-2 transition-all ${
+              !onlyPending
+                ? 'bg-primary text-white border-primary shadow-sm'
+                : 'bg-background border-border/50 text-muted-foreground hover:border-primary/50'
+            }`}
+          >
+            👥 Todos ({students.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setOnlyPending(true)}
+            className={`px-4 py-2 rounded-xl text-sm font-bold border-2 transition-all ${
+              onlyPending
+                ? 'bg-amber-500 text-white border-amber-500 shadow-sm'
+                : 'bg-background border-amber-300 text-amber-700 hover:border-amber-500'
+            }`}
+          >
+            ⏳ Pendientes de activación ({pendingCount})
+          </button>
+        </div>
+
         {/* Students list */}
         {loading ? (
           <div className="text-center py-20 text-muted-foreground">Cargando estudiantes...</div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-20 text-muted-foreground">
             <Users className="w-12 h-12 mx-auto mb-3 opacity-30" />
-            <p>{search ? 'Sin resultados para esta búsqueda.' : 'Aún no hay estudiantes registrados.'}</p>
+            <p>{onlyPending ? 'No hay solicitudes pendientes de activación.' : search ? 'Sin resultados para esta búsqueda.' : 'Aún no hay estudiantes registrados.'}</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -1355,6 +1425,23 @@ export default function AdminStudents() {
 
                     {/* Meta */}
                     <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs">
+                      {/* Parte 27: estado pendiente de activación + programa y plan
+                          solicitado, visibles sin abrir la ficha del estudiante. */}
+                      {isPendingActivation(student) && (
+                        <span className="px-2.5 py-1 rounded-full font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                          ⏳ Pend. activación
+                        </span>
+                      )}
+                      <span className="px-2.5 py-1 rounded-full font-bold bg-violet-100 text-violet-700">
+                        {student.program === 'spanish' ? '🇨🇴 Español' : '🇺🇸 Inglés'}
+                      </span>
+                      {student.live_class_config && (
+                        <span className="text-muted-foreground">
+                          {student.live_class_config.modo === 'self'
+                            ? `📘 Autoestudio${student.live_class_config.planAutoestudio ? ' · ' + student.live_class_config.planAutoestudio : ''}`
+                            : `📅 ${student.live_class_config.horasDia || '?'}h × ${student.live_class_config.diasSemana || '?'} días${student.live_class_config.franja ? ' · ' + student.live_class_config.franja : ''}`}
+                        </span>
+                      )}
                       <span className={`px-2.5 py-1 rounded-full font-bold ${statusStyle.color}`}>{statusStyle.label}</span>
                       {/* account_enabled badge */}
                       <span className={`px-2.5 py-1 rounded-full font-bold flex items-center gap-1 ${
