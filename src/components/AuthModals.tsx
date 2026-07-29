@@ -234,23 +234,29 @@ export function AuthModals({ open, onClose, onLogin }: AuthModalsProps) {
               city: city || null,
               account_status: 'pending',
               onboarding_step: 'pending_plan',
+              program,
             });
           }
         }
 
         if (!registroOk) throw new Error('No se pudo completar el registro');
 
-        // Parte 25: escribir siempre "program" de forma explícita, sin importar
-        // si el registro pasó por la edge function o el fallback directo — la
-        // edge function (desplegada aparte, fuera de este repo) no conoce este
-        // campo nuevo, así que no podemos confiar en que lo guarde por su cuenta.
-        if (userId) {
-          try { await supabase.from('student_profiles').update({ program }).eq('id', userId); } catch (_) { /* no crítico */ }
-        }
-
         // Intento de login automático
         const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({ email, password });
         if (!loginError && loginData.user) {
+          // Parte 25/29: escribir "program" de forma explícita. La edge function
+          // de registro vive fuera de este repo y no conoce este campo, así que
+          // no se puede confiar en que lo guarde.
+          // IMPORTANTE: esto va DESPUÉS del login. La RLS de student_profiles
+          // exige id = auth.uid(), así que hacerlo antes de autenticar (como
+          // estaba en la Parte 25) fallaba en silencio y la cuenta quedaba con
+          // el programa por defecto ('english') aunque hubiera elegido español.
+          const { error: progError } = await supabase
+            .from('student_profiles')
+            .update({ program })
+            .eq('id', loginData.user.id);
+          if (progError) console.error('[register] no se pudo guardar el programa:', progError);
+
           const displayName = loginData.user.user_metadata?.full_name || name || 'Estudiante';
           setSuccess(true);
           setTimeout(() => {

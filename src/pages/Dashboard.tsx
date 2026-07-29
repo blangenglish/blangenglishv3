@@ -1381,7 +1381,7 @@ useEffect(() => {
   // Si una cuenta de programa Español queda en un tab exclusivo de inglés
   // (estado residual de otra sesión, etc.), volver a "Mis Niveles".
   useEffect(() => {
-    if (isSpanishProgram && (activeTab === 'english' || activeTab === 'sesion' || activeTab === 'pagos')) {
+    if (isSpanishProgram && activeTab !== 'cursos' && activeTab !== 'cuenta') {
       setActiveTab('cursos');
     }
   }, [isSpanishProgram, activeTab]);
@@ -1696,33 +1696,41 @@ useEffect(() => {
                 </div>
                 <p className="font-bold text-white text-lg leading-tight">{displayName}</p>
                 {/* Level badge */}
-                {studentProfile?.english_level && (
-                  <div className="flex items-center justify-center gap-1.5 mt-1.5">
-                    <span className="bg-white/25 border border-white/30 text-white text-xs font-extrabold px-2.5 py-0.5 rounded-full">
-                      Nivel {studentProfile.english_level}
-                    </span>
-                  </div>
-                )}
-                {!studentProfile?.english_level && (
+                {/* Parte 29: el nivel de inglés y la racha son datos del programa
+                    de inglés (english_level, unidades de inglés completadas) — no
+                    tienen sentido en una cuenta de Español, así que no se muestran. */}
+                {isSpanishProgram ? (
                   <p className="text-white/60 text-xs mt-1">Estudiante BLANG</p>
+                ) : (
+                  <>
+                    {studentProfile?.english_level && (
+                      <div className="flex items-center justify-center gap-1.5 mt-1.5">
+                        <span className="bg-white/25 border border-white/30 text-white text-xs font-extrabold px-2.5 py-0.5 rounded-full">
+                          Nivel {studentProfile.english_level}
+                        </span>
+                      </div>
+                    )}
+                    {!studentProfile?.english_level && (
+                      <p className="text-white/60 text-xs mt-1">Estudiante BLANG</p>
+                    )}
+                    <div className="flex items-center justify-center gap-1 mt-3 bg-white/15 rounded-full px-3 py-1 w-fit mx-auto">
+                      <Flame className="w-3.5 h-3.5 text-orange-300" />
+                      <span className="text-white/90 text-xs font-bold">{streakDays} {streakDays === 1 ? 'día' : 'días'} de racha</span>
+                    </div>
+                  </>
                 )}
-                <div className="flex items-center justify-center gap-1 mt-3 bg-white/15 rounded-full px-3 py-1 w-fit mx-auto">
-                  <Flame className="w-3.5 h-3.5 text-orange-300" />
-                  <span className="text-white/90 text-xs font-bold">{streakDays} {streakDays === 1 ? 'día' : 'días'} de racha</span>
-                </div>
               </div>
 
               {/* Nav items */}
               <nav className="p-2">
                 {(( isSpanishProgram
-                  // Parte 25: cuentas de programa Español no tienen contenido
-                  // "English for you!" ni el armador de clases en vivo / pagos
-                  // self-serve de inglés — esas piezas quedan para una parte
-                  // futura dedicada al programa de español.
+                  // Parte 25/29: una cuenta de programa Español solo ve sus
+                  // módulos y su cuenta. Nada de inglés (English for you!,
+                  // clases en vivo, pagos self-serve) ni Ayuda, que hoy está
+                  // escrita para el programa de inglés.
                   ? [
-                    { id: 'cursos', icon: BookOpen,   label: 'Mis Niveles' },
+                    { id: 'cursos', icon: BookOpen,   label: 'Mis Módulos' },
                     { id: 'cuenta', icon: User,        label: 'Cuenta' },
-                    { id: 'ayuda',  icon: HelpCircle,  label: 'Ayuda' },
                   ]
                   : [
                     { id: 'cursos',      icon: BookOpen, label: 'Mis Cursos' },
