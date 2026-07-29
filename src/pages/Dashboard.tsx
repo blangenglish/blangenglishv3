@@ -63,6 +63,22 @@ const FAQ_QUICK = [
 interface DBCourseRow { id: string; emoji: string; title: string; level: string; total_units: number; is_published: boolean; sort_order: number; description: string; required_level?: string; program?: string; }
 interface DBUnitRow { id: string; course_id: string; title: string; description: string; sort_order: number; is_published: boolean; }
 
+// ── Parte 28: estructura fija de cada unidad del programa de Español ─────────
+// Son SIEMPRE estas 7 partes, en este orden, para toda unidad de todo nivel
+// (a diferencia de inglés, que usa categorías libres tipo "English for
+// Students"). Acá solo se declara la estructura: el contenido real de cada
+// parte (textos, quices, flashcards) se construye en una parte futura, así que
+// por ahora todas se muestran como "En preparación".
+const SPANISH_UNIT_PARTS = [
+  { n: 1, emoji: '📖', label: 'Lectura + Quiz' },
+  { n: 2, emoji: '🎧', label: 'Listening + Quiz' },
+  { n: 3, emoji: '📐', label: 'Gramática' },
+  { n: 4, emoji: '📝', label: 'Vocabulario' },
+  { n: 5, emoji: '🧪', label: 'Quiz de Gramática y Vocabulario' },
+  { n: 6, emoji: '🃏', label: 'Flashcards de preguntas' },
+  { n: 7, emoji: '✍️', label: 'Flashcards de escritura' },
+];
+
 // ── PayPal Hosted Button (oficial SDK) ──
 const PAYPAL_CLIENT_ID = 'BAA2srggiH3C_NZOPi5WgvxY9uAmQ5IdL4jsKRt4OdZ_xB6nE1vAWM6800tAFqwddu-eYQBLEEEuXhDNJg';
 const PAYPAL_BUTTON_ID  = 'LSDLRPXB2WLJL';
@@ -886,6 +902,9 @@ const [loadingUnits, setLoadingUnits] = useState<string | null>(null);
   // autenticado tras un registro con programa='spanish' — separado de
   // showClasesModal porque son componentes distintos con reglas distintas.
   const [showPlanEspanolModal, setShowPlanEspanolModal] = useState(false);
+  // Parte 28: unidad de español abierta (muestra sus 7 partes fijas). Es estado
+  // aparte de expandedCourse porque nivel y unidad se expanden de forma anidada.
+  const [expandedSpanishUnit, setExpandedSpanishUnit] = useState<string | null>(null);
   // Grupo de edad que venía preseleccionado desde la tarjeta de la pantalla de
   // bienvenida (Parte 3), pasado a través del CTA "Regístrate e inicia sesión"
   // del primer bloque de EnglishProgram.tsx (Parte 8).
@@ -1787,14 +1806,18 @@ useEffect(() => {
               {/* ─── CURSOS ─── */}
               {activeTab === 'cursos' && (isSpanishProgram ? (
                 <motion.div key="cursos-es" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-                  {/* Parte 25: vista placeholder para cuentas de programa Español —
-                      el contenido real (7 partes por unidad) queda para una parte
-                      futura dedicada, igual que english_for_students_sections lo
-                      fue para inglés; acá solo se refleja el estado de la cuenta y
-                      los niveles que el admin haya habilitado. */}
+                  {/* Parte 28: vista propia del programa de Español — Niveles A1-C1 →
+                      Unidades → 7 partes fijas. NO comparte estructura ni estilo con
+                      "English for Students" (categorías libres tipo Escritura/Lectura):
+                      son dos programas distintos aunque compartan el panel admin. El
+                      contenido real de cada parte llega en una parte futura. */}
                   <div className="mb-6">
-                    <h1 className="text-2xl md:text-3xl font-extrabold mb-1">Tus niveles de Español 🇪🇸</h1>
-                    <p className="text-muted-foreground text-sm">Aquí verás tus niveles habilitados una vez tu cuenta esté activa.</p>
+                    <h1 className="text-2xl md:text-3xl font-extrabold mb-1">Mis módulos de Español 🇪🇸</h1>
+                    <p className="text-muted-foreground text-sm">
+                      {isProfileActive
+                        ? 'Abre un nivel para ver sus unidades. Cada unidad tiene 7 partes.'
+                        : 'Aquí verás tus niveles habilitados una vez tu cuenta esté activa.'}
+                    </p>
                   </div>
 
                   {!isProfileActive && (
@@ -1818,16 +1841,117 @@ useEffect(() => {
                   ) : (
                     <div className="space-y-3">
                       {visibleCourses.map((course) => {
-                        const isVisible = isProfileActive && isCourseVisible(course);
+                        // Parte 28: acceso estricto — además de las reglas generales
+                        // de isCourseVisible, un nivel de español exige una concesión
+                        // EXPLÍCITA del admin. Sin esto, isCourseVisible caería en su
+                        // regla de "cuenta activa ⇒ todo desbloqueado" para una cuenta
+                        // activada sin pasar por "Activar plan" (que es la que escribe
+                        // las filas is_active), mostrando niveles nunca habilitados —
+                        // exactamente el bug que corrigió la Parte 21.
+                        const hasExplicitGrant =
+                          grantedModuleIds.includes(course.id) || courseIdsWithUnitGrants.includes(course.id);
+                        const isVisible = isProfileActive && isCourseVisible(course) && hasExplicitGrant;
+                        const isLocked = !isVisible;
+                        const isOpen = expandedCourse === course.id;
+                        const units = courseUnits[course.id] || [];
                         return (
-                          <div key={course.id} className={`rounded-2xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 to-purple-50 p-5 flex items-center gap-3 ${!isVisible ? 'opacity-60' : ''}`}>
-                            <span className={`text-3xl ${!isVisible ? 'grayscale opacity-50' : ''}`}>{course.emoji}</span>
-                            <div className="flex-1 min-w-0">
-                              <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-violet-100 text-violet-700 inline-block mb-0.5">{course.level}</span>
-                              <h3 className="font-bold text-sm leading-snug">{course.title}</h3>
-                              <p className="text-xs text-muted-foreground">{isVisible ? 'Contenido en preparación' : 'Bloqueado'}</p>
-                            </div>
-                            {!isVisible && <Lock className="w-4 h-4 text-muted-foreground shrink-0" />}
+                          <div key={course.id} className={`rounded-2xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 to-purple-50 overflow-hidden ${isLocked ? 'opacity-60' : ''}`}>
+                            {/* Cabecera del nivel */}
+                            <button
+                              type="button"
+                              onClick={() => !isLocked && toggleCourse(course.id)}
+                              className={`w-full flex items-center gap-3 p-5 text-left transition-colors ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer hover:bg-black/5'}`}
+                            >
+                              <span className={`text-3xl shrink-0 ${isLocked ? 'grayscale opacity-50' : ''}`}>{course.emoji}</span>
+                              <div className="flex-1 min-w-0">
+                                <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-violet-100 text-violet-700 inline-block mb-0.5">{course.level}</span>
+                                <h3 className="font-bold text-sm leading-snug">{course.title}</h3>
+                                <p className="text-xs text-muted-foreground">
+                                  {isLocked ? '🔒 Bloqueado' : units.length > 0 ? `${units.length} ${units.length === 1 ? 'unidad' : 'unidades'}` : 'Unidades en preparación'}
+                                </p>
+                              </div>
+                              {isLocked
+                                ? <Lock className="w-4 h-4 text-muted-foreground shrink-0" />
+                                : isOpen ? <ChevronUp className="w-4 h-4 text-muted-foreground shrink-0" /> : <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />}
+                            </button>
+
+                            {/* Unidades del nivel */}
+                            {isOpen && !isLocked && (
+                              <div className="bg-background/80 border-t border-violet-200 p-4 space-y-2">
+                                {loadingUnits === course.id && (
+                                  <p className="text-xs text-center text-muted-foreground py-3">Cargando unidades...</p>
+                                )}
+
+                                {loadingUnits !== course.id && units.length === 0 && (
+                                  /* Todavía no hay unidades creadas para este nivel. Se
+                                     muestra la estructura que tendrá cada una para que el
+                                     estudiante sepa qué va a encontrar. */
+                                  <div className="rounded-xl border border-violet-200 bg-violet-50/60 p-4">
+                                    <p className="text-sm font-bold text-violet-900 mb-1">Unidades en preparación 🚧</p>
+                                    <p className="text-xs text-violet-800 mb-3">Estamos preparando las unidades de este nivel. Cada unidad incluirá estas 7 partes:</p>
+                                    <ul className="space-y-1">
+                                      {SPANISH_UNIT_PARTS.map(part => (
+                                        <li key={part.n} className="flex items-center gap-2 text-xs text-violet-900/80">
+                                          <span className="w-5 h-5 rounded-md bg-violet-100 flex items-center justify-center shrink-0 text-[11px]">{part.emoji}</span>
+                                          <span className="font-semibold">Parte {part.n}</span>
+                                          <span className="text-violet-800/70">· {part.label}</span>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+
+                                {units.map(unit => {
+                                  // Mismo modelo de grants por unidad que inglés (Parte 21).
+                                  const isUnitLocked = (() => {
+                                    if (profileLoading) return false;
+                                    if (revokedModuleIds.includes(unit.id)) return true;
+                                    if (grantedUnitIds.includes(unit.id)) return false;
+                                    if (courseIdsWithUnitGrants.includes(course.id)) return true;
+                                    return false;
+                                  })();
+                                  const isUnitOpen = expandedSpanishUnit === unit.id;
+                                  return (
+                                    <div key={unit.id} className={`rounded-xl border border-border bg-card overflow-hidden ${isUnitLocked ? 'opacity-50' : ''}`}>
+                                      <button
+                                        type="button"
+                                        onClick={() => !isUnitLocked && setExpandedSpanishUnit(isUnitOpen ? null : unit.id)}
+                                        className={`w-full flex items-center gap-3 p-3 text-left transition-colors ${isUnitLocked ? 'cursor-not-allowed' : 'hover:bg-violet-50/60'}`}
+                                      >
+                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isUnitLocked ? 'bg-muted' : 'bg-violet-100'}`}>
+                                          {isUnitLocked ? <Lock className="w-4 h-4 text-muted-foreground" /> : <BookOpen className="w-4 h-4 text-violet-600" />}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <p className="text-sm font-semibold truncate">{unit.title}</p>
+                                          <p className="text-xs text-muted-foreground">{isUnitLocked ? 'Bloqueada' : '7 partes'}</p>
+                                        </div>
+                                        {!isUnitLocked && (isUnitOpen
+                                          ? <ChevronUp className="w-4 h-4 text-muted-foreground shrink-0" />
+                                          : <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />)}
+                                      </button>
+
+                                      {/* Las 7 partes fijas de la unidad */}
+                                      {isUnitOpen && !isUnitLocked && (
+                                        <div className="border-t border-border/40 bg-violet-50/40 p-3 space-y-1.5">
+                                          {SPANISH_UNIT_PARTS.map(part => (
+                                            <div key={part.n} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-background border border-border/30">
+                                              <span className="w-7 h-7 rounded-lg bg-violet-100 flex items-center justify-center shrink-0 text-sm">{part.emoji}</span>
+                                              <div className="flex-1 min-w-0">
+                                                <p className="text-xs font-bold text-foreground/80">Parte {part.n}</p>
+                                                <p className="text-xs text-muted-foreground truncate">{part.label}</p>
+                                              </div>
+                                              <span className="shrink-0 text-[11px] font-bold px-2.5 py-1 rounded-full bg-muted text-muted-foreground">
+                                                En preparación
+                                              </span>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
                           </div>
                         );
                       })}

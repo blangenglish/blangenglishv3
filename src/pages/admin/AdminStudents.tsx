@@ -2197,7 +2197,9 @@ export default function AdminStudents() {
                                           <span className="text-2xl shrink-0">{course.emoji || '📖'}</span>
                                           <div className="flex-1 min-w-0">
                                             <p className="font-extrabold text-sm leading-tight">{course.level || course.title}</p>
-                                            <p className="text-[11px] text-muted-foreground truncate">{course.title} · {units.length} unidades</p>
+                                            <p className="text-[11px] text-muted-foreground truncate">
+                                              {course.title} · {units.length === 0 ? 'unidades en preparación' : `${units.length} ${units.length === 1 ? 'unidad' : 'unidades'}`}
+                                            </p>
                                           </div>
 
                                           {/* Badge de estado */}
@@ -2225,7 +2227,10 @@ export default function AdminStudents() {
                                                 className="rounded-xl text-xs h-7 border-emerald-300 text-emerald-700 hover:bg-emerald-50 font-bold"
                                                 onClick={() => grantLevelUnits(student.id, course)}
                                               >
-                                                ✅ Habilitar todas
+                                                {/* Parte 28: un nivel puede no tener unidades todavía
+                                                    (caso actual de Español) — ahí el botón habilita el
+                                                    nivel completo, que es lo que el estudiante ve. */}
+                                                {units.length === 0 ? '✅ Habilitar nivel' : '✅ Habilitar todas'}
                                               </Button>
                                               <Button
                                                 size="sm"
@@ -2233,13 +2238,15 @@ export default function AdminStudents() {
                                                 className="rounded-xl text-xs h-7 border-rose-300 text-rose-600 hover:bg-rose-50 font-bold"
                                                 onClick={() => revokeLevelUnits(student.id, course)}
                                               >
-                                                🔒 Deshabilitar todas
+                                                {units.length === 0 ? '🔒 Deshabilitar nivel' : '🔒 Deshabilitar todas'}
                                               </Button>
                                             </div>
 
                                             {/* Unidades */}
                                             {units.length === 0 ? (
-                                              <p className="text-xs text-muted-foreground py-2 text-center">Sin unidades</p>
+                                              <p className="text-xs text-muted-foreground py-2 text-center">
+                                                Este nivel aún no tiene unidades. Habilitarlo le da acceso al nivel completo cuando se publiquen.
+                                              </p>
                                             ) : (
                                               <div className="space-y-1">
                                                 {units.map(unit => {
