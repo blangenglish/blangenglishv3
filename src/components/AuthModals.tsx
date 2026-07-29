@@ -585,7 +585,7 @@ export function AuthModals({ open, onClose, onLogin }: AuthModalsProps) {
                             : 'border-border/50 text-muted-foreground hover:border-primary/40 hover:text-foreground'
                         }`}
                       >
-                        🇬🇧 Inglés
+                        🇺🇸 Inglés
                       </button>
                       <button
                         type="button"
@@ -596,7 +596,7 @@ export function AuthModals({ open, onClose, onLogin }: AuthModalsProps) {
                             : 'border-border/50 text-muted-foreground hover:border-primary/40 hover:text-foreground'
                         }`}
                       >
-                        🇪🇸 Español para extranjeros
+                        🇨🇴 Español para extranjeros
                       </button>
                     </div>
                   </div>
