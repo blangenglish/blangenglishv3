@@ -17,7 +17,7 @@ import {
   HelpCircle, GripVertical, Check, PenLine, Code2,
 } from 'lucide-react';
 import {
-  STAGES, MATERIAL_TYPE_CONFIG,
+  STAGES, SPANISH_STAGES, getStagesForProgram, MATERIAL_TYPE_CONFIG,
   type Stage, type StageMaterialType, type UnitStageMaterial,
 } from '@/lib/stages';
 
@@ -2006,7 +2006,7 @@ function QuizEditor({ unitId, stage }: { unitId: string; stage: Stage; stageLabe
 function StagePanel({
   stage, unitId, unitTitle, unitLevel, materials, onMaterialsChange, isExpanded, onToggle,
 }: {
-  stage: typeof STAGES[0];
+  stage: (typeof STAGES[0] | typeof SPANISH_STAGES[0]);
   unitId: string;
   unitTitle?: string;
   unitLevel?: string;
@@ -2017,6 +2017,8 @@ function StagePanel({
 }) {
   const [showPicker, setShowPicker] = useState(false);
   const [showQuiz, setShowQuiz] = useState(false);
+  // Las etapas de inglés no traen hasQuiz: ahí se asume true, como siempre.
+  const stageHasQuiz = (stage as { hasQuiz?: boolean }).hasQuiz !== false;
 
   // ── Speakology template for trimestral section ──
   const speakologyTemplate = `🤖 Dirígete a Speakology y realiza la ${unitTitle || '[nombre de la unidad]'} del nivel ${unitLevel || '[nivel]'}`;
@@ -2123,7 +2125,10 @@ function StagePanel({
       {/* Always mount content to avoid QuizEditor losing state on collapse */}
       <div className={isExpanded ? '' : 'hidden'}>
         <div className="border-t border-black/10">
-          {/* Inner tabs: Materiales / Quiz */}
+          {/* Inner tabs: Materiales / Quiz — Parte 32: en Español, Gramática,
+              Vocabulario, Habla y Escritura no llevan quiz, así que ahí no se
+              muestra la pestaña. En Inglés hasQuiz es undefined, por lo que
+              todas siguen mostrándola como siempre. */}
           <div className="flex border-b border-black/10">
             <button type="button"
               onClick={() => setShowQuiz(false)}
@@ -2131,12 +2136,14 @@ function StagePanel({
                 !showQuiz ? `bg-white/80 ${stage.color}` : 'text-muted-foreground hover:bg-black/5')}>
               📁 Materiales
             </button>
-            <button type="button"
-              onClick={() => setShowQuiz(true)}
-              className={cn('flex-1 py-2.5 text-xs font-bold transition-colors',
-                showQuiz ? `bg-white/80 ${stage.color}` : 'text-muted-foreground hover:bg-black/5')}>
-              📝 Quiz
-            </button>
+            {stageHasQuiz && (
+              <button type="button"
+                onClick={() => setShowQuiz(true)}
+                className={cn('flex-1 py-2.5 text-xs font-bold transition-colors',
+                  showQuiz ? `bg-white/80 ${stage.color}` : 'text-muted-foreground hover:bg-black/5')}>
+                📝 Quiz
+              </button>
+            )}
           </div>
 
           {/* Materials pane */}
@@ -2248,10 +2255,13 @@ function StagePanel({
             );
           })()}
 
-          {/* Quiz pane — always mounted to preserve state, just hidden */}
-          <div className={showQuiz ? 'px-4 pb-4 pt-4' : 'hidden'}>
-            <QuizEditor unitId={unitId} stage={stage.id} stageLabel={stage.label} />
-          </div>
+          {/* Quiz pane — always mounted to preserve state, just hidden.
+              Parte 32: en las etapas sin quiz ni se monta. */}
+          {stageHasQuiz && (
+            <div className={showQuiz ? 'px-4 pb-4 pt-4' : 'hidden'}>
+              <QuizEditor unitId={unitId} stage={stage.id} stageLabel={stage.label} />
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -2263,18 +2273,23 @@ interface UnitStagesEditorProps {
   unitId: string;
   unitTitle: string;
   unitLevel?: string;
+  /** Parte 32: 'spanish' muestra las 7 partes de Español; cualquier otro valor
+   *  (o ausente) mantiene las 5 partes de Inglés de siempre. */
+  program?: string;
   onClose: () => void;
 }
 
-export function UnitStagesEditor({ unitId, unitTitle, unitLevel, onClose }: UnitStagesEditorProps) {
-  const [materialsByStage, setMaterialsByStage] = useState<Record<Stage, UnitStageMaterial[]>>({
-    grammar: [], vocabulary: [], reading: [], listening: [], ai_practice: [],
-  });
-  const materialsRef = useRef<Record<Stage, UnitStageMaterial[]>>({
-    grammar: [], vocabulary: [], reading: [], listening: [], ai_practice: [],
-  });
+export function UnitStagesEditor({ unitId, unitTitle, unitLevel, program, onClose }: UnitStagesEditorProps) {
+  // Parte 32: las partes dependen del programa del curso. Inglés conserva
+  // exactamente sus 5 etapas de siempre; español usa sus 7 propias.
+  const stages = getStagesForProgram(program);
+  const emptyByStage = () =>
+    stages.reduce((acc, s) => { acc[s.id] = []; return acc; }, {} as Record<Stage, UnitStageMaterial[]>);
 
-  const [expandedStage, setExpandedStage] = useState<Stage | null>('grammar');
+  const [materialsByStage, setMaterialsByStage] = useState<Record<Stage, UnitStageMaterial[]>>(emptyByStage);
+  const materialsRef = useRef<Record<Stage, UnitStageMaterial[]>>(emptyByStage());
+
+  const [expandedStage, setExpandedStage] = useState<Stage | null>(stages[0].id);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -2291,9 +2306,7 @@ export function UnitStagesEditor({ unitId, unitTitle, unitLevel, onClose }: Unit
         .eq('unit_id', unitId)
         .order('sort_order', { ascending: true });
       if (error) throw error;
-      const byStage: Record<Stage, UnitStageMaterial[]> = {
-        grammar: [], vocabulary: [], reading: [], listening: [], ai_practice: [],
-      };
+      const byStage: Record<Stage, UnitStageMaterial[]> = emptyByStage();
       (data as UnitStageMaterial[]).forEach(m => {
         if (m.stage in byStage) byStage[m.stage as Stage].push(m);
       });
@@ -2315,8 +2328,8 @@ export function UnitStagesEditor({ unitId, unitTitle, unitLevel, onClose }: Unit
     try {
       await adminDeleteByFilter('unit_stage_materials', { unit_id: unitId });
       const allMaterials: Omit<UnitStageMaterial, 'id' | 'created_at' | 'updated_at'>[] = [];
-      STAGES.forEach(({ id: stage }) => {
-        materialsRef.current[stage].forEach((m, idx) => {
+      stages.forEach(({ id: stage }) => {
+        (materialsRef.current[stage] ?? []).forEach((m, idx) => {
           allMaterials.push({
             unit_id: unitId, stage,
             material_type: m.material_type,
@@ -2342,7 +2355,7 @@ export function UnitStagesEditor({ unitId, unitTitle, unitLevel, onClose }: Unit
     } finally { setSaving(false); }
   };
 
-  const totalMaterials = STAGES.reduce((acc, s) => acc + materialsByStage[s.id].length, 0);
+  const totalMaterials = stages.reduce((acc, s) => acc + (materialsByStage[s.id]?.length ?? 0), 0);
 
   if (loading) return (
     <div className="fixed inset-0 bg-background z-50 flex items-center justify-center">
@@ -2395,14 +2408,14 @@ export function UnitStagesEditor({ unitId, unitTitle, unitLevel, onClose }: Unit
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-2xl mx-auto px-4 py-6 space-y-3">
           <p className="text-xs text-muted-foreground text-center pb-1">Haz clic en cada Part para expandirla — solo una abierta a la vez</p>
-          {STAGES.map((stage) => (
+          {stages.map((stage) => (
             <StagePanel
               key={stage.id}
               stage={stage}
               unitId={unitId}
               unitTitle={unitTitle}
               unitLevel={unitLevel}
-              materials={materialsByStage[stage.id]}
+              materials={materialsByStage[stage.id] ?? []}
               onMaterialsChange={updated => handleStageChange(stage.id, updated)}
               isExpanded={expandedStage === stage.id}
               onToggle={() => setExpandedStage(prev => prev === stage.id ? null : stage.id)}

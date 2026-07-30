@@ -1,5 +1,16 @@
 // ─── Stage Material types ─────────────────────────────────────────────────────
-export type Stage = 'grammar' | 'vocabulary' | 'reading' | 'listening' | 'ai_practice';
+// Etapas de INGLÉS (5). No tocar: cualquier cambio acá afecta a todas las
+// unidades de inglés ya publicadas.
+export type EnglishStage = 'grammar' | 'vocabulary' | 'reading' | 'listening' | 'ai_practice';
+
+// Parte 32 — etapas de ESPAÑOL PARA EXTRANJEROS (7). Estructura propia y
+// distinta a la de inglés; el prefijo es_ garantiza que nunca se mezclen.
+// Habla y Escritura NO tienen quiz.
+export type SpanishStage =
+  | 'es_reading' | 'es_listening' | 'es_grammar' | 'es_vocabulary'
+  | 'es_quiz' | 'es_speaking' | 'es_writing';
+
+export type Stage = EnglishStage | SpanishStage;
 export type StageMaterialType = 'audio' | 'video' | 'pdf' | 'word' | 'ppt' | 'image' | 'url' | 'text' | 'html';
 
 export interface UnitStageMaterial {
@@ -28,6 +39,31 @@ export const STAGES: { id: Stage; label: string; partLabel: string; emoji: strin
   { id: 'listening',   label: 'Part 4 – Listening',           partLabel: 'Part 4',  emoji: '🎧', color: 'text-orange-600',  bg: 'bg-orange-50 border-orange-200',  desc: 'Audios, podcasts y comprensión auditiva' },
   { id: 'ai_practice', label: 'Part 5 – Practice', partLabel: 'Part 5', emoji: '🤖', color: 'text-pink-600', bg: 'bg-pink-50 border-pink-200', desc: 'Práctica interactiva con inteligencia artificial' },
 ];
+
+// ── Parte 32: las 7 partes de una unidad de Español para extranjeros ─────────
+// Orden fijo para toda unidad de todo nivel. Las dos últimas (Habla y
+// Escritura) no llevan quiz: son de producción, se revisan con el profesor.
+export const SPANISH_STAGES: {
+  id: Stage; label: string; partLabel: string; emoji: string;
+  color: string; bg: string; desc: string; hasQuiz: boolean;
+}[] = [
+  { id: 'es_reading',    label: 'Parte 1 – Lectura',     partLabel: 'Parte 1', emoji: '📖', color: 'text-green-600',  bg: 'bg-green-50 border-green-200',   desc: 'Texto de la unidad y quiz de comprensión', hasQuiz: true },
+  { id: 'es_listening',  label: 'Parte 2 – Listening',   partLabel: 'Parte 2', emoji: '🎧', color: 'text-orange-600', bg: 'bg-orange-50 border-orange-200', desc: 'Audio del profesor y quiz de comprensión', hasQuiz: true },
+  { id: 'es_grammar',    label: 'Parte 3 – Gramática',   partLabel: 'Parte 3', emoji: '📐', color: 'text-purple-600', bg: 'bg-purple-50 border-purple-200', desc: 'Reglas, ejemplos y errores comunes', hasQuiz: false },
+  { id: 'es_vocabulary', label: 'Parte 4 – Vocabulario', partLabel: 'Parte 4', emoji: '📝', color: 'text-blue-600',   bg: 'bg-blue-50 border-blue-200',     desc: 'Tabla bilingüe español-inglés', hasQuiz: false },
+  { id: 'es_quiz',       label: 'Parte 5 – Quiz',        partLabel: 'Parte 5', emoji: '🧪', color: 'text-violet-600', bg: 'bg-violet-50 border-violet-200', desc: 'Quiz de gramática y vocabulario', hasQuiz: true },
+  { id: 'es_speaking',   label: 'Parte 6 – Habla',       partLabel: 'Parte 6', emoji: '🗣️', color: 'text-teal-600',   bg: 'bg-teal-50 border-teal-200',     desc: 'Preguntas para practicar hablando (sin quiz)', hasQuiz: false },
+  { id: 'es_writing',    label: 'Parte 7 – Escritura',   partLabel: 'Parte 7', emoji: '✍️', color: 'text-pink-600',   bg: 'bg-pink-50 border-pink-200',     desc: 'Ejercicios de escritura (sin quiz)', hasQuiz: false },
+];
+
+/**
+ * Devuelve las etapas que corresponden al programa del curso.
+ * Cualquier valor distinto de 'spanish' cae en inglés, que es el
+ * comportamiento que ya existía antes de la Parte 32.
+ */
+export function getStagesForProgram(program?: string) {
+  return program === 'spanish' ? SPANISH_STAGES : STAGES;
+}
 
 export const MATERIAL_TYPE_CONFIG: Record<StageMaterialType, { label: string; emoji: string; accept: string; isFile: boolean }> = {
   audio:  { label: 'Audio',           emoji: '🎵', accept: '.mp3,.wav,.ogg,.m4a,.aac', isFile: true },

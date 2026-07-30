@@ -47,6 +47,7 @@ export default function AdminCourses() {
   } | null>(null);
   const [contentEditorOpen, setContentEditorOpen] = useState(false);
   const [editingUnitContent, setEditingUnitContent] = useState<{
+    program?: string;
     id: string;
     title: string;
     courseLevel?: string;
@@ -136,8 +137,15 @@ export default function AdminCourses() {
   };
 
   const handleEditContent = (unit: DBUnit) => {
-    const courseLevel = courses?.find(c => c.id === unit.course_id)?.level ?? '';
-    setEditingUnitContent({ id: unit.id, title: unit.title, courseLevel });
+    // Parte 32: el programa del curso decide qué partes muestra el editor
+    // (5 de inglés vs 7 de español).
+    const course = courses?.find(c => c.id === unit.course_id);
+    setEditingUnitContent({
+      id: unit.id,
+      title: unit.title,
+      courseLevel: course?.level ?? '',
+      program: (course as { program?: string })?.program ?? 'english',
+    });
     setContentEditorOpen(true);
   };
 
@@ -419,6 +427,7 @@ export default function AdminCourses() {
           unitId={editingUnitContent.id}
           unitTitle={editingUnitContent.title}
           unitLevel={editingUnitContent.courseLevel}
+          program={editingUnitContent.program}
           onClose={() => {
             setContentEditorOpen(false);
             setEditingUnitContent(null);
