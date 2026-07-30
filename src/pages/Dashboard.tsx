@@ -1385,7 +1385,13 @@ useEffect(() => {
   // El marcador de "ya armó su plan" es live_class_config, que ambos armadores
   // (inglés y español) escriben al enviar la solicitud.
   const hasSubmittedPlan = !!studentProfile?.live_class_config;
-  const isCasoA = !profileLoading && !isProfileActive && !isProfileDisabled && !hasSubmittedPlan;
+  // OJO: exigir studentProfile cargado no es opcional. profileLoading arranca en
+  // false cuando hay caché de perfil, pero studentProfile sigue siendo null en el
+  // primer render — sin este guard, isCasoA daba true e isSpanishProgram false
+  // (aún no se sabía el programa), y a un estudiante de español se le abría el
+  // armador de inglés.
+  const isCasoA =
+    !profileLoading && !!studentProfile && !isProfileActive && !isProfileDisabled && !hasSubmittedPlan;
 
   // En Caso A el armador se abre solo al entrar (una vez por sesión de página):
   // no tiene sentido mostrarle módulos bloqueados a quien todavía no eligió plan.
