@@ -32,6 +32,7 @@ import AdminRevenue from '@/pages/admin/AdminRevenue';
 import AdminEnglishForStudents from '@/pages/admin/AdminEnglishForStudents';
 import AdminReviews from '@/pages/admin/AdminReviews';
 import AdminMundoReal from '@/pages/admin/AdminMundoReal';
+import AdminSpanishGenerator from '@/pages/admin/AdminSpanishGenerator';
 
 const queryClient = new QueryClient();
 
@@ -194,6 +195,7 @@ function AppRoutes() {
         <Route path={ADMIN_ROUTES.ENGLISH_FOR_STUDENTS} element={<AdminEnglishForStudents />} />
         <Route path={ADMIN_ROUTES.REVIEWS} element={<AdminReviews />} />
         <Route path={ADMIN_ROUTES.MUNDO_REAL} element={<AdminMundoReal />} />
+        <Route path={ADMIN_ROUTES.SPANISH_GENERATOR} element={<AdminSpanishGenerator />} />
       </Routes>
     );
   }
