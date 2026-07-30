@@ -1378,10 +1378,35 @@ useEffect(() => {
     (profStatus === 'pending' || profStatus === 'pending_payment') &&
     !!studentProfile?.live_class_config;
 
+  // ── Parte 29: los 3 estados del estudiante, detectados automáticamente ──
+  //  Caso A: se registró pero NUNCA armó su plan  → se le muestra "Arma tu plan"
+  //  Caso B: ya lo armó, falta que el equipo active → módulos bloqueados + aviso
+  //  Caso C: activado                              → módulos según lo habilitado
+  // El marcador de "ya armó su plan" es live_class_config, que ambos armadores
+  // (inglés y español) escriben al enviar la solicitud.
+  const hasSubmittedPlan = !!studentProfile?.live_class_config;
+  const isCasoA = !profileLoading && !isProfileActive && !isProfileDisabled && !hasSubmittedPlan;
+
+  // En Caso A el armador se abre solo al entrar (una vez por sesión de página):
+  // no tiene sentido mostrarle módulos bloqueados a quien todavía no eligió plan.
+  const autoOpenedPlanRef = useRef(false);
+  useEffect(() => {
+    if (!isCasoA || autoOpenedPlanRef.current) return;
+    // Si el flag post-registro ya va a abrir el modal, no duplicar la apertura.
+    if (sessionStorage.getItem(OPEN_PLAN_AFTER_AUTH_KEY)) return;
+    autoOpenedPlanRef.current = true;
+    if (isSpanishProgram) {
+      setShowPlanEspanolModal(true);
+    } else {
+      setPlanModalOptions({ discountEligible: !studentProfile?.has_ever_paid });
+      setShowClasesModal(true);
+    }
+  }, [isCasoA, isSpanishProgram, studentProfile?.has_ever_paid]);
+
   // Si una cuenta de programa Español queda en un tab exclusivo de inglés
   // (estado residual de otra sesión, etc.), volver a "Mis Niveles".
   useEffect(() => {
-    if (isSpanishProgram && activeTab !== 'cursos' && activeTab !== 'cuenta') {
+    if (isSpanishProgram && activeTab !== 'cursos' && activeTab !== 'cuenta' && activeTab !== 'pagos') {
       setActiveTab('cursos');
     }
   }, [isSpanishProgram, activeTab]);
@@ -1736,6 +1761,7 @@ useEffect(() => {
                   ? [
                     { id: 'cursos', icon: BookOpen,   label: 'Mis Módulos' },
                     { id: 'cuenta', icon: User,        label: 'Cuenta' },
+                    { id: 'pagos',  icon: CreditCard,  label: 'Pagos' },
                   ]
                   : [
                     { id: 'cursos',      icon: BookOpen, label: 'Mis Cursos' },
@@ -1817,7 +1843,43 @@ useEffect(() => {
             <AnimatePresence mode="wait">
 
               {/* ─── CURSOS ─── */}
-              {activeTab === 'cursos' && (isSpanishProgram ? (
+              {/* Parte 29 — Caso A: registrado pero sin plan armado. En vez de
+                  mostrar módulos bloqueados (que no significan nada para quien
+                  todavía no eligió plan), se le pide armar el plan. El modal
+                  correspondiente a su programa ya se abrió solo al entrar; esta
+                  pantalla es lo que queda detrás y permite reabrirlo. */}
+              {activeTab === 'cursos' && isCasoA ? (
+                <motion.div key="cursos-caso-a" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+                  <div className="mb-6">
+                    <h1 className="text-2xl md:text-3xl font-extrabold mb-1">¡Bienvenido/a a BLANG! 🎉</h1>
+                    <p className="text-muted-foreground text-sm">Solo falta un paso para empezar: arma tu plan.</p>
+                  </div>
+
+                  <div className="rounded-3xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 to-purple-50 p-6 sm:p-8 text-center">
+                    <div className="w-16 h-16 rounded-2xl bg-violet-600 flex items-center justify-center text-3xl mx-auto mb-4 shadow-lg">
+                      📅
+                    </div>
+                    <h2 className="text-xl font-extrabold mb-2">Arma tu plan</h2>
+                    <p className="text-sm text-muted-foreground max-w-md mx-auto mb-6">
+                      {isSpanishProgram
+                        ? 'Elige cuántas horas y días a la semana quieres estudiar español. Verás el precio al instante y nos contactas por WhatsApp para confirmar.'
+                        : 'Elige cómo quieres aprender, cuántas horas y días a la semana. Verás el precio al instante y nos contactas por WhatsApp para confirmar.'}
+                    </p>
+                    <Button
+                      className="rounded-xl font-bold px-8 py-6 bg-[#111111] hover:bg-[#111111]/90 text-white transition-colors"
+                      onClick={() => {
+                        if (isSpanishProgram) setShowPlanEspanolModal(true);
+                        else openArmaTuPlan();
+                      }}
+                    >
+                      📅 Armar mi plan ahora
+                    </Button>
+                    <p className="text-xs text-muted-foreground mt-4">
+                      Tus módulos se habilitarán cuando confirmemos tu pago.
+                    </p>
+                  </div>
+                </motion.div>
+              ) : activeTab === 'cursos' && (isSpanishProgram ? (
                 <motion.div key="cursos-es" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
                   {/* Parte 28: vista propia del programa de Español — Niveles A1-C1 →
                       Unidades → 7 partes fijas. NO comparte estructura ni estilo con
@@ -2716,7 +2778,86 @@ useEffect(() => {
               )}
 
               {/* ─── PAGOS ─── */}
-              {activeTab === 'pagos' && (
+              {/* ─── PAGOS — versión del programa de Español (Parte 29) ───
+                   Panel propio y simple: plan contratado, estado e historial. No
+                   reusa el bloque de inglés, que está lleno de piezas que no
+                   aplican acá (descuento de primer mes, PSE/Bold en COP, planes
+                   de autoestudio, examen de nivel de inglés). */}
+              {activeTab === 'pagos' && isSpanishProgram && (
+                <motion.div key="pagos-es" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-5">
+                  <div className="mb-2">
+                    <h1 className="text-2xl md:text-3xl font-extrabold mb-1">Pagos 💳</h1>
+                    <p className="text-muted-foreground text-sm">Tu plan, su estado y el historial de pagos.</p>
+                  </div>
+
+                  {(() => {
+                    const cfg = studentProfile?.live_class_config;
+                    const periodEnd = subscription?.current_period_end ? new Date(subscription.current_period_end) : null;
+                    const vencido = !!periodEnd && periodEnd < new Date();
+                    const estado = isProfileDisabled
+                      ? { label: 'Deshabilitada', cls: 'bg-red-100 text-red-700 border-red-200', desc: 'Tu cuenta está deshabilitada. Escríbenos por WhatsApp.' }
+                      : isProfileActive && !vencido
+                      ? { label: 'Activo', cls: 'bg-green-100 text-green-700 border-green-200', desc: 'Tu plan está activo y tienes acceso a tus módulos habilitados.' }
+                      : isProfileActive && vencido
+                      ? { label: 'Vencido', cls: 'bg-amber-100 text-amber-800 border-amber-300', desc: 'Tu período terminó. Escríbenos por WhatsApp para renovar.' }
+                      : hasSubmittedPlan
+                      ? { label: 'Pendiente de activación', cls: 'bg-amber-100 text-amber-800 border-amber-300', desc: 'Recibimos tu solicitud. Te contactaremos por WhatsApp para confirmar tu pago.' }
+                      : { label: 'Sin plan', cls: 'bg-gray-100 text-gray-600 border-gray-200', desc: 'Todavía no has armado tu plan.' };
+
+                    return (
+                      <div className="rounded-2xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 to-purple-50 overflow-hidden">
+                        <div className="bg-violet-600 px-5 py-3 flex items-center justify-between gap-3">
+                          <p className="text-white font-bold text-sm">🇨🇴 Plan de Español</p>
+                          <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full border ${estado.cls}`}>{estado.label}</span>
+                        </div>
+                        <div className="px-5 py-4 space-y-3">
+                          <p className="text-sm text-muted-foreground">{estado.desc}</p>
+
+                          {cfg ? (
+                            <div className="rounded-xl bg-background border border-border/40 px-4 py-3 space-y-1.5 text-sm">
+                              <div className="flex justify-between gap-3">
+                                <span className="text-muted-foreground">Duración de clase</span>
+                                <span className="font-semibold">{cfg.horasDia} {cfg.horasDia === 1 ? 'hora' : 'horas'}</span>
+                              </div>
+                              <div className="flex justify-between gap-3">
+                                <span className="text-muted-foreground">Días por semana</span>
+                                <span className="font-semibold">{cfg.diasSemana}</span>
+                              </div>
+                              {cfg.franja && (
+                                <div className="flex justify-between gap-3">
+                                  <span className="text-muted-foreground">Horario</span>
+                                  <span className="font-semibold">{cfg.franja}</span>
+                                </div>
+                              )}
+                              {typeof cfg.totalUSD === 'number' && (
+                                <div className="flex justify-between gap-3 pt-2 mt-1 border-t border-border/40">
+                                  <span className="font-bold">Total mensual</span>
+                                  <span className="font-extrabold text-violet-700">${cfg.totalUSD.toFixed(2)} USD</span>
+                                </div>
+                              )}
+                              {periodEnd && (
+                                <div className="flex justify-between gap-3 pt-2 mt-1 border-t border-border/40">
+                                  <span className="text-muted-foreground">{vencido ? 'Venció el' : 'Vence el'}</span>
+                                  <span className="font-semibold">{periodEnd.toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })}</span>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <Button
+                              className="rounded-xl font-bold bg-[#111111] hover:bg-[#111111]/90 text-white transition-colors"
+                              onClick={() => setShowPlanEspanolModal(true)}
+                            >
+                              📅 Armar mi plan
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </motion.div>
+              )}
+
+              {activeTab === 'pagos' && !isSpanishProgram && (
                 <motion.div key="pagos" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-5">
                   <div className="mb-2">
                     <h1 className="text-2xl md:text-3xl font-extrabold mb-1">Pagos y Suscripción 💳</h1>
@@ -3975,10 +4116,16 @@ useEffect(() => {
       {/* ── MODAL: ARMA TU PLAN — ESPAÑOL (Parte 25, modo cuenta ya registrada) ── */}
       <PlanEspanolModal
         open={showPlanEspanolModal}
-        onClose={() => setShowPlanEspanolModal(false)}
+        onClose={() => {
+          setShowPlanEspanolModal(false);
+          // Parte 29: al cerrar hay que releer el perfil — si acaba de enviar su
+          // plan, live_class_config cambió y la persona deja el Caso A.
+          if (currentUserId) refreshProfile(currentUserId);
+        }}
         defaultName={profileForm.name || userName || ''}
         defaultEmail={currentEmail || ''}
         accountPending
+        userId={currentUserId}
       />
     </div>
   );

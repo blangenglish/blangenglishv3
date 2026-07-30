@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { openWhatsApp } from '@/lib/whatsapp';
+import { supabase } from '@/integrations/supabase/client';
 import { TermsAcceptBox } from '@/components/TermsAcceptBox';
 import { useLanguage } from '@/lib/language';
 import { translations } from '@/lib/translations';
@@ -29,6 +30,9 @@ interface PlanEspanolModalProps {
   // mensaje de éxito para reflejar que la cuenta ya existe y queda pendiente
   // de activación manual, no solo que se envió una solicitud por WhatsApp.
   accountPending?: boolean;
+  // Parte 29: cuando hay cuenta, se persiste el plan enviado para saber que
+  // esta persona YA armó su plan (deja de estar en el "Caso A").
+  userId?: string;
 }
 
 const DIA_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri'] as const;
@@ -65,6 +69,7 @@ export function PlanEspanolModal({
   defaultName = '',
   defaultEmail = '',
   accountPending = false,
+  userId,
 }: PlanEspanolModalProps) {
   const { lang } = useLanguage();
   const t = translations[lang].modalEspanol;
@@ -162,6 +167,32 @@ export function PlanEspanolModal({
     openWhatsApp(mensaje);
     setSentMessage(mensaje);
     setSent(true);
+
+    // Parte 29: dejar constancia de que esta cuenta YA armó su plan. Se reusa
+    // live_class_config (mismo marcador que inglés) para que el Dashboard
+    // distinga "nunca armó su plan" (Caso A) de "ya lo envió y espera
+    // activación" (Caso B), y para que el filtro de pendientes del panel admin
+    // (Parte 27) también liste a los estudiantes de español.
+    if (userId) {
+      supabase
+        .from('student_profiles')
+        .update({
+          live_class_config: {
+            programa: 'spanish',
+            modo: 'teacher',
+            horasDia,
+            diasSemana,
+            diasSel,
+            franja,
+            totalUSD: totalEsteMes,
+            updatedAt: new Date().toISOString(),
+          },
+        })
+        .eq('id', userId)
+        .then(({ error }) => {
+          if (error) console.error('[PlanEspanolModal] no se pudo guardar el plan:', error);
+        });
+    }
   };
 
   return (
