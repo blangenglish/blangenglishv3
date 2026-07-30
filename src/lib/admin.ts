@@ -12,7 +12,6 @@ export const ADMIN_ROUTES = {
   ENGLISH_FOR_STUDENTS: '/adminblang/english-students',
   REVIEWS: '/adminblang/comentarios',
   MUNDO_REAL: '/adminblang/mundo-real',
-  SPANISH_GENERATOR: '/adminblang/generador-espanol',
 } as const;
 
 export interface DBCourse {
