@@ -11,7 +11,7 @@ import {
   ChevronRight, ChevronLeft, Trophy, RefreshCw,
   CheckCircle, XCircle, Volume2, Copy, Check,
 } from 'lucide-react';
-import { getStagesForProgram, MATERIAL_TYPE_CONFIG, type Stage, type UnitStageMaterial } from '@/lib/stages';
+import { getStagesForProgram, MATERIAL_TYPE_CONFIG, parseFlashcards, type Stage, type UnitStageMaterial } from '@/lib/stages';
 import { getUnitProgress, setStageCompleted, hasMigrated, mergeFromRemote } from '@/lib/localProgress';
 
 // ─── Google Drive helper ─────────────────────────────────────────────────────
@@ -1120,6 +1120,82 @@ function CopyPromptButton({ html }: { html: string }) {
   );
 }
 
+// ─── Mazo de flashcards ───────────────────────────────────────────────────────
+// El estudiante ve el frente, intenta responder por su cuenta y voltea para
+// comparar con la respuesta modelo. Se usa en Habla y Escritura (Español).
+function FlashcardDeck({ cards }) {
+  const [idx, setIdx] = useState(0);
+  const [flipped, setFlipped] = useState(false);
+  const [seen, setSeen] = useState(() => new Set([0]));
+
+  const card = cards[idx];
+  if (!card) return null;
+
+  const go = (delta) => {
+    const next = idx + delta;
+    if (next < 0 || next >= cards.length) return;
+    setIdx(next);
+    setFlipped(false);
+    setSeen(prev => new Set(prev).add(next));
+  };
+
+  return (
+    <div className="space-y-3">
+      {/* Progreso del mazo */}
+      <div className="flex items-center gap-3">
+        <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+          <div
+            className="h-full bg-primary rounded-full transition-all duration-300"
+            style={{ width: `${(seen.size / cards.length) * 100}%` }}
+          />
+        </div>
+        <span className="text-xs font-bold text-muted-foreground tabular-nums shrink-0">
+          {idx + 1} / {cards.length}
+        </span>
+      </div>
+
+      {/* Tarjeta — se voltea al hacer clic o con Enter/Espacio */}
+      <button
+        type="button"
+        onClick={() => setFlipped(f => !f)}
+        aria-label={flipped ? 'Ver el frente de la tarjeta' : 'Ver la respuesta'}
+        className={cn(
+          'w-full text-left rounded-2xl border-2 p-6 min-h-[168px] flex flex-col justify-center gap-2 transition-colors',
+          'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
+          flipped
+            ? 'border-primary bg-primary/5'
+            : 'border-border bg-card hover:border-primary/40'
+        )}
+      >
+        <span className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+          {flipped ? 'Respuesta modelo' : 'Tu turno'}
+        </span>
+        <p className={cn('leading-relaxed', flipped ? 'text-base text-primary font-medium' : 'text-lg font-semibold')}>
+          {flipped ? card.back : card.front}
+        </p>
+        {!flipped && card.hint && (
+          <p className="text-xs text-muted-foreground mt-1">💡 {card.hint}</p>
+        )}
+        <span className="text-[11px] text-muted-foreground mt-2">
+          {flipped ? 'Toca para volver a la pregunta' : 'Toca para ver la respuesta'}
+        </span>
+      </button>
+
+      {/* Navegación */}
+      <div className="flex items-center gap-2">
+        <Button variant="outline" size="sm" className="flex-1 rounded-xl gap-1"
+          disabled={idx === 0} onClick={() => go(-1)}>
+          <ChevronLeft className="h-4 w-4" /> Anterior
+        </Button>
+        <Button variant="outline" size="sm" className="flex-1 rounded-xl gap-1"
+          disabled={idx === cards.length - 1} onClick={() => go(1)}>
+          Siguiente <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Detect subtype for text materials ───────────────────────────────────────
 function detectSubtype(mat) {
   const title = (mat.title || '').toLowerCase();
@@ -1343,6 +1419,15 @@ function MaterialItem({ mat, stage }: { mat: any; stage?: string }) {
               <ExternalLink className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
             </a>
           );
+        })()}
+
+        {/* ── Flashcards ── */}
+        {mat.material_type === 'flashcard' && (() => {
+          const cards = parseFlashcards(mat.description);
+          // Si el JSON viniera corrupto no dejamos la parte en blanco:
+          // se muestra el contenido crudo como texto.
+          if (cards.length === 0) return <RichContent html={mat.description || ''} />;
+          return <FlashcardDeck cards={cards} />;
         })()}
 
         {/* ── HTML embebido ── */}

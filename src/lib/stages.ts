@@ -11,7 +11,26 @@ export type SpanishStage =
   | 'es_quiz' | 'es_speaking' | 'es_writing';
 
 export type Stage = EnglishStage | SpanishStage;
-export type StageMaterialType = 'audio' | 'video' | 'pdf' | 'word' | 'ppt' | 'image' | 'url' | 'text' | 'html';
+export type StageMaterialType = 'audio' | 'video' | 'pdf' | 'word' | 'ppt' | 'image' | 'url' | 'text' | 'html' | 'flashcard';
+
+// Una tarjeta de un mazo de flashcards. Se guardan como JSON dentro de
+// unit_stage_materials.description cuando material_type === 'flashcard'.
+export interface Flashcard { front: string; back: string; hint?: string }
+
+/** Lee el mazo desde description. Nunca lanza: si el JSON está corrupto o no
+ *  es un arreglo, devuelve [] y quien llama decide el fallback. */
+export function parseFlashcards(description?: string | null): Flashcard[] {
+  if (!description) return [];
+  try {
+    const parsed = JSON.parse(description);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter(c => c && typeof c === 'object')
+      .map(c => ({ front: String(c.front ?? ''), back: String(c.back ?? ''), hint: c.hint ? String(c.hint) : undefined }));
+  } catch {
+    return [];
+  }
+}
 
 export interface UnitStageMaterial {
   id: string;
@@ -75,4 +94,5 @@ export const MATERIAL_TYPE_CONFIG: Record<StageMaterialType, { label: string; em
   url:    { label: 'URL / Enlace',    emoji: '🔗', accept: '',                            isFile: false },
   text:   { label: 'Texto / Nota',    emoji: '✏️', accept: '',                            isFile: false },
   html:   { label: 'HTML',            emoji: '💻', accept: '',                            isFile: false },
+  flashcard: { label: 'Flashcards',   emoji: '🃏', accept: '',                            isFile: false },
 };

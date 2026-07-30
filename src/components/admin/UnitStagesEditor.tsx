@@ -17,8 +17,8 @@ import {
   HelpCircle, GripVertical, Check, PenLine, Code2,
 } from 'lucide-react';
 import {
-  STAGES, SPANISH_STAGES, getStagesForProgram, MATERIAL_TYPE_CONFIG,
-  type Stage, type StageMaterialType, type UnitStageMaterial,
+  STAGES, SPANISH_STAGES, getStagesForProgram, MATERIAL_TYPE_CONFIG, parseFlashcards,
+  type Stage, type StageMaterialType, type UnitStageMaterial, type Flashcard,
 } from '@/lib/stages';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -567,14 +567,117 @@ function MaterialCard({
             />
           </div>
         )}
+
+        {/* Flashcards (frente / reverso / pista) */}
+        {material.material_type === 'flashcard' && (
+          <FlashcardsEditor
+            description={material.description || ''}
+            onChange={v => onUpdate({ description: v })}
+          />
+        )}
       </div>
+    </div>
+  );
+}
+
+// ─── Editor de flashcards ─────────────────────────────────────────────────────
+// Las tarjetas viven como JSON en `description`, así que el guardado masivo
+// existente (save → adminInsert) funciona sin ningún cambio.
+function FlashcardsEditor({ description, onChange }: { description: string; onChange: (v: string) => void }) {
+  const cards = parseFlashcards(description);
+  const commit = (next: Flashcard[]) => onChange(JSON.stringify(next));
+
+  const update = (i: number, field: keyof Flashcard, value: string) => {
+    const next = cards.map((c, idx) => (idx === i ? { ...c, [field]: value } : c));
+    commit(next);
+  };
+  const add = () => commit([...cards, { front: '', back: '', hint: '' }]);
+  const remove = (i: number) => commit(cards.filter((_, idx) => idx !== i));
+  const move = (i: number, dir: -1 | 1) => {
+    const j = i + dir;
+    if (j < 0 || j >= cards.length) return;
+    const next = [...cards];
+    [next[i], next[j]] = [next[j], next[i]];
+    commit(next);
+  };
+
+  // Si description trae algo que no es un mazo válido (por ejemplo texto de un
+  // material convertido a mano), avisamos en vez de borrarlo en silencio.
+  const contenidoNoReconocido = !!description.trim() && cards.length === 0;
+
+  return (
+    <div>
+      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5 block">
+        Tarjetas
+      </label>
+      <p className="text-xs text-muted-foreground mb-2">
+        El estudiante ve primero el <strong>frente</strong>, intenta responder y luego voltea la tarjeta para ver el <strong>reverso</strong>.
+      </p>
+
+      {contenidoNoReconocido && (
+        <div className="mb-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-800">
+          Este material tenía contenido que no es un mazo de tarjetas. Se conservará hasta que agregues la primera tarjeta.
+        </div>
+      )}
+
+      <div className="space-y-2">
+        {cards.map((card, i) => (
+          <div key={i} className="rounded-xl border border-border bg-muted/20 p-3 space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-primary shrink-0">Tarjeta {i + 1}</span>
+              <div className="ml-auto flex items-center gap-1">
+                <Button size="sm" variant="ghost" className="h-7 w-7 p-0" disabled={i === 0}
+                  title="Subir" onClick={() => move(i, -1)}>
+                  <ChevronUp className="h-3.5 w-3.5" />
+                </Button>
+                <Button size="sm" variant="ghost" className="h-7 w-7 p-0" disabled={i === cards.length - 1}
+                  title="Bajar" onClick={() => move(i, 1)}>
+                  <ChevronDown className="h-3.5 w-3.5" />
+                </Button>
+                <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive"
+                  title="Eliminar tarjeta" onClick={() => remove(i)}>
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+            <Textarea
+              value={card.front}
+              onChange={e => update(i, 'front', e.target.value)}
+              placeholder="Frente — la pregunta o el escenario"
+              className="text-sm min-h-[52px]"
+            />
+            <Textarea
+              value={card.back}
+              onChange={e => update(i, 'back', e.target.value)}
+              placeholder="Reverso — la respuesta modelo o el ejemplo"
+              className="text-sm min-h-[52px]"
+            />
+            <Input
+              value={card.hint || ''}
+              onChange={e => update(i, 'hint', e.target.value)}
+              placeholder="Pista (opcional) — ej: 3 oraciones · usa él es"
+              className="text-xs h-8"
+            />
+          </div>
+        ))}
+      </div>
+
+      <Button size="sm" variant="outline" className="mt-2 gap-1.5 w-full border-dashed" onClick={add}>
+        <Plus className="h-3.5 w-3.5" /> Agregar tarjeta
+      </Button>
+
+      {cards.length > 0 && (
+        <p className="text-[11px] text-muted-foreground mt-2">
+          {cards.length} {cards.length === 1 ? 'tarjeta' : 'tarjetas'} · se guardan con el botón <strong>Guardar materiales</strong> de arriba.
+        </p>
+      )}
     </div>
   );
 }
 
 // ─── Add material picker ──────────────────────────────────────────────────────
 function AddMaterialPicker({ onAdd }: { onAdd: (type: StageMaterialType) => void }) {
-  const types: StageMaterialType[] = ['audio', 'video', 'pdf', 'word', 'ppt', 'image', 'url', 'text', 'html'];
+  const types: StageMaterialType[] = ['audio', 'video', 'pdf', 'word', 'ppt', 'image', 'url', 'text', 'html', 'flashcard'];
   return (
     <div className="border-2 border-dashed border-primary/30 rounded-2xl p-4 bg-primary/3">
       <p className="text-xs font-semibold text-center text-muted-foreground mb-3 uppercase tracking-wide">
