@@ -2021,11 +2021,19 @@ useEffect(() => {
                                                 <p className="text-xs font-bold text-foreground/80">Parte {part.n}</p>
                                                 <p className="text-xs text-muted-foreground truncate">{part.label}</p>
                                               </div>
-                                              <span className="shrink-0 text-[11px] font-bold px-2.5 py-1 rounded-full bg-muted text-muted-foreground">
-                                                En preparación
-                                              </span>
                                             </div>
                                           ))}
+
+                                          {/* Parte 33: abre el reproductor real. Solo muestra las
+                                              partes que ya tienen contenido cargado; si la unidad
+                                              está vacía, el propio visor lo indica. */}
+                                          <Button
+                                            className="w-full rounded-xl font-bold mt-1"
+                                            onClick={() => setViewerUnit({ id: unit.id, title: unit.title, description: unit.description })}
+                                          >
+                                            Comenzar unidad
+                                            <ChevronRight className="w-4 h-4 ml-1" />
+                                          </Button>
                                         </div>
                                       )}
                                     </div>
@@ -4023,6 +4031,7 @@ useEffect(() => {
           unitId={viewerUnit.id}
           unitTitle={viewerUnit.title}
           unitDescription={viewerUnit.description}
+          program={studentProfile?.program || 'english'}
           studentId={currentUserId}
           isReview={!!viewerUnit.isReview}
           studentPlanSlug={subscription?.plan_slug ?? ''}

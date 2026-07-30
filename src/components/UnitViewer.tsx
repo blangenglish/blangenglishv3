@@ -11,7 +11,7 @@ import {
   ChevronRight, ChevronLeft, Trophy, RefreshCw,
   CheckCircle, XCircle, Volume2, Copy, Check,
 } from 'lucide-react';
-import { STAGES, MATERIAL_TYPE_CONFIG, type Stage, type UnitStageMaterial } from '@/lib/stages';
+import { getStagesForProgram, MATERIAL_TYPE_CONFIG, type Stage, type UnitStageMaterial } from '@/lib/stages';
 import { getUnitProgress, setStageCompleted, hasMigrated, mergeFromRemote } from '@/lib/localProgress';
 
 // ─── Google Drive helper ─────────────────────────────────────────────────────
@@ -1401,12 +1401,17 @@ const _unitContentCache: Record<string, {
 }> = {};
 
 // ─── Main UnitViewer ──────────────────────────────────────────────────────────
-export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onClose, isLocked, isReview = false, studentPlanSlug = '' }) {
+export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onClose, isLocked, isReview = false, studentPlanSlug = '', program = 'english' }) {
+  // Parte 33: las partes que recorre el estudiante dependen del programa del
+  // curso. Inglés mantiene sus 5 de siempre; Español usa sus 7 propias.
+  // getStagesForProgram devuelve una constante de módulo, así que la
+  // referencia es estable y no reinicia los efectos en cada render.
+  const stages = getStagesForProgram(program);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [saveErrorMsg, setSaveErrorMsg] = useState('');
   const [byStage, setByStage] = useState(() =>
-    Object.fromEntries(STAGES.map(s => [s.id, []])));
+    Object.fromEntries(stages.map(s => [s.id, []])));
   const [quizByStage, setQuizByStage] = useState({});
   const [progress, setProgress] = useState({});
   const [currentStageIdx, setCurrentStageIdx] = useState(0);
@@ -1439,7 +1444,7 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
             .eq('unit_id', unitId),
         ]);
 
-        const byStageData: Record<string, any[]> = Object.fromEntries(STAGES.map(s => [s.id, []]));
+        const byStageData: Record<string, any[]> = Object.fromEntries(stages.map(s => [s.id, []]));
         (matsResult.data || []).forEach(m => { if (m.stage in byStageData) byStageData[m.stage].push(m); });
 
         const quizData: Record<string, any[]> = {};
@@ -1487,15 +1492,15 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
         }
         setProgress(pm);
 
-        const stagesWC = STAGES.filter(s => map[s.id]?.length > 0 || qmap[s.id]);
+        const stagesWC = stages.filter(s => map[s.id]?.length > 0 || qmap[s.id]);
         if (isReview) {
           // En repaso: siempre empezar desde la primera parte
-          const globalIdx = STAGES.findIndex(s => s.id === stagesWC[0]?.id);
+          const globalIdx = stages.findIndex(s => s.id === stagesWC[0]?.id);
           setCurrentStageIdx(globalIdx >= 0 ? globalIdx : 0);
         } else {
           const firstInc = stagesWC.findIndex(s => !pm[s.id]?.completed);
           const startStage = stagesWC[firstInc >= 0 ? firstInc : Math.max(0, stagesWC.length - 1)];
-          const globalIdx = STAGES.findIndex(s => s.id === (startStage?.id || STAGES[0].id));
+          const globalIdx = stages.findIndex(s => s.id === (startStage?.id || stages[0].id));
           setCurrentStageIdx(globalIdx >= 0 ? globalIdx : 0);
         }
       }
@@ -1521,11 +1526,11 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
     });
   };
 
-  const stagesWithContent = STAGES.filter(s => {
+  const stagesWithContent = stages.filter(s => {
     const filtered = filterForPlan(byStage[s.id] || [], s.id);
     return filtered.length > 0 || quizByStage[s.id]?.length > 0;
   });
-  const currentStage = STAGES[currentStageIdx];
+  const currentStage = stages[currentStageIdx];
   const currentMaterials = currentStage ? filterForPlan(byStage[currentStage.id] || [], currentStage.id) : [];
   const currentQuiz = currentStage ? (quizByStage[currentStage.id] || []) : [];
   const hasQuiz = currentQuiz.length > 0;
@@ -1536,10 +1541,10 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
   const localIdx = stagesWithContent.findIndex(s => s.id === currentStage?.id);
 
   const goPrev = () => {
-    if (localIdx > 0) { setCurrentStageIdx(STAGES.findIndex(s => s.id === stagesWithContent[localIdx - 1].id)); setShowQuiz(false); }
+    if (localIdx > 0) { setCurrentStageIdx(stages.findIndex(s => s.id === stagesWithContent[localIdx - 1].id)); setShowQuiz(false); }
   };
   const goNext = () => {
-    if (localIdx < stagesWithContent.length - 1) { setCurrentStageIdx(STAGES.findIndex(s => s.id === stagesWithContent[localIdx + 1].id)); setShowQuiz(false); }
+    if (localIdx < stagesWithContent.length - 1) { setCurrentStageIdx(stages.findIndex(s => s.id === stagesWithContent[localIdx + 1].id)); setShowQuiz(false); }
   };
 
   const markCompleted = async () => {
@@ -1586,7 +1591,7 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
     // 3. Navegar a la siguiente parte si existe
     if (nextStage) {
       setTimeout(() => {
-        setCurrentStageIdx(STAGES.findIndex(s => s.id === nextStage.id));
+        setCurrentStageIdx(stages.findIndex(s => s.id === nextStage.id));
       }, 400);
     }
 
@@ -1625,7 +1630,7 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
     setShowQuiz(false);
     if (localIdx < stagesWithContent.length - 1) {
       setTimeout(() => {
-        setCurrentStageIdx(STAGES.findIndex(s => s.id === stagesWithContent[localIdx + 1].id));
+        setCurrentStageIdx(stages.findIndex(s => s.id === stagesWithContent[localIdx + 1].id));
       }, 400);
     }
   };
@@ -1730,7 +1735,7 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
                 className="rounded-xl gap-2 w-full"
                 onClick={() => {
                   const firstStage = stagesWithContent[0];
-                  setCurrentStageIdx(STAGES.findIndex(x => x.id === firstStage?.id));
+                  setCurrentStageIdx(stages.findIndex(x => x.id === firstStage?.id));
                   setShowQuiz(false);
                   setIsReviewing(true);
                 }}
@@ -1740,7 +1745,7 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
               {stagesWithContent.map(s => (
                 <button key={s.id}
                   onClick={() => {
-                    setCurrentStageIdx(STAGES.findIndex(x => x.id === s.id));
+                    setCurrentStageIdx(stages.findIndex(x => x.id === s.id));
                     setShowQuiz(false);
                     setIsReviewing(true);
                   }}
@@ -1761,7 +1766,7 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
                 <div key={s.id} className="flex items-center">
                   <button onClick={() => {
                     const canGo = i <= localIdx || progress[s.id]?.completed;
-                    if (canGo) { setCurrentStageIdx(STAGES.findIndex(x => x.id === s.id)); setShowQuiz(false); }
+                    if (canGo) { setCurrentStageIdx(stages.findIndex(x => x.id === s.id)); setShowQuiz(false); }
                   }} className="focus:outline-none">
                     <StepDot idx={i} currentIdx={localIdx} completed={!!progress[s.id]?.completed} label={s.partLabel} />
                   </button>
@@ -1911,7 +1916,7 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
                     const hasQ = !!quizByStage[s.id]?.length;
                     return (
                       <button key={s.id} disabled={!canClick}
-                        onClick={() => { if (canClick) { setCurrentStageIdx(STAGES.findIndex(x => x.id === s.id)); setShowQuiz(false); } }}
+                        onClick={() => { if (canClick) { setCurrentStageIdx(stages.findIndex(x => x.id === s.id)); setShowQuiz(false); } }}
                         className={cn(
                           'w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left transition-colors text-sm',
                           isCur ? 'bg-primary/10 border border-primary/30 font-semibold' :
