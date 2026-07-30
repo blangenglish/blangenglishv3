@@ -1620,6 +1620,10 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
   const currentQuiz = currentStage ? (quizByStage[currentStage.id] || []) : [];
   const hasQuiz = currentQuiz.length > 0;
   const currentCompleted = currentStage ? !!progress[currentStage.id]?.completed : false;
+  // Español para extranjeros: el estudiante puede moverse libremente entre las
+  // partes, adelantar y volver, sin tener que completar el quiz para avanzar.
+  // Inglés conserva el recorrido guiado de siempre.
+  const freeNavigation = program === 'spanish';
   const completedCount = stagesWithContent.filter(s => progress[s.id]?.completed).length;
   const progressPct = stagesWithContent.length > 0 ? Math.round((completedCount / stagesWithContent.length) * 100) : 0;
   const allDone = stagesWithContent.length > 0 && completedCount === stagesWithContent.length;
@@ -1850,7 +1854,7 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
               {stagesWithContent.map((s, i) => (
                 <div key={s.id} className="flex items-center">
                   <button onClick={() => {
-                    const canGo = i <= localIdx || progress[s.id]?.completed;
+                    const canGo = freeNavigation || i <= localIdx || progress[s.id]?.completed;
                     if (canGo) { setCurrentStageIdx(stages.findIndex(x => x.id === s.id)); setShowQuiz(false); }
                   }} className="focus:outline-none">
                     <StepDot idx={i} currentIdx={localIdx} completed={!!progress[s.id]?.completed} label={s.partLabel} />
@@ -1953,10 +1957,17 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
               </div>
             ) : (
               /* ── Barra normal ── */
-              (!hasQuiz || currentCompleted) && (
+              (!hasQuiz || currentCompleted || freeNavigation) && (
                 <div className="rounded-2xl border border-border bg-card p-4">
                   {!currentCompleted ? (
                     <div className="flex items-center gap-3">
+                      {/* Navegación libre (Español): se puede volver atrás sin
+                          haber completado la parte actual. */}
+                      {freeNavigation && (
+                        <Button variant="outline" className="gap-2 rounded-xl" onClick={goPrev} disabled={localIdx === 0}>
+                          <ChevronLeft className="w-4 h-4" /> Back
+                        </Button>
+                      )}
                       <Button variant="outline" className="flex-1 rounded-xl gap-2"
                         onClick={markCompleted} disabled={markingDone}>
                         {markingDone ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
@@ -1964,8 +1975,10 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
                       </Button>
                       {localIdx < stagesWithContent.length - 1 && (
                         <Button className="flex-1 rounded-xl gap-2 font-bold"
-                          onClick={markCompleted} disabled={markingDone}>
-                          Siguiente <ChevronRight className="w-4 h-4" />
+                          /* Con navegación libre, "Siguiente" solo avanza: no
+                             obliga a dar la parte por completada. */
+                          onClick={freeNavigation ? goNext : markCompleted} disabled={markingDone}>
+                          {freeNavigation ? 'Next' : 'Siguiente'} <ChevronRight className="w-4 h-4" />
                         </Button>
                       )}
                     </div>
@@ -1997,7 +2010,7 @@ export function UnitViewer({ unitId, unitTitle, unitDescription, studentId, onCl
                   {stagesWithContent.map((s, i) => {
                     const isCur = s.id === currentStage?.id;
                     const isDone = !!progress[s.id]?.completed;
-                    const canClick = i <= localIdx || isDone;
+                    const canClick = freeNavigation || i <= localIdx || isDone;
                     const hasQ = !!quizByStage[s.id]?.length;
                     return (
                       <button key={s.id} disabled={!canClick}
