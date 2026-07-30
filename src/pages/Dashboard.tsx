@@ -64,11 +64,12 @@ interface DBCourseRow { id: string; emoji: string; title: string; level: string;
 interface DBUnitRow { id: string; course_id: string; title: string; description: string; sort_order: number; is_published: boolean; }
 
 // ── Parte 28: estructura fija de cada unidad del programa de Español ─────────
-// Son SIEMPRE estas 7 partes, en este orden, para toda unidad de todo nivel
+// Son SIEMPRE estas 9 partes, en este orden, para toda unidad de todo nivel
 // (a diferencia de inglés, que usa categorías libres tipo "English for
 // Students"). Acá solo se declara la estructura: el contenido real de cada
 // parte (textos, quices, flashcards) se construye en una parte futura, así que
 // por ahora todas se muestran como "En preparación".
+// Parte 31: a las 7 originales se suman Speaking y Writing (9 en total).
 const SPANISH_UNIT_PARTS = [
   { n: 1, emoji: '📖', label: 'Lectura + Quiz' },
   { n: 2, emoji: '🎧', label: 'Listening + Quiz' },
@@ -77,6 +78,8 @@ const SPANISH_UNIT_PARTS = [
   { n: 5, emoji: '🧪', label: 'Quiz de Gramática y Vocabulario' },
   { n: 6, emoji: '🃏', label: 'Flashcards de preguntas' },
   { n: 7, emoji: '✍️', label: 'Flashcards de escritura' },
+  { n: 8, emoji: '🗣️', label: 'Speaking' },
+  { n: 9, emoji: '📄', label: 'Writing' },
 ];
 
 // ── PayPal Hosted Button (oficial SDK) ──
@@ -902,7 +905,7 @@ const [loadingUnits, setLoadingUnits] = useState<string | null>(null);
   // autenticado tras un registro con programa='spanish' — separado de
   // showClasesModal porque son componentes distintos con reglas distintas.
   const [showPlanEspanolModal, setShowPlanEspanolModal] = useState(false);
-  // Parte 28: unidad de español abierta (muestra sus 7 partes fijas). Es estado
+  // Parte 28: unidad de español abierta (muestra sus 9 partes fijas). Es estado
   // aparte de expandedCourse porque nivel y unidad se expanden de forma anidada.
   const [expandedSpanishUnit, setExpandedSpanishUnit] = useState<string | null>(null);
   // Grupo de edad que venía preseleccionado desde la tarjeta de la pantalla de
@@ -1888,7 +1891,7 @@ useEffect(() => {
               ) : activeTab === 'cursos' && (isSpanishProgram ? (
                 <motion.div key="cursos-es" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
                   {/* Parte 28: vista propia del programa de Español — Niveles A1-C1 →
-                      Unidades → 7 partes fijas. NO comparte estructura ni estilo con
+                      Unidades → 9 partes fijas. NO comparte estructura ni estilo con
                       "English for Students" (categorías libres tipo Escritura/Lectura):
                       son dos programas distintos aunque compartan el panel admin. El
                       contenido real de cada parte llega en una parte futura. */}
@@ -1896,7 +1899,7 @@ useEffect(() => {
                     <h1 className="text-2xl md:text-3xl font-extrabold mb-1">Mis módulos de Español 🇪🇸</h1>
                     <p className="text-muted-foreground text-sm">
                       {isProfileActive
-                        ? 'Abre un nivel para ver sus unidades. Cada unidad tiene 7 partes.'
+                        ? 'Abre un nivel para ver sus unidades. Cada unidad tiene 9 partes.'
                         : 'Aquí verás tus niveles habilitados una vez tu cuenta esté activa.'}
                     </p>
                   </div>
@@ -1969,7 +1972,7 @@ useEffect(() => {
                                      estudiante sepa qué va a encontrar. */
                                   <div className="rounded-xl border border-violet-200 bg-violet-50/60 p-4">
                                     <p className="text-sm font-bold text-violet-900 mb-1">Unidades en preparación 🚧</p>
-                                    <p className="text-xs text-violet-800 mb-3">Estamos preparando las unidades de este nivel. Cada unidad incluirá estas 7 partes:</p>
+                                    <p className="text-xs text-violet-800 mb-3">Estamos preparando las unidades de este nivel. Cada unidad incluirá estas 9 partes:</p>
                                     <ul className="space-y-1">
                                       {SPANISH_UNIT_PARTS.map(part => (
                                         <li key={part.n} className="flex items-center gap-2 text-xs text-violet-900/80">
@@ -2004,14 +2007,14 @@ useEffect(() => {
                                         </div>
                                         <div className="flex-1 min-w-0">
                                           <p className="text-sm font-semibold truncate">{unit.title}</p>
-                                          <p className="text-xs text-muted-foreground">{isUnitLocked ? 'Bloqueada' : '7 partes'}</p>
+                                          <p className="text-xs text-muted-foreground">{isUnitLocked ? 'Bloqueada' : '9 partes'}</p>
                                         </div>
                                         {!isUnitLocked && (isUnitOpen
                                           ? <ChevronUp className="w-4 h-4 text-muted-foreground shrink-0" />
                                           : <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />)}
                                       </button>
 
-                                      {/* Las 7 partes fijas de la unidad */}
+                                      {/* Las 9 partes fijas de la unidad */}
                                       {isUnitOpen && !isUnitLocked && (
                                         <div className="border-t border-border/40 bg-violet-50/40 p-3 space-y-1.5">
                                           {SPANISH_UNIT_PARTS.map(part => (
