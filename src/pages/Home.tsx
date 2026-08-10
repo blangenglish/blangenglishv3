@@ -91,8 +91,45 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
         </div>
       </section>
 
-      {/* ── TARJETAS DE PROGRAMA ── */}
-      <section className="py-12 sm:py-16 -mt-8 sm:-mt-12 relative z-10">
+      {/* ── BLOQUE DE MARCA ──
+          Mismo bloque que estaba en la página de Inglés, pero aquí sin botón de
+          registro: en el inicio la acción que buscamos es que elijan programa. */}
+      <section className="relative pt-10 sm:pt-14 pb-2 sm:pb-4 overflow-hidden">
+        <div className="absolute top-10 left-10 w-72 h-72 bg-violet-400/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-10 right-10 w-96 h-96 bg-neutral-300/20 rounded-full blur-3xl" />
+
+        <div className="container mx-auto px-4 relative z-10">
+          <motion.div
+            className="max-w-3xl mx-auto text-center"
+            initial="hidden" animate="visible" variants={staggerContainer}
+          >
+            <motion.div variants={staggerItem} className="mb-6">
+              <span className="inline-flex items-center gap-2 bg-primary/10 text-primary text-xs sm:text-sm font-semibold px-4 sm:px-5 py-2 sm:py-2.5 rounded-full border border-primary/20">
+                {t.welcome.hero.badge}
+              </span>
+            </motion.div>
+
+            <motion.div variants={staggerItem}>
+              {/* Slogan de marca — se mantiene siempre en inglés, sin importar el idioma de interfaz.
+                  Va en h2 y no en h1: el h1 de esta página es el "Bienvenido/a / Welcome" de arriba. */}
+              <h2 className="text-3xl sm:text-5xl md:text-6xl font-black leading-[1.05] tracking-tight">
+                <span className="italic text-foreground/70">&quot;Speak Up and</span><br />
+                <span className="text-primary">Stand Out</span><br />
+                <span className="italic text-foreground/70">with </span>
+                <span className="bg-gradient-to-r from-primary to-violet-500 bg-clip-text text-transparent">BLANG&quot;</span>
+              </h2>
+              <p className="text-base sm:text-lg text-muted-foreground font-medium mt-4 sm:mt-5">
+                {t.welcome.hero.subtitle}
+              </p>
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ── TARJETAS DE PROGRAMA ──
+          El margen negativo que subía las tarjetas sobre el hero morado ya no
+          aplica: ahora entre los dos está el bloque de marca. */}
+      <section className="py-12 sm:py-16 relative z-10">
         <div className="container mx-auto px-4">
           <motion.div
             className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6"

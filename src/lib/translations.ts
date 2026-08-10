@@ -46,6 +46,12 @@ export const translations = {
       badge: '👋 BLANG Academy',
       subtitle: 'Elige el programa que mejor se adapte a ti',
       cta: 'Conoce precios',
+      // Bloque de marca del inicio. Sin botón: en esta página el registro ya
+      // se ofrece desde la barra superior, y aquí la acción es elegir programa.
+      hero: {
+        badge: '🎉 ¡25% de descuento en tu primer mes!',
+        subtitle: 'Aprende un nuevo idioma desde ya 🌎',
+      },
       programs: {
         spanish: { title: 'Español para extranjeros', subtitle: 'Spanish for Foreigners', desc: 'Aprende español bajo inmersión. Metodología que desarrolla primero comprensión (lectura y escucha) y luego producción (habla y escritura).' },
         english: { title: 'Inglés para hispanohablantes', subtitle: 'Niños, jóvenes y adultos', desc: 'Tres módulos según la edad, cada uno con su propia metodología, contenidos y ritmo. Entra y elige el que te corresponde.' },
@@ -534,6 +540,10 @@ export const translations = {
       badge: '👋 BLANG Academy',
       subtitle: 'Choose the program that fits you best',
       cta: 'See pricing',
+      hero: {
+        badge: '🎉 25% off your first month!',
+        subtitle: 'Start learning a new language today 🌎',
+      },
       programs: {
         spanish: { title: 'Spanish for Foreigners', subtitle: 'Español para extranjeros', desc: 'Learn Spanish through immersion. A method that builds comprehension first (reading and listening) and then production (speaking and writing).' },
         english: { title: 'English for Spanish Speakers', subtitle: 'Kids, teens and adults', desc: 'Three modules by age, each with its own method, content and pace. Come in and pick the one that fits you.' },
