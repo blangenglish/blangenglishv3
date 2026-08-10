@@ -195,6 +195,14 @@ export function Layout({ children, isLoggedIn = false, onOpenAuth, onLogout, use
                     </div>
                   ) : (
                     <>
+                      {/* Test de nivel: va junto al inicio de sesión y lleva a
+                          su propia página, no abre un modal. */}
+                      <Button asChild variant="outline" size="sm" className="gap-1.5 rounded-full">
+                        <Link to={ROUTE_PATHS.LEVEL_TEST}>
+                          <span aria-hidden="true">🎯</span>
+                          {t.nav.levelTest}
+                        </Link>
+                      </Button>
                       <Button variant="ghost" size="sm" onClick={() => onOpenAuth?.('login')} className="gap-1.5">
                         <LogIn className="w-4 h-4" />
                         {t.nav.login}
@@ -231,6 +239,13 @@ export function Layout({ children, isLoggedIn = false, onOpenAuth, onLogout, use
                   </div>
                 ) : (
                   <>
+                    {/* En móvil solo el icono, para que no se amontone la barra. */}
+                    <Button asChild variant="outline" size="sm" className="gap-1.5 rounded-full px-2 sm:px-3">
+                      <Link to={ROUTE_PATHS.LEVEL_TEST}>
+                        <span aria-hidden="true">🎯</span>
+                        <span className="hidden sm:inline">{t.nav.levelTest}</span>
+                      </Link>
+                    </Button>
                     <Button variant="ghost" size="sm" onClick={() => onOpenAuth?.('login')} className="gap-1.5 px-2 sm:px-3">
                       <LogIn className="w-4 h-4" />
                       <span className="hidden sm:inline">{t.nav.login}</span>

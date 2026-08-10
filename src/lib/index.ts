@@ -19,6 +19,7 @@ export const ROUTE_PATHS = {
   ENGLISH_ADULTS: '/ingles/adultos',
   ENGLISH_TEENS: '/ingles/jovenes',
   ENGLISH_KIDS: '/ingles/ninos',
+  LEVEL_TEST: '/nivel-ingles',
   SPANISH: '/espanol',
   PHONETICS: '/phonetics',
 } as const;

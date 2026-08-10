@@ -11,7 +11,6 @@ import type { AuthModal } from '@/lib/index';
 import { supabase } from '@/integrations/supabase/client';
 import { MODULES } from '@/components/EnglishForYou';
 import { MUNDO_REAL_TOPICS } from '@/pages/MundoRealData';
-import LevelQuiz from '@/components/LevelQuiz';
 import { useLanguage } from '@/lib/language';
 import { translations } from '@/lib/translations';
 
@@ -102,7 +101,6 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
   // sin él queda sin preseleccionar y el modal usa 'adults' por defecto.
   const ageParam = searchParams.get('age');
   const initialAgeGroup = VALID_AGE_GROUPS.includes(ageParam) ? (ageParam as 'kids' | 'teens' | 'adults') : undefined;
-  const [quizOpen, setQuizOpen] = useState(false);
   const [reviews, setReviews] = useState<{ full_name: string; rating: number; comment: string }[]>([]);
   const [moduleContent, setModuleContent] = useState<Record<string, { id: string; title: string; rich_text: string; sort_order: number }[]>>({});
 
@@ -281,44 +279,9 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
         </div>
       </section>
 
-      {/* ── CTA COMPACTO DE REGISTRO ── */}
-      <section id="hero" className="relative py-14 sm:py-20 overflow-hidden">
-        <div className="absolute top-10 left-10 w-72 h-72 bg-violet-400/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-10 right-10 w-96 h-96 bg-neutral-300/20 rounded-full blur-3xl" />
-
-        <div className="container mx-auto px-4 relative z-10">
-          <motion.div
-            className="max-w-3xl mx-auto text-center"
-            initial="hidden" whileInView="visible" viewport={{ once: true }} variants={staggerContainer}
-          >
-            <motion.div variants={staggerItem} className="mb-6">
-              <span className="inline-flex items-center gap-2 bg-primary/10 text-primary text-xs sm:text-sm font-semibold px-4 sm:px-5 py-2 sm:py-2.5 rounded-full border border-primary/20">
-                {t.compactHero.badge}
-              </span>
-            </motion.div>
-
-            <motion.div variants={staggerItem}>
-              {/* Slogan de marca — se mantiene siempre en inglés, sin importar el idioma de interfaz */}
-              <h1 className="text-3xl sm:text-5xl md:text-6xl font-black leading-[1.05] tracking-tight">
-                <span className="italic text-foreground/70">&quot;Speak Up and</span><br />
-                <span className="text-primary">Stand Out</span><br />
-                <span className="italic text-foreground/70">with </span>
-                <span className="bg-gradient-to-r from-primary to-violet-500 bg-clip-text text-transparent">BLANG&quot;</span>
-              </h1>
-              <p className="text-base sm:text-lg text-muted-foreground font-medium mt-4 sm:mt-5">{t.compactHero.subtitle}</p>
-            </motion.div>
-
-            <motion.div variants={staggerItem} className="mt-8">
-              <button
-                onClick={() => onOpenAuth?.('register')}
-                className="w-full sm:w-auto sm:px-14 bg-[#111111] hover:bg-[#111111]/90 text-white font-extrabold text-base sm:text-lg py-4 rounded-2xl transition-colors shadow-lg"
-              >
-                {t.compactHero.cta}
-              </button>
-            </motion.div>
-          </motion.div>
-        </div>
-      </section>
+      {/* El bloque de marca "Speak Up and Stand Out with BLANG" vivía aquí.
+          Ahora está solo en el inicio (Home.tsx): en esta página el visitante
+          ya eligió idioma y módulo, así que lo que necesita son los planes. */}
 
       {/* ── CÓMO FUNCIONA (4 pilares) ── */}
       <section className="py-16 bg-white/60">
@@ -363,36 +326,43 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
               </p>
             </motion.div>
 
-            <div className="space-y-8">
+            {/* Dos columnas: antes era una lista en zigzag a todo el ancho, que
+                alargaba mucho la página. Cada paso es ahora una tarjeta entera
+                (cabecera + descripción + detalles) y las tarjetas se apilan de
+                dos en dos. Con 5 pasos, el último ocupa las dos columnas. */}
+            <div className="grid md:grid-cols-2 gap-5">
               {STEPS.map((step, i) => (
                 <motion.div
                   key={step.number}
-                  variants={i % 2 === 0 ? fadeLeft : fadeRight}
-                  className={`flex flex-col ${i % 2 === 0 ? 'md:flex-row' : 'md:flex-row-reverse'} gap-6 items-center`}
+                  variants={fadeUp}
+                  className={`bg-background/80 border border-border/40 rounded-3xl p-6 shadow-sm flex flex-col ${
+                    i === STEPS.length - 1 && STEPS.length % 2 === 1 ? 'md:col-span-2' : ''
+                  }`}
                 >
-                  {/* Icon side */}
-                  <div className={`flex-shrink-0 w-full md:w-64 rounded-3xl bg-gradient-to-br ${step.bg} border-2 p-8 flex flex-col items-center text-center shadow-sm`}>
-                    <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${step.color} flex items-center justify-center text-3xl mb-3 shadow-lg`}>
+                  {/* Cabecera del paso */}
+                  <div className={`flex items-center gap-4 rounded-2xl bg-gradient-to-br ${step.bg} border-2 p-4 mb-5`}>
+                    <div className={`w-12 h-12 flex-shrink-0 rounded-2xl bg-gradient-to-br ${step.color} flex items-center justify-center text-2xl shadow-lg`}>
                       {step.emoji}
                     </div>
-                    <span className={`text-xs font-bold px-3 py-1 rounded-full ${step.tag} mb-2`}>{t.cincoPasos.pasoLabel} {step.number}</span>
-                    <h3 className="text-2xl font-extrabold">{step.title}</h3>
+                    <div className="min-w-0">
+                      <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${step.tag} inline-block mb-1`}>
+                        {t.cincoPasos.pasoLabel} {step.number}
+                      </span>
+                      <h3 className="text-xl font-extrabold leading-tight">{step.title}</h3>
+                    </div>
                   </div>
 
-                  {/* Content side */}
-                  <div className="flex-1 bg-background/80 border border-border/40 rounded-3xl p-7 shadow-sm">
-                    <p className="text-base text-muted-foreground leading-relaxed mb-5">{step.desc}</p>
-                    <ul className="grid sm:grid-cols-2 gap-2">
-                      {step.details.map((d, j) => (
-                        <li key={j} className="flex items-start gap-2">
-                          <span className="mt-1 w-4 h-4 rounded-full bg-primary/15 flex items-center justify-center flex-shrink-0">
-                            <span className="w-1.5 h-1.5 rounded-full bg-primary block" />
-                          </span>
-                          <span className="text-sm text-foreground/80">{d}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                  <p className="text-sm text-muted-foreground leading-relaxed mb-4">{step.desc}</p>
+                  <ul className={`grid gap-2 ${i === STEPS.length - 1 && STEPS.length % 2 === 1 ? 'sm:grid-cols-2' : ''}`}>
+                    {step.details.map((d, j) => (
+                      <li key={j} className="flex items-start gap-2">
+                        <span className="mt-1 w-4 h-4 rounded-full bg-primary/15 flex items-center justify-center flex-shrink-0">
+                          <span className="w-1.5 h-1.5 rounded-full bg-primary block" />
+                        </span>
+                        <span className="text-sm text-foreground/80">{d}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </motion.div>
               ))}
             </div>
@@ -423,10 +393,15 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
               </div>
             </motion.div>
 
-            <motion.div variants={stagger} className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
-              {LEVELS.map((lv) => (
+            {/* Dos columnas en vez de cinco en fila: a 5 por fila las tarjetas
+                quedaban estrechas y el texto ilegible. El último curso (C1)
+                ocupa las dos columnas para que no quede una tarjeta suelta. */}
+            <motion.div variants={stagger} className="grid sm:grid-cols-2 gap-4">
+              {LEVELS.map((lv, i) => (
                 <motion.div key={lv.level} variants={fadeUp}
-                  className={`rounded-2xl border-2 p-5 bg-background/80 hover:shadow-md transition-shadow flex flex-col cursor-pointer ${lv.color}`}
+                  className={`rounded-2xl border-2 p-5 bg-background/80 hover:shadow-md transition-shadow flex flex-col cursor-pointer ${lv.color} ${
+                    i === LEVELS.length - 1 && LEVELS.length % 2 === 1 ? 'sm:col-span-2' : ''
+                  }`}
                   onClick={() => onOpenAuth?.('register')}
                 >
                   <div className="text-3xl mb-2">{lv.emoji}</div>
@@ -585,56 +560,9 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
         </div>
       </section>
 
-      {/* ── NIVEL TEST ── */}
-      <section className="py-16 bg-gradient-to-br from-violet-50 to-purple-50/60">
-        <div className="container mx-auto px-4">
-          <motion.div
-            className="max-w-3xl mx-auto"
-            initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger}
-          >
-            <motion.div variants={fadeUp}
-              className="rounded-3xl bg-gradient-to-br from-violet-600 via-purple-600 to-primary p-1 shadow-xl shadow-purple-200"
-            >
-              <div className="rounded-[22px] bg-background/95 backdrop-blur px-8 py-10 text-center">
-                <div className="text-5xl mb-4">🎯</div>
-                <h2 className="text-2xl md:text-3xl font-extrabold mb-3">
-                  {t.nivelTest.title}
-                </h2>
-                <p className="text-muted-foreground text-base mb-2 max-w-xl mx-auto">
-                  {t.nivelTest.desc}
-                </p>
-                <p className="text-sm text-muted-foreground mb-7">
-                  {t.nivelTest.meta}
-                </p>
-
-                {/* Level scale decorative */}
-                <div className="flex gap-2 justify-center mb-8">
-                  {[
-                    { lv: 'A1', emoji: '🌱', from: 'from-violet-300', to: 'to-purple-400' },
-                    { lv: 'A2', emoji: '📗', from: 'from-violet-400', to: 'to-purple-500' },
-                    { lv: 'B1', emoji: '📘', from: 'from-purple-500', to: 'to-violet-600' },
-                    { lv: 'B2', emoji: '📙', from: 'from-violet-600', to: 'to-purple-800' },
-                    { lv: 'C1', emoji: '🏆', from: 'from-neutral-800', to: 'to-black' },
-                  ].map(({ lv, emoji, from, to }) => (
-                    <div key={lv} className={`flex-1 max-w-[80px] rounded-2xl bg-gradient-to-br ${from} ${to} py-3 text-center shadow-sm`}>
-                      <p className="text-lg">{emoji}</p>
-                      <p className="text-white font-black text-sm mt-0.5">{lv}</p>
-                    </div>
-                  ))}
-                </div>
-
-                <Button
-                  size="lg"
-                  className="bg-[#111111] hover:bg-[#111111]/90 text-white rounded-full px-10 py-6 font-extrabold text-base shadow-lg transition-colors gap-2"
-                  onClick={() => setQuizOpen(true)}
-                >
-                  {t.nivelTest.cta}
-                </Button>
-              </div>
-            </motion.div>
-          </motion.div>
-        </div>
-      </section>
+      {/* El test "Conoce tu nivel de inglés" vivía aquí. Ahora tiene su propia
+          página (/nivel-ingles), enlazada desde el botón de la barra superior,
+          para que se pueda compartir el enlace suelto. */}
 
       {/* ── CÓMO FUNCIONA EL PAGO ── */}
       <section className="py-16 bg-purple-50/50">
@@ -797,12 +725,6 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
           </motion.div>
         </div>
       </section>
-
-      <LevelQuiz
-        open={quizOpen}
-        onClose={() => setQuizOpen(false)}
-        onRegister={() => onOpenAuth?.('register')}
-      />
 
     </Layout>
   );

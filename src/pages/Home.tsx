@@ -100,7 +100,7 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
 
         <div className="container mx-auto px-4 relative z-10">
           <motion.div
-            className="max-w-3xl mx-auto text-center"
+            className="max-w-5xl mx-auto text-center"
             initial="hidden" animate="visible" variants={staggerContainer}
           >
             <motion.div variants={staggerItem} className="mb-6">
@@ -111,10 +111,11 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
 
             <motion.div variants={staggerItem}>
               {/* Slogan de marca — se mantiene siempre en inglés, sin importar el idioma de interfaz.
-                  Va en h2 y no en h1: el h1 de esta página es el "Bienvenido/a / Welcome" de arriba. */}
-              <h2 className="text-3xl sm:text-5xl md:text-6xl font-black leading-[1.05] tracking-tight">
-                <span className="italic text-foreground/70">&quot;Speak Up and</span><br />
-                <span className="text-primary">Stand Out</span><br />
+                  Va en h2 y no en h1: el h1 de esta página es el "Bienvenido/a / Welcome" de arriba.
+                  En una sola línea (sin <br />): en pantallas pequeñas el texto fluye solo. */}
+              <h2 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-black leading-tight tracking-tight text-balance">
+                <span className="italic text-foreground/70">&quot;Speak Up and </span>
+                <span className="text-primary">Stand Out </span>
                 <span className="italic text-foreground/70">with </span>
                 <span className="bg-gradient-to-r from-primary to-violet-500 bg-clip-text text-transparent">BLANG&quot;</span>
               </h2>
