@@ -11,6 +11,7 @@ import type { AuthModal } from '@/lib/index';
 import { supabase } from '@/integrations/supabase/client';
 import { MODULES } from '@/components/EnglishForYou';
 import { MUNDO_REAL_TOPICS } from '@/pages/MundoRealData';
+import StudentReviews from '@/components/StudentReviews';
 import { useLanguage } from '@/lib/language';
 import { translations } from '@/lib/translations';
 
@@ -101,18 +102,7 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
   // sin él queda sin preseleccionar y el modal usa 'adults' por defecto.
   const ageParam = searchParams.get('age');
   const initialAgeGroup = VALID_AGE_GROUPS.includes(ageParam) ? (ageParam as 'kids' | 'teens' | 'adults') : undefined;
-  const [reviews, setReviews] = useState<{ full_name: string; rating: number; comment: string }[]>([]);
   const [moduleContent, setModuleContent] = useState<Record<string, { id: string; title: string; rich_text: string; sort_order: number }[]>>({});
-
-  useEffect(() => {
-    supabase
-      .from('student_reviews')
-      .select('full_name, rating, comment')
-      .eq('is_published', true)
-      .order('created_at', { ascending: false })
-      .limit(12)
-      .then(({ data }) => { if (data?.length) setReviews(data); });
-  }, []);
 
   // Carga dinámica de contenido de módulos "English for you" (público, sin auth)
   useEffect(() => {
@@ -591,65 +581,9 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
         </div>
       </section>
 
-      {/* ── RESEÑAS DE ESTUDIANTES ── */}
-      {reviews.length > 0 && (
-        <section id="reviews" className="py-14 sm:py-20">
-          <div className="container mx-auto px-4">
-            <motion.div
-              initial="hidden" whileInView="visible" viewport={{ once: true }} variants={staggerContainer}
-            >
-              {/* Encabezado */}
-              <motion.div variants={staggerItem} className="text-center mb-10 sm:mb-14">
-                <span className="inline-flex items-center gap-2 bg-violet-100 text-violet-700 text-xs font-bold px-4 py-1.5 rounded-full mb-4 border border-violet-200">
-                  <Star className="w-3.5 h-3.5 fill-primary text-primary" /> {t.reviews.badge}
-                </span>
-                <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-3">
-                  {t.reviews.titlePre}<span className="text-primary">{t.reviews.titleHighlight}</span>{t.reviews.titlePost}
-                </h2>
-                <p className="text-muted-foreground text-base max-w-xl mx-auto">
-                  {t.reviews.subtitle}
-                </p>
-              </motion.div>
-
-              {/* Grid de reseñas */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
-                {reviews.map((r, i) => (
-                  <motion.div
-                    key={i}
-                    variants={staggerItem}
-                    className="bg-card border border-border/60 rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col gap-3 hover:shadow-md transition-shadow"
-                  >
-                    {/* Estrellas */}
-                    <div className="flex gap-0.5">
-                      {[1,2,3,4,5].map(s => (
-                        <Star
-                          key={s}
-                          className={`w-4 h-4 ${s <= r.rating ? 'fill-primary text-primary' : 'text-muted-foreground/20'}`}
-                        />
-                      ))}
-                    </div>
-
-                    {/* Comentario */}
-                    <p className="text-sm text-foreground leading-relaxed flex-1">
-                      "{r.comment}"
-                    </p>
-
-                    {/* Autor anónimo */}
-                    <div className="flex items-center gap-2.5 pt-1 border-t border-border/40">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-extrabold text-sm shrink-0">
-                        ✦
-                      </div>
-                      <span className="text-sm font-semibold text-foreground/80 leading-tight">
-                        {t.reviews.anonName}
-                      </span>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
-          </div>
-        </section>
-      )}
+      {/* Resenas de estudiantes. El marcado y la consulta viven en
+          components/StudentReviews.tsx, porque el inicio muestra lo mismo. */}
+      <StudentReviews />
 
       {/* ── CTA FINAL ── */}
       <section className="py-20 relative overflow-hidden">

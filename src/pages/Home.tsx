@@ -9,6 +9,7 @@ import { ROUTE_PATHS } from '@/lib/index';
 import type { AuthModal } from '@/lib/index';
 import { useLanguage } from '@/lib/language';
 import { translations } from '@/lib/translations';
+import StudentReviews from '@/components/StudentReviews';
 
 const staggerContainer = {
   hidden: { opacity: 0 },
@@ -165,6 +166,12 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
           </motion.div>
         </div>
       </section>
+
+      {/* ── RESEÑAS REALES ──
+          Van debajo de las tarjetas: primero que elijan programa, y la prueba
+          social después, como refuerzo. Si no hay reseñas publicadas, el
+          componente no pinta nada. */}
+      <StudentReviews limit={6} className="pb-16 sm:pb-20" />
 
     </Layout>
   );
