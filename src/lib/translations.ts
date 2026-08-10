@@ -108,6 +108,54 @@ export const translations = {
         subtitle: 'Aprende inglés desde ya 🌎',
         cta: '¡Crear mi cuenta gratis! 🚀',
       },
+      // Los 3 planes del módulo de adultos. Reemplazan al bloque de "Clases 1 a 1".
+      planes: {
+        badge: '💳 Planes',
+        title: 'Elige cómo quieres aprender',
+        subtitle: 'Los tres planes te dan acceso completo a English for You. Cambia lo demás: si estudias por tu cuenta o con profesor, y qué inteligencia artificial usas para practicar.',
+        cta: 'Empieza hoy',
+        englishForYou: 'Acceso completo a English for You: fonética, English for the World y tips de grammar, listening, writing, reading, speaking y vocabulary.',
+        items: [
+          {
+            id: 'mensual-auto',
+            emoji: '📚',
+            title: 'Plan mensual',
+            tag: 'Autoaprendizaje',
+            desc: 'Estudias a tu ritmo, sin horarios y sin profesor.',
+            features: [
+              'Sin clases con profesor: avanzas por tu cuenta',
+              'Acceso a la plataforma: 5 unidades con sus quizzes',
+              'Práctica con inteligencia artificial (ChatGPT)',
+            ],
+          },
+          {
+            id: 'trimestral-auto',
+            emoji: '🚀',
+            title: 'Plan trimestral',
+            tag: 'Autoaprendizaje',
+            desc: 'Lo mismo que el mensual, con una IA de práctica más avanzada.',
+            features: [
+              'Sin clases con profesor: avanzas por tu cuenta',
+              'Acceso a la plataforma: 5 unidades con sus quizzes',
+              'Práctica con Speakology, nuestra IA más avanzada',
+            ],
+          },
+          {
+            id: 'mensual-profesor',
+            emoji: '🎥',
+            title: 'Plan mensual',
+            tag: 'Clases sincrónicas',
+            desc: 'Clases 1 a 1 con profesor, enfocadas en soltar el habla.',
+            features: [
+              'Clases 1 a 1 con profesor por Google Meet',
+              'Tú organizas cuántas horas al día y a la semana',
+              'Las clases se enfocan solo en speaking',
+              'Plataforma BLANG para practicar aparte: grammar, reading, listening y vocabulary',
+              'Eliges la IA con la que practicas: ChatGPT o Speakology',
+            ],
+          },
+        ],
+      },
       comoFunciona: {
         title: '¿Cómo funciona?',
         subtitlePre: 'El aprendizaje está organizado en ',
@@ -598,6 +646,53 @@ export const translations = {
         badge: '🎉 25% off your first month!',
         subtitle: 'Learn English starting now 🌎',
         cta: 'Create my free account! 🚀',
+      },
+      planes: {
+        badge: '💳 Plans',
+        title: 'Choose how you want to learn',
+        subtitle: 'All three plans give you full access to English for You. What changes is whether you study on your own or with a teacher, and which AI you practise with.',
+        cta: 'Start today',
+        englishForYou: 'Full access to English for You: phonetics, English for the World, and tips on grammar, listening, writing, reading, speaking and vocabulary.',
+        items: [
+          {
+            id: 'mensual-auto',
+            emoji: '📚',
+            title: 'Monthly plan',
+            tag: 'Self-study',
+            desc: 'Study at your own pace, no schedule and no teacher.',
+            features: [
+              'No teacher-led classes: you move on your own',
+              'Platform access: 5 units with their quizzes',
+              'Practice with artificial intelligence (ChatGPT)',
+            ],
+          },
+          {
+            id: 'trimestral-auto',
+            emoji: '🚀',
+            title: 'Quarterly plan',
+            tag: 'Self-study',
+            desc: 'Same as the monthly plan, with a more advanced practice AI.',
+            features: [
+              'No teacher-led classes: you move on your own',
+              'Platform access: 5 units with their quizzes',
+              'Practice with Speakology, our most advanced AI',
+            ],
+          },
+          {
+            id: 'mensual-profesor',
+            emoji: '🎥',
+            title: 'Monthly plan',
+            tag: 'Live classes',
+            desc: '1-on-1 classes with a teacher, focused on getting you talking.',
+            features: [
+              '1-on-1 classes with a teacher over Google Meet',
+              'You decide how many hours a day and a week',
+              'Classes focus on speaking only',
+              'BLANG platform to practise on your own: grammar, reading, listening and vocabulary',
+              'You pick the AI you practise with: ChatGPT or Speakology',
+            ],
+          },
+        ],
       },
       comoFunciona: {
         title: 'How does it work?',

@@ -162,8 +162,12 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
       {/* PAGE BG */}
       <div className="fixed inset-0 -z-10 bg-gradient-to-br from-purple-50 via-violet-50/60 to-background pointer-events-none" />
 
-      {/* ── ARMA TU PLAN (Clases 1 a 1) — PRIMER BLOQUE ── */}
-      <section id="sesiones-vivo" className="py-14 sm:py-24 relative overflow-hidden">
+      {/* ── PLANES — PRIMER BLOQUE ──
+          Reemplaza al antiguo bloque de "Clases 1 a 1". Las tres tarjetas salen
+          de t.planes.items: para cambiar textos se edita translations.ts, no
+          este archivo. El acceso a English for You es igual en los tres, así
+          que va aparte al pie de cada tarjeta y no repetido en la lista. */}
+      <section id="planes" className="py-14 sm:py-24 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-violet-50 via-purple-50 to-gray-100" />
         <div className="absolute top-0 right-0 w-96 h-96 bg-primary/8 rounded-full blur-3xl" />
         <div className="absolute bottom-0 left-0 w-72 h-72 bg-violet-300/15 rounded-full blur-3xl" />
@@ -173,107 +177,63 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
             className="max-w-6xl mx-auto"
             initial="hidden" animate="visible" variants={staggerContainer}
           >
-            {/* Badge + título */}
             <motion.div variants={fadeInUp} className="text-center mb-10 sm:mb-14">
               <span className="inline-flex items-center gap-2 bg-primary/10 text-primary text-xs sm:text-sm font-bold px-4 sm:px-5 py-2 rounded-full mb-4 sm:mb-5 border border-primary/20">
-                {t.armaTuPlan.badge}
+                {t.planes.badge}
               </span>
-              <h2 className="text-3xl sm:text-5xl md:text-6xl font-black text-foreground leading-tight mb-3 sm:mb-4">
-                {t.armaTuPlan.titlePre}{' '}
-                <span className="text-primary">{t.armaTuPlan.titleHighlight}</span>
-                <br className="hidden md:block" />{' '}{t.armaTuPlan.titlePost}
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight mb-4">
+                {t.planes.title}
               </h2>
-              <p className="text-base sm:text-xl text-muted-foreground max-w-xl mx-auto">
-                {t.armaTuPlan.subtitle}
+              <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">
+                {t.planes.subtitle}
               </p>
             </motion.div>
 
-            {/* Cards de beneficios + CTA */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 items-start">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {t.planes.items.map((plan, i) => (
+                <motion.div
+                  key={plan.id}
+                  variants={fadeInUp}
+                  className={`bg-background/90 border-2 rounded-3xl p-6 sm:p-7 shadow-sm hover:shadow-xl transition-shadow flex flex-col ${
+                    i === t.planes.items.length - 1
+                      ? 'border-primary sm:col-span-2 lg:col-span-1'
+                      : 'border-border/50'
+                  }`}
+                >
+                  <div className="w-14 h-14 rounded-2xl bg-[#4C1D95] flex items-center justify-center text-2xl shadow-lg mb-4">
+                    {plan.emoji}
+                  </div>
 
-              {/* Columna izquierda: beneficios */}
-              <motion.div variants={staggerItem} className="flex flex-col gap-4 sm:gap-5">
-                {['🗓️', '🎯', '💻', '🔓', 'ℹ️'].map((icon, i) => ({ icon, ...t.armaTuPlan.benefits[i] })).map((item, i) => (
-                  <motion.div
-                    key={i}
-                    variants={staggerItem}
-                    className="flex items-start gap-4 sm:gap-5 bg-white/80 backdrop-blur border border-border/50 rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow"
+                  <span className="text-[11px] font-bold uppercase tracking-wide text-primary bg-primary/10 px-2.5 py-1 rounded-full inline-block w-fit mb-2">
+                    {plan.tag}
+                  </span>
+                  <h3 className="text-xl sm:text-2xl font-extrabold leading-tight">{plan.title}</h3>
+                  <p className="text-sm text-muted-foreground mt-2 mb-5">{plan.desc}</p>
+
+                  <ul className="space-y-2.5 flex-1">
+                    {plan.features.map((f, j) => (
+                      <li key={j} className="flex items-start gap-2.5">
+                        <span className="mt-1 w-4 h-4 rounded-full bg-primary/15 flex items-center justify-center flex-shrink-0">
+                          <span className="w-1.5 h-1.5 rounded-full bg-primary block" />
+                        </span>
+                        <span className="text-sm text-foreground/80 leading-snug">{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <p className="text-xs text-muted-foreground leading-snug border-t border-border/50 mt-5 pt-4">
+                    {t.planes.englishForYou}
+                  </p>
+
+                  <Button
+                    className="w-full mt-5 rounded-xl py-5 font-bold text-sm bg-[#111111] hover:bg-[#111111]/90 text-white transition-colors gap-2 shadow-lg"
+                    onClick={() => onOpenAuth?.('register')}
                   >
-                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-2xl sm:text-3xl flex-shrink-0">
-                      {item.icon}
-                    </div>
-                    <div>
-                      <p className="font-extrabold text-sm sm:text-base text-foreground mb-1">{item.title}</p>
-                      <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
-                    </div>
-                  </motion.div>
-                ))}
-              </motion.div>
-
-              {/* Columna derecha: tarjeta precio + CTA */}
-              <motion.div variants={staggerItem} className="flex flex-col gap-4 sm:gap-6">
-                {/* Tarjeta precio destacada */}
-                <div className="relative bg-gradient-to-br from-primary via-violet-600 to-purple-700 rounded-3xl p-5 sm:p-8 text-white shadow-2xl shadow-primary/30 overflow-hidden">
-                  <div className="absolute -top-6 -right-6 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
-                  <div className="absolute -bottom-6 -left-6 w-24 h-24 bg-white/10 rounded-full blur-xl" />
-
-                  <div className="relative z-10">
-                    <div className="flex items-center gap-3 mb-4 sm:mb-6">
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white/20 flex items-center justify-center text-xl sm:text-2xl">🔒</div>
-                      <div>
-                        <p className="font-extrabold text-base sm:text-lg">{t.armaTuPlan.priceCard.lockedTitle}</p>
-                        <p className="text-white/70 text-xs sm:text-sm">{t.armaTuPlan.priceCard.lockedDesc}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-end gap-3 mb-2 flex-wrap">
-                      <span className="text-5xl sm:text-7xl font-black leading-none">
-                        ${PRECIO_CLASE_BASE.toLocaleString('es-CO')}
-                      </span>
-                    </div>
-                    <p className="text-white/70 text-xs sm:text-sm mb-4 sm:mb-6">{t.armaTuPlan.priceCard.per}</p>
-                    <ul className="space-y-2 sm:space-y-2.5 mb-4 sm:mb-6">
-                      {t.armaTuPlan.priceCard.bullets.map((f, i) => (
-                        <li key={i} className="text-white/90 font-medium text-xs sm:text-sm">✓  {f}</li>
-                      ))}
-                    </ul>
-                    <p className="bg-white/15 text-white rounded-xl px-3 py-2 text-xs sm:text-sm font-semibold mb-4 sm:mb-6">
-                      {t.armaTuPlan.priceCard.discountTeaser}
-                    </p>
-                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-                      <Button
-                        size="lg"
-                        className="flex-1 bg-[#111111] hover:bg-[#111111]/90 text-white font-extrabold text-sm sm:text-base py-5 sm:py-6 rounded-2xl shadow-xl transition-colors active:scale-[0.98]"
-                        onClick={() => {
-                          sessionStorage.setItem(OPEN_PLAN_AFTER_AUTH_KEY, initialAgeGroup || '1');
-                          onOpenAuth?.('register');
-                        }}
-                      >
-                        {t.armaTuPlan.priceCard.cta}
-                      </Button>
-                      <Button
-                        size="lg"
-                        variant="outline"
-                        className="flex-1 border-white/40 text-white hover:bg-white/10 font-bold text-sm sm:text-base py-5 sm:py-6 rounded-2xl"
-                        onClick={() => {
-                          sessionStorage.setItem(OPEN_PLAN_AFTER_AUTH_KEY, initialAgeGroup || '1');
-                          onOpenAuth?.('login');
-                        }}
-                      >
-                        {t.armaTuPlan.priceCard.loginCta}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Nota de confianza */}
-                <div className="flex items-center gap-3 sm:gap-4 bg-white/80 backdrop-blur border border-border/50 rounded-2xl p-3 sm:p-4 shadow-sm">
-                  <span className="text-2xl sm:text-3xl">⭐</span>
-                  <div>
-                    <p className="font-extrabold text-xs sm:text-sm text-foreground">{t.armaTuPlan.trust.title}</p>
-                    <p className="text-xs text-muted-foreground">{t.armaTuPlan.trust.desc}</p>
-                  </div>
-                </div>
-              </motion.div>
+                    {t.planes.cta}
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </motion.div>
+              ))}
             </div>
           </motion.div>
         </div>
@@ -330,13 +290,13 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
                 alargaba mucho la página. Cada paso es ahora una tarjeta entera
                 (cabecera + descripción + detalles) y las tarjetas se apilan de
                 dos en dos. Con 5 pasos, el último ocupa las dos columnas. */}
-            <div className="grid md:grid-cols-2 gap-5">
+            <div className="grid sm:grid-cols-2 gap-5">
               {STEPS.map((step, i) => (
                 <motion.div
                   key={step.number}
                   variants={fadeUp}
                   className={`bg-background/80 border border-border/40 rounded-3xl p-6 shadow-sm flex flex-col ${
-                    i === STEPS.length - 1 && STEPS.length % 2 === 1 ? 'md:col-span-2' : ''
+                    i === STEPS.length - 1 && STEPS.length % 2 === 1 ? 'sm:col-span-2' : ''
                   }`}
                 >
                   {/* Cabecera del paso */}
