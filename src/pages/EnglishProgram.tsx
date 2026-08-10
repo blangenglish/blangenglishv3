@@ -97,8 +97,9 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
   const LEVELS = LEVELS_STYLE.map((lv, i) => ({ ...lv, ...t.niveles.levels[i] }));
   const FAQ = t.faq;
   const [searchParams] = useSearchParams();
-  // Grupo de edad detectado por la tarjeta de la pantalla de bienvenida (?age=kids|teens|adults).
-  // Si llega por otro medio (link directo, etc.) queda sin preseleccionar y el modal usa 'adults' por defecto.
+  // Esta página es el módulo de Inglés para adultos (/ingles/adultos). El parámetro
+  // ?age=kids|teens|adults se sigue aceptando por si llega desde un enlace antiguo;
+  // sin él queda sin preseleccionar y el modal usa 'adults' por defecto.
   const ageParam = searchParams.get('age');
   const initialAgeGroup = VALID_AGE_GROUPS.includes(ageParam) ? (ageParam as 'kids' | 'teens' | 'adults') : undefined;
   const [quizOpen, setQuizOpen] = useState(false);

@@ -11,7 +11,14 @@ export const ROUTE_PATHS = {
   PRIVACY: '/privacy',
   RESET_PASSWORD: '/reset-password',
   ENGLISH_MODULE: '/english/:moduleSlug',
+  // Inglés para hispanohablantes: una página con los 3 módulos y una página por
+  // módulo. ENGLISH ('/english') es el enlace antiguo y ahora solo redirige al
+  // hub, para no romper enlaces ya compartidos.
   ENGLISH: '/english',
+  ENGLISH_HUB: '/ingles',
+  ENGLISH_ADULTS: '/ingles/adultos',
+  ENGLISH_TEENS: '/ingles/jovenes',
+  ENGLISH_KIDS: '/ingles/ninos',
   SPANISH: '/espanol',
   PHONETICS: '/phonetics',
 } as const;

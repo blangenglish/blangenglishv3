@@ -48,9 +48,27 @@ export const translations = {
       cta: 'Conoce precios',
       programs: {
         spanish: { title: 'Español para extranjeros', subtitle: 'Spanish for Foreigners', desc: 'Aprende español bajo inmersión. Metodología que desarrolla primero comprensión (lectura y escucha) y luego producción (habla y escritura).' },
-        kids: { title: 'Inglés para niños', subtitle: '8–13 años', desc: 'Aprendizaje divertido y visual, con juegos, canciones e historias cortas. Sesiones breves, vocabulario básico a través del juego.' },
-        teens: { title: 'Inglés jóvenes', subtitle: '14–17 años', desc: 'Conversación real, preparación académica y vocabulario para exámenes o intercambios. Contenido dinámico y social.' },
+        english: { title: 'Inglés para hispanohablantes', subtitle: 'Niños, jóvenes y adultos', desc: 'Tres módulos según la edad, cada uno con su propia metodología, contenidos y ritmo. Entra y elige el que te corresponde.' },
+      },
+    },
+    // Página intermedia de Inglés (/ingles): muestra los 3 módulos por edad.
+    // Cada módulo tiene su propia página, así que su enlace se puede compartir.
+    englishHub: {
+      badge: '🇬🇧 Inglés para hispanohablantes',
+      title: 'Elige tu módulo',
+      subtitle: 'Cada módulo tiene su propia metodología, contenidos y ritmo. Entra en el que te corresponde para ver el programa completo.',
+      cta: 'Ver el módulo',
+      back: '← Volver a los módulos',
+      soon: {
+        badge: '🚧 En preparación',
+        title: 'Estamos armando este módulo',
+        desc: 'Muy pronto verás aquí el programa completo. Mientras tanto, escríbenos por WhatsApp y te contamos cómo funciona.',
+        cta: '📩 Escríbenos por WhatsApp',
+      },
+      modules: {
         adults: { title: 'Inglés para adultos', subtitle: 'Todos los niveles', desc: 'Metodología por niveles (A1–C1), práctica con IA, clases en vivo opcionales, horario flexible.' },
+        teens: { title: 'Inglés para jóvenes', subtitle: '14–17 años', desc: 'Conversación real, preparación académica y vocabulario para exámenes o intercambios. Contenido dinámico y social.' },
+        kids: { title: 'Inglés para niños', subtitle: '8–13 años', desc: 'Aprendizaje divertido y visual, con juegos, canciones e historias cortas. Sesiones breves, vocabulario básico a través del juego.' },
       },
     },
     english: {
@@ -518,9 +536,25 @@ export const translations = {
       cta: 'See pricing',
       programs: {
         spanish: { title: 'Spanish for Foreigners', subtitle: 'Español para extranjeros', desc: 'Learn Spanish through immersion. A method that builds comprehension first (reading and listening) and then production (speaking and writing).' },
-        kids: { title: 'English for Kids', subtitle: 'Ages 8–13', desc: 'Fun, visual learning with games, songs, and short stories. Short sessions, basic vocabulary learned through play.' },
-        teens: { title: 'English for Teens', subtitle: 'Ages 14–17', desc: 'Real conversation, academic prep, and vocabulary for exams or exchanges. Dynamic, social content.' },
+        english: { title: 'English for Spanish Speakers', subtitle: 'Kids, teens and adults', desc: 'Three modules by age, each with its own method, content and pace. Come in and pick the one that fits you.' },
+      },
+    },
+    englishHub: {
+      badge: '🇬🇧 English for Spanish Speakers',
+      title: 'Choose your module',
+      subtitle: 'Each module has its own method, content and pace. Open the one that fits you to see the full programme.',
+      cta: 'View module',
+      back: '← Back to the modules',
+      soon: {
+        badge: '🚧 Coming soon',
+        title: 'We are still building this module',
+        desc: "You'll see the full programme here very soon. In the meantime, message us on WhatsApp and we'll walk you through it.",
+        cta: '📩 Message us on WhatsApp',
+      },
+      modules: {
         adults: { title: 'English for Adults', subtitle: 'All levels', desc: 'Level-based method (A1–C1), AI practice, optional live classes, flexible schedule.' },
+        teens: { title: 'English for Teens', subtitle: 'Ages 14–17', desc: 'Real conversation, academic prep, and vocabulary for exams or exchanges. Dynamic, social content.' },
+        kids: { title: 'English for Kids', subtitle: 'Ages 8–13', desc: 'Fun, visual learning with games, songs, and short stories. Short sessions, basic vocabulary learned through play.' },
       },
     },
     english: {

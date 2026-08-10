@@ -314,7 +314,7 @@ export function Layout({ children, isLoggedIn = false, onOpenAuth, onLogout, use
               <ul className="space-y-2">
                 {[
                   { label: t.footer.home, href: ROUTE_PATHS.HOME },
-                  { label: t.footer.english, href: ROUTE_PATHS.ENGLISH },
+                  { label: t.footer.english, href: ROUTE_PATHS.ENGLISH_HUB },
                   { label: t.footer.spanish, href: ROUTE_PATHS.SPANISH },
                 ].map((link) => (
                   <li key={link.label}>

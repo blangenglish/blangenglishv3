@@ -12,6 +12,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { LanguageProvider } from '@/lib/language';
 import Home from '@/pages/Home';
 import EnglishProgram from '@/pages/EnglishProgram';
+import EnglishHub from '@/pages/EnglishHub';
+import EnglishAgeModule from '@/pages/EnglishAgeModule';
 import SpanishProgram from '@/pages/Spanish';
 import Lessons from '@/pages/Lessons';
 import LiveClasses from '@/pages/LiveClasses';
@@ -218,7 +220,13 @@ function AppRoutes() {
         <Route path={ROUTE_PATHS.DASHBOARD} element={<Dashboard {...sharedProps} />} />
         <Route path={ROUTE_PATHS.PRICING} element={<Navigate to={ROUTE_PATHS.HOME} replace />} />
         <Route path={ROUTE_PATHS.METHODOLOGY} element={<Navigate to={ROUTE_PATHS.HOME} replace />} />
-        <Route path={ROUTE_PATHS.ENGLISH} element={<EnglishProgram onOpenAuth={(m) => setAuthModal(m)} isLoggedIn={isLoggedIn} />} />
+        {/* Inglés para hispanohablantes: hub con los 3 módulos + una página por
+            módulo. '/english' es el enlace antiguo y solo redirige al hub. */}
+        <Route path={ROUTE_PATHS.ENGLISH} element={<Navigate to={ROUTE_PATHS.ENGLISH_HUB} replace />} />
+        <Route path={ROUTE_PATHS.ENGLISH_HUB} element={<EnglishHub onOpenAuth={(m) => setAuthModal(m)} isLoggedIn={isLoggedIn} />} />
+        <Route path={ROUTE_PATHS.ENGLISH_ADULTS} element={<EnglishProgram onOpenAuth={(m) => setAuthModal(m)} isLoggedIn={isLoggedIn} />} />
+        <Route path={ROUTE_PATHS.ENGLISH_TEENS} element={<EnglishAgeModule moduleId="teens" onOpenAuth={(m) => setAuthModal(m)} isLoggedIn={isLoggedIn} />} />
+        <Route path={ROUTE_PATHS.ENGLISH_KIDS} element={<EnglishAgeModule moduleId="kids" onOpenAuth={(m) => setAuthModal(m)} isLoggedIn={isLoggedIn} />} />
         <Route path={ROUTE_PATHS.SPANISH} element={<SpanishProgram onOpenAuth={(m) => setAuthModal(m)} isLoggedIn={isLoggedIn} />} />
         <Route path={ROUTE_PATHS.FAQ} element={<FAQ {...sharedProps} />} />
         <Route path={ROUTE_PATHS.TERMS} element={<Terms {...sharedProps} />} />

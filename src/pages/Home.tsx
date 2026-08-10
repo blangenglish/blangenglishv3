@@ -24,17 +24,18 @@ interface HomeProps {
   isLoggedIn?: boolean;
 }
 
-// Parte 9 — sistema de diseño: las 4 tarjetas son estructuralmente idénticas
+// Parte 9 — sistema de diseño: las tarjetas son estructuralmente idénticas
 // (mismo fondo, radio, sombra, padding, ícono y botón). No hay degradados ni
 // colores distintos por tarjeta — solo cambian el emoji, el texto y la ruta.
 // PENDIENTE POR DEFINIR: cuál tarjeta/plan es la "Más popular" — hasta que se
 // confirme, ninguna tarjeta lleva el badge/borde plateado o dorado de acento
 // (ver también ClasesVirtualesModal.tsx para el mismo pendiente en los planes).
+//
+// El inicio ofrece los dos idiomas. Los 3 módulos de inglés (niños, jóvenes y
+// adultos) ya no viven aquí: están un nivel más abajo, en /ingles.
 const PROGRAMS_STYLE = [
   { id: 'spanish', emoji: '🇪🇸', route: ROUTE_PATHS.SPANISH },
-  { id: 'kids', emoji: '🧒', route: ROUTE_PATHS.ENGLISH },
-  { id: 'teens', emoji: '🧑', route: ROUTE_PATHS.ENGLISH },
-  { id: 'adults', emoji: '🎓', route: ROUTE_PATHS.ENGLISH },
+  { id: 'english', emoji: '🇬🇧', route: ROUTE_PATHS.ENGLISH_HUB },
 ];
 
 export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
@@ -98,9 +99,7 @@ export default function Home({ onOpenAuth, isLoggedIn }: HomeProps) {
             initial="hidden" animate="visible" variants={staggerContainer}
           >
             {PROGRAMS.map((p) => {
-              // Para los 3 programas de inglés, llevamos el grupo de edad como query param
-              // (?age=kids|teens|adults) para preseleccionarlo en "Arma tu plan mensual".
-              const targetUrl = p.route === ROUTE_PATHS.ENGLISH ? `${p.route}?age=${p.id}` : p.route;
+              const targetUrl = p.route;
               return (
                 <motion.div
                   key={p.id}
