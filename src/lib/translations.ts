@@ -154,6 +154,20 @@ export const translations = {
               'Eliges la IA con la que practicas: ChatGPT o Speakology',
             ],
           },
+          {
+            // Versión para niños: las clases no se limitan a speaking, cubren
+            // todas las destrezas. Es el único plan del módulo de niños.
+            id: 'mensual-profesor-ninos',
+            emoji: '🎥',
+            title: 'Plan mensual',
+            tag: 'Clases sincrónicas',
+            desc: 'Clases 1 a 1 con profesor, trabajando todas las destrezas.',
+            features: [
+              'Clases 1 a 1 con profesor por Google Meet',
+              'Tú organizas cuántas horas al día y a la semana',
+              'Las clases practican grammar, reading, listening, vocabulary y speaking',
+            ],
+          },
         ],
       },
       comoFunciona: {
@@ -690,6 +704,18 @@ export const translations = {
               'Classes focus on speaking only',
               'BLANG platform to practise on your own: grammar, reading, listening and vocabulary',
               'You pick the AI you practise with: ChatGPT or Speakology',
+            ],
+          },
+          {
+            id: 'mensual-profesor-ninos',
+            emoji: '🎥',
+            title: 'Monthly plan',
+            tag: 'Live classes',
+            desc: '1-on-1 classes with a teacher, working on every skill.',
+            features: [
+              '1-on-1 classes with a teacher over Google Meet',
+              'You decide how many hours a day and a week',
+              'Classes practise grammar, reading, listening, vocabulary and speaking',
             ],
           },
         ],

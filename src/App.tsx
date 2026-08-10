@@ -14,7 +14,6 @@ import Home from '@/pages/Home';
 import EnglishProgram from '@/pages/EnglishProgram';
 import EnglishHub from '@/pages/EnglishHub';
 import LevelTest from '@/pages/LevelTest';
-import EnglishAgeModule from '@/pages/EnglishAgeModule';
 import SpanishProgram from '@/pages/Spanish';
 import Lessons from '@/pages/Lessons';
 import LiveClasses from '@/pages/LiveClasses';
@@ -226,8 +225,9 @@ function AppRoutes() {
         <Route path={ROUTE_PATHS.ENGLISH} element={<Navigate to={ROUTE_PATHS.ENGLISH_HUB} replace />} />
         <Route path={ROUTE_PATHS.ENGLISH_HUB} element={<EnglishHub onOpenAuth={(m) => setAuthModal(m)} isLoggedIn={isLoggedIn} />} />
         <Route path={ROUTE_PATHS.ENGLISH_ADULTS} element={<EnglishProgram onOpenAuth={(m) => setAuthModal(m)} isLoggedIn={isLoggedIn} />} />
-        <Route path={ROUTE_PATHS.ENGLISH_TEENS} element={<EnglishAgeModule moduleId="teens" onOpenAuth={(m) => setAuthModal(m)} isLoggedIn={isLoggedIn} />} />
-        <Route path={ROUTE_PATHS.ENGLISH_KIDS} element={<EnglishAgeModule moduleId="kids" onOpenAuth={(m) => setAuthModal(m)} isLoggedIn={isLoggedIn} />} />
+        {/* Los tres módulos usan la misma página: solo cambian los planes. */}
+        <Route path={ROUTE_PATHS.ENGLISH_TEENS} element={<EnglishProgram moduleId="teens" onOpenAuth={(m) => setAuthModal(m)} isLoggedIn={isLoggedIn} />} />
+        <Route path={ROUTE_PATHS.ENGLISH_KIDS} element={<EnglishProgram moduleId="kids" onOpenAuth={(m) => setAuthModal(m)} isLoggedIn={isLoggedIn} />} />
         <Route path={ROUTE_PATHS.LEVEL_TEST} element={<LevelTest onOpenAuth={(m) => setAuthModal(m)} isLoggedIn={isLoggedIn} />} />
         <Route path={ROUTE_PATHS.SPANISH} element={<SpanishProgram onOpenAuth={(m) => setAuthModal(m)} isLoggedIn={isLoggedIn} />} />
         <Route path={ROUTE_PATHS.FAQ} element={<FAQ {...sharedProps} />} />

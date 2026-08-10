@@ -47,7 +47,19 @@ const fadeRight = {
 interface EnglishProgramProps {
   onOpenAuth?: (modal: AuthModal) => void;
   isLoggedIn?: boolean;
+  // Módulo por edad. Los tres comparten toda la página (método, 5 pasos,
+  // niveles, English for You, FAQ); lo único que cambia son los planes.
+  moduleId?: 'adults' | 'teens' | 'kids';
 }
+
+// Qué planes ve cada módulo. Adultos tiene los tres; jóvenes y niños solo el
+// de clases sincrónicas, y el de niños además cubre todas las destrezas y no
+// solo speaking, por eso es un plan aparte.
+const PLANES_POR_MODULO = {
+  adults: ['mensual-auto', 'trimestral-auto', 'mensual-profesor'],
+  teens: ['mensual-profesor'],
+  kids: ['mensual-profesor-ninos'],
+};
 
 // Paleta limitada a blanco/negro/morado (Parte 7): cada paso/nivel se diferencia
 // por tono e intensidad dentro de esas 3 familias, no por colores distintos.
@@ -87,7 +99,7 @@ const PRECIO_MENSUAL_USD_DESC = Math.round(PRECIO_MENSUAL_USD * 0.75 * 100) / 10
 // (ver ClasesVirtualesModal.tsx).
 const PRECIO_CLASE_BASE = 37500;
 
-export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgramProps) {
+export default function EnglishProgram({ onOpenAuth, isLoggedIn, moduleId = 'adults' }: EnglishProgramProps) {
   const navigate = useNavigate();
   const { lang } = useLanguage();
   const t = translations[lang].english;
@@ -95,6 +107,12 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
   const UNITS = UNITS_STYLE.map((u, i) => ({ ...u, ...t.comoFunciona.units[i] }));
   const LEVELS = LEVELS_STYLE.map((lv, i) => ({ ...lv, ...t.niveles.levels[i] }));
   const FAQ = t.faq;
+  // Planes de este módulo, en el orden en que están definidos arriba.
+  const PLANES = PLANES_POR_MODULO[moduleId].map(
+    (id) => t.planes.items.find((p) => p.id === id)
+  ).filter(Boolean);
+  // Nombre del módulo para la insignia del bloque de planes ("Inglés para niños").
+  const nombreModulo = translations[lang].englishHub.modules[moduleId]?.title;
   const [searchParams] = useSearchParams();
   // Esta página es el módulo de Inglés para adultos (/ingles/adultos). El parámetro
   // ?age=kids|teens|adults se sigue aceptando por si llega desde un enlace antiguo;
@@ -168,7 +186,7 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
           >
             <motion.div variants={fadeInUp} className="text-center mb-10 sm:mb-14">
               <span className="inline-flex items-center gap-2 bg-primary/10 text-primary text-xs sm:text-sm font-bold px-4 sm:px-5 py-2 rounded-full mb-4 sm:mb-5 border border-primary/20">
-                {t.planes.badge}
+                {nombreModulo || t.planes.badge}
               </span>
               <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight mb-4">
                 {t.planes.title}
@@ -178,15 +196,23 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
               </p>
             </motion.div>
 
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {t.planes.items.map((plan, i) => (
+            {/* Con un solo plan (jóvenes y niños) la tarjeta se centra en vez
+                de estirarse a todo el ancho, que quedaría desproporcionada. */}
+            <div className={`grid gap-5 ${
+              PLANES.length === 1
+                ? 'max-w-md mx-auto'
+                : 'sm:grid-cols-2 lg:grid-cols-3'
+            }`}>
+              {PLANES.map((plan, i) => (
                 <motion.div
                   key={plan.id}
                   variants={fadeInUp}
                   className={`bg-background/90 border-2 rounded-3xl p-6 sm:p-7 shadow-sm hover:shadow-xl transition-shadow flex flex-col ${
-                    i === t.planes.items.length - 1
+                    i === PLANES.length - 1 && PLANES.length > 1
                       ? 'border-primary sm:col-span-2 lg:col-span-1'
-                      : 'border-border/50'
+                      : i === PLANES.length - 1
+                        ? 'border-primary'
+                        : 'border-border/50'
                   }`}
                 >
                   <div className="w-14 h-14 rounded-2xl bg-[#4C1D95] flex items-center justify-center text-2xl shadow-lg mb-4">
