@@ -11,7 +11,6 @@ import type { AuthModal } from '@/lib/index';
 import { supabase } from '@/integrations/supabase/client';
 import { MODULES } from '@/components/EnglishForYou';
 import { MUNDO_REAL_TOPICS } from '@/pages/MundoRealData';
-import StudentReviews from '@/components/StudentReviews';
 import { useLanguage } from '@/lib/language';
 import { translations } from '@/lib/translations';
 
@@ -581,9 +580,8 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn }: EnglishProgra
         </div>
       </section>
 
-      {/* Resenas de estudiantes. El marcado y la consulta viven en
-          components/StudentReviews.tsx, porque el inicio muestra lo mismo. */}
-      <StudentReviews />
+      {/* Las reseñas de estudiantes salieron de aquí: ahora se muestran solo
+          en la página principal (Home.tsx). */}
 
       {/* ── CTA FINAL ── */}
       <section className="py-20 relative overflow-hidden">
