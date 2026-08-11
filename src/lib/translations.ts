@@ -113,6 +113,10 @@ export const translations = {
         badge: '💳 Planes',
         title: 'Elige cómo quieres aprender',
         subtitle: 'Los tres planes te dan acceso completo a English for You. Cambia lo demás: si estudias por tu cuenta o con profesor, y qué inteligencia artificial usas para practicar.',
+        // Jóvenes y niños tienen un solo plan, así que no hay nada que elegir:
+        // el título y el subtítulo cambian para no prometer una comparación.
+        titleSingle: 'Así aprendes aquí',
+        subtitleSingle: 'Un solo plan, con clases en vivo y profesor propio. Esto es lo que incluye.',
         cta: 'Empieza hoy',
         englishForYou: 'Acceso completo a English for You: fonética, English for the World y tips de grammar, listening, writing, reading, speaking y vocabulary.',
         items: [
@@ -665,6 +669,8 @@ export const translations = {
         badge: '💳 Plans',
         title: 'Choose how you want to learn',
         subtitle: 'All three plans give you full access to English for You. What changes is whether you study on your own or with a teacher, and which AI you practise with.',
+        titleSingle: 'How you learn here',
+        subtitleSingle: 'One single plan, with live classes and your own teacher. This is what it includes.',
         cta: 'Start today',
         englishForYou: 'Full access to English for You: phonetics, English for the World, and tips on grammar, listening, writing, reading, speaking and vocabulary.',
         items: [

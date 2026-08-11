@@ -189,67 +189,99 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn, moduleId = 'adu
                 {nombreModulo || t.planes.badge}
               </span>
               <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight mb-4">
-                {t.planes.title}
+                {PLANES.length === 1 ? t.planes.titleSingle : t.planes.title}
               </h2>
               <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">
-                {t.planes.subtitle}
+                {PLANES.length === 1 ? t.planes.subtitleSingle : t.planes.subtitle}
               </p>
             </motion.div>
 
-            {/* Con un solo plan (jóvenes y niños) la tarjeta se centra en vez
-                de estirarse a todo el ancho, que quedaría desproporcionada. */}
-            <div className={`grid gap-5 ${
-              PLANES.length === 1
-                ? 'max-w-md mx-auto'
-                : 'sm:grid-cols-2 lg:grid-cols-3'
-            }`}>
-              {PLANES.map((plan, i) => (
-                <motion.div
-                  key={plan.id}
-                  variants={fadeInUp}
-                  className={`bg-background/90 border-2 rounded-3xl p-6 sm:p-7 shadow-sm hover:shadow-xl transition-shadow flex flex-col ${
-                    i === PLANES.length - 1 && PLANES.length > 1
-                      ? 'border-primary sm:col-span-2 lg:col-span-1'
-                      : i === PLANES.length - 1
-                        ? 'border-primary'
-                        : 'border-border/50'
-                  }`}
+            {PLANES.length === 1 ? (
+              /* Un solo plan (jóvenes y niños): no hay nada que comparar, así
+                 que no va dentro de una tarjeta. Se presenta abierto sobre la
+                 sección, con los puntos en dos columnas para que se lea de una. */
+              <motion.div variants={fadeInUp} className="max-w-3xl mx-auto text-center">
+                <div className="w-16 h-16 rounded-3xl bg-[#4C1D95] flex items-center justify-center text-3xl shadow-lg mx-auto mb-5">
+                  {PLANES[0].emoji}
+                </div>
+
+                <span className="text-[11px] font-bold uppercase tracking-wide text-primary bg-primary/10 px-3 py-1 rounded-full inline-block mb-3">
+                  {PLANES[0].tag}
+                </span>
+                <h3 className="text-2xl sm:text-3xl font-extrabold leading-tight">{PLANES[0].title}</h3>
+                <p className="text-base text-muted-foreground mt-2 mb-8">{PLANES[0].desc}</p>
+
+                <ul className="grid sm:grid-cols-2 gap-x-8 gap-y-3 text-left mb-8">
+                  {PLANES[0].features.map((f, j) => (
+                    <li key={j} className="flex items-start gap-2.5">
+                      <span className="mt-1 w-4 h-4 rounded-full bg-primary/15 flex items-center justify-center flex-shrink-0">
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary block" />
+                      </span>
+                      <span className="text-sm sm:text-base text-foreground/80 leading-snug">{f}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <p className="text-sm text-muted-foreground leading-snug border-t border-border/50 pt-6 mb-8 max-w-2xl mx-auto">
+                  {t.planes.englishForYou}
+                </p>
+
+                <Button
+                  className="w-full sm:w-auto sm:px-14 rounded-xl py-6 font-bold text-base bg-[#111111] hover:bg-[#111111]/90 text-white transition-colors gap-2 shadow-lg"
+                  onClick={() => onOpenAuth?.('register')}
                 >
-                  <div className="w-14 h-14 rounded-2xl bg-[#4C1D95] flex items-center justify-center text-2xl shadow-lg mb-4">
-                    {plan.emoji}
-                  </div>
-
-                  <span className="text-[11px] font-bold uppercase tracking-wide text-primary bg-primary/10 px-2.5 py-1 rounded-full inline-block w-fit mb-2">
-                    {plan.tag}
-                  </span>
-                  <h3 className="text-xl sm:text-2xl font-extrabold leading-tight">{plan.title}</h3>
-                  <p className="text-sm text-muted-foreground mt-2 mb-5">{plan.desc}</p>
-
-                  <ul className="space-y-2.5 flex-1">
-                    {plan.features.map((f, j) => (
-                      <li key={j} className="flex items-start gap-2.5">
-                        <span className="mt-1 w-4 h-4 rounded-full bg-primary/15 flex items-center justify-center flex-shrink-0">
-                          <span className="w-1.5 h-1.5 rounded-full bg-primary block" />
-                        </span>
-                        <span className="text-sm text-foreground/80 leading-snug">{f}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  <p className="text-xs text-muted-foreground leading-snug border-t border-border/50 mt-5 pt-4">
-                    {t.planes.englishForYou}
-                  </p>
-
-                  <Button
-                    className="w-full mt-5 rounded-xl py-5 font-bold text-sm bg-[#111111] hover:bg-[#111111]/90 text-white transition-colors gap-2 shadow-lg"
-                    onClick={() => onOpenAuth?.('register')}
+                  {t.planes.cta}
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </motion.div>
+            ) : (
+              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                {PLANES.map((plan, i) => (
+                  <motion.div
+                    key={plan.id}
+                    variants={fadeInUp}
+                    className={`bg-background/90 border-2 rounded-3xl p-6 sm:p-7 shadow-sm hover:shadow-xl transition-shadow flex flex-col ${
+                      i === PLANES.length - 1
+                        ? 'border-primary sm:col-span-2 lg:col-span-1'
+                        : 'border-border/50'
+                    }`}
                   >
-                    {t.planes.cta}
-                    <ChevronRight className="w-4 h-4" />
-                  </Button>
-                </motion.div>
-              ))}
-            </div>
+                    <div className="w-14 h-14 rounded-2xl bg-[#4C1D95] flex items-center justify-center text-2xl shadow-lg mb-4">
+                      {plan.emoji}
+                    </div>
+
+                    <span className="text-[11px] font-bold uppercase tracking-wide text-primary bg-primary/10 px-2.5 py-1 rounded-full inline-block w-fit mb-2">
+                      {plan.tag}
+                    </span>
+                    <h3 className="text-xl sm:text-2xl font-extrabold leading-tight">{plan.title}</h3>
+                    <p className="text-sm text-muted-foreground mt-2 mb-5">{plan.desc}</p>
+
+                    <ul className="space-y-2.5 flex-1">
+                      {plan.features.map((f, j) => (
+                        <li key={j} className="flex items-start gap-2.5">
+                          <span className="mt-1 w-4 h-4 rounded-full bg-primary/15 flex items-center justify-center flex-shrink-0">
+                            <span className="w-1.5 h-1.5 rounded-full bg-primary block" />
+                          </span>
+                          <span className="text-sm text-foreground/80 leading-snug">{f}</span>
+                        </li>
+                      ))}
+                    </ul>
+
+                    <p className="text-xs text-muted-foreground leading-snug border-t border-border/50 mt-5 pt-4">
+                      {t.planes.englishForYou}
+                    </p>
+
+                    <Button
+                      className="w-full mt-5 rounded-xl py-5 font-bold text-sm bg-[#111111] hover:bg-[#111111]/90 text-white transition-colors gap-2 shadow-lg"
+                      onClick={() => onOpenAuth?.('register')}
+                    >
+                      {t.planes.cta}
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </motion.div>
+                ))}
+              </div>
+            )}
           </motion.div>
         </div>
       </section>
