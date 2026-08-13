@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import {
   STAGES, SPANISH_STAGES, getStagesForProgram, MATERIAL_TYPE_CONFIG, parseFlashcards,
+  normalizeWritten,
   type Stage, type StageMaterialType, type UnitStageMaterial, type Flashcard,
 } from '@/lib/stages';
 
@@ -822,13 +823,9 @@ function QuizPreview({ questions, onClose }: { questions: QuizQuestion[]; onClos
   const checkAnswer = () => {
     let correct = false;
     if (isTextInput || isFillGap || isImageWrite) {
-      const userAns = inputVal.trim().toLowerCase().replace(/[.,!?]/g, '');
-      const correctAns = (q.correctAnswer || '').toLowerCase().replace(/[.,!?]/g, '');
-      correct = userAns === correctAns;
+      correct = normalizeWritten(inputVal) === normalizeWritten(q.correctAnswer);
     } else if (isListenWrite) {
-      const userAns = inputVal.trim().toLowerCase().replace(/[.,!?]/g, '');
-      const correctAns = q.question.trim().toLowerCase().replace(/[.,!?]/g, '');
-      correct = userAns === correctAns;
+      correct = normalizeWritten(inputVal) === normalizeWritten(q.question);
     } else if (isClassify) {
       const optMap: Record<string, string> = {};
       (q.options || []).forEach(o => { optMap[o.text] = o.correctAnswer || ''; });

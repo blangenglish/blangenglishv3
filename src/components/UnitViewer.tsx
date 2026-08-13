@@ -11,7 +11,7 @@ import {
   ChevronRight, ChevronLeft, Trophy, RefreshCw,
   CheckCircle, XCircle, Volume2, Copy, Check,
 } from 'lucide-react';
-import { getStagesForProgram, MATERIAL_TYPE_CONFIG, parseFlashcards, type Stage, type UnitStageMaterial } from '@/lib/stages';
+import { getStagesForProgram, MATERIAL_TYPE_CONFIG, parseFlashcards, normalizeWritten, type Stage, type UnitStageMaterial } from '@/lib/stages';
 import { getUnitProgress, setStageCompleted, hasMigrated, mergeFromRemote } from '@/lib/localProgress';
 
 // ─── Google Drive helper ─────────────────────────────────────────────────────
@@ -525,7 +525,7 @@ function InlineQuiz({ questions, onPassed }) {
       return JSON.stringify(selSorted) === JSON.stringify(correctTexts);
     }
 
-    // Fill gap / write types — case-insensitive trim
+    // Fill gap / write types — comparación tolerante (ver normalizeWritten)
     if (['fill_gap','image_write','listen_write','rewrite','organize'].includes(type)) {
       // Para listen_write el admin solo guarda q.question (la palabra a escuchar);
       // si correctAnswer no está definido, la respuesta correcta ES q.question.
@@ -533,9 +533,9 @@ function InlineQuiz({ questions, onPassed }) {
         type === 'listen_write' && !q.correctAnswer
           ? q.question
           : (q.correctAnswer || '');
-      const correct = String(correctSource).trim().toLowerCase();
-      const ans = textAnswer.trim().toLowerCase();
-      return ans === correct;
+      // Se compara normalizado: sin tildes, sin puntuación y sin espacios de
+      // más. Un alumno que escribe "miercoles" en vez de "miércoles" acierta.
+      return normalizeWritten(textAnswer) === normalizeWritten(correctSource);
     }
 
     // Match: options[i].text -> options[i].correctAnswer

@@ -96,3 +96,25 @@ export const MATERIAL_TYPE_CONFIG: Record<StageMaterialType, { label: string; em
   html:   { label: 'HTML',            emoji: '💻', accept: '',                            isFile: false },
   flashcard: { label: 'Flashcards',   emoji: '🃏', accept: '',                            isFile: false },
 };
+
+/**
+ * Normaliza una respuesta escrita antes de compararla con la correcta.
+ *
+ * Un alumno de Español para extranjeros suele teclear desde un teclado sin
+ * tildes: si escribe "miercoles" o "cumpleanos" sabe la respuesta y no debe
+ * contar como fallo. Por eso se quitan acentos, diéresis, la ñ, la puntuación
+ * y los espacios de más. Para el programa de inglés no cambia nada: su texto
+ * es ASCII y la puntuación ya se ignoraba en la vista previa del panel.
+ *
+ * La usan UnitViewer (lo que ve el alumno) y UnitStagesEditor (la vista previa
+ * del panel), para que las dos corrijan exactamente igual.
+ */
+export function normalizeWritten(s: unknown): string {
+  return String(s ?? '')
+    .normalize('NFD')                    // á → a + ´ ; ñ → n + ~ ; ü → u + ¨
+    .replace(/[\u0300-\u036f]/g, '')     // borra los acentos ya separados
+    .toLowerCase()
+    .replace(/[.,;:!?¡¿"'«»]/g, '')      // puntuación irrelevante para acertar
+    .replace(/\s+/g, ' ')                // varios espacios cuentan como uno
+    .trim();
+}
