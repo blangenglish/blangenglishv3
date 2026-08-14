@@ -83,7 +83,17 @@ function AppRoutes() {
       setSessionReady(true);
     }).catch(() => { clearTimeout(safetyTimer); setSessionReady(true); });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    // ⚠️ El callback de onAuthStateChange NO puede ser async ni llamar a
+    // supabase dentro. La librería lo ejecuta con el candado de auth tomado
+    // (navigator.LockManager) y espera a que termine; cualquier consulta de
+    // dentro necesita ese mismo candado para leer la sesión, así que las dos
+    // se quedan esperándose y la app se cuelga: deja de cargar, deja de
+    // guardar, y solo se arregla cerrando la pestaña. Como el evento
+    // TOKEN_REFRESHED salta solo cada ~50 min o al volver a la pestaña, el
+    // fallo parecía aleatorio.
+    // Regla: dentro del callback solo estado de React; lo asíncrono se saca
+    // con setTimeout(..., 0), que lo ejecuta ya sin el candado.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
         const authName =
           session.user.user_metadata?.full_name ||
@@ -93,15 +103,19 @@ function AppRoutes() {
         setUserName(authName);
         setUserId(session.user.id);
         setUserEmail(session.user.email || '');
-        // Cargar nombre real desde student_profiles
-        try {
-          const { data: prof } = await supabase
-            .from('student_profiles')
-            .select('full_name')
-            .eq('id', session.user.id)
-            .single();
-          if (prof?.full_name) setUserName(prof.full_name);
-        } catch (_) { /* ignore */ }
+
+        // Fuera del candado: cargar el nombre real desde student_profiles.
+        const uid = session.user.id;
+        setTimeout(async () => {
+          try {
+            const { data: prof } = await supabase
+              .from('student_profiles')
+              .select('full_name')
+              .eq('id', uid)
+              .single();
+            if (prof?.full_name) setUserName(prof.full_name);
+          } catch (_) { /* ignore */ }
+        }, 0);
       } else if (event === 'SIGNED_OUT') {
         setIsLoggedIn(false);
         setUserName('');

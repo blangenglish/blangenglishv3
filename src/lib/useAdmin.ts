@@ -69,9 +69,14 @@ export function useAdmin(): UseAdminReturn {
   useEffect(() => {
     mountedRef.current = true;
 
-    // Escuchar cambios de auth — es la fuente principal
+    // Escuchar cambios de auth — es la fuente principal.
+    // checkUser consulta admin_users, así que NO se llama dentro del callback:
+    // se difiere con setTimeout(..., 0) para que corra sin el candado de auth
+    // que la librería mantiene mientras ejecuta los suscriptores. Ver la nota
+    // larga en App.tsx.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      checkUser(session?.user ?? null);
+      const u = session?.user ?? null;
+      setTimeout(() => checkUser(u), 0);
     });
 
     // Leer sesión inicial solo si onAuthStateChange no disparó todavía
