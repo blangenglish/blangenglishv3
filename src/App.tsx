@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Toaster } from '@/components/ui/toaster';
 import { Toaster as Sonner } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -50,6 +50,22 @@ function AppRoutes() {
 
   const isAdminRoute = location.pathname.startsWith('/adminblang');
 
+  // Busca el nombre real del alumno en student_profiles. Es puramente
+  // cosmético: si tarda o falla, se queda el nombre sacado del correo y no
+  // pasa nada. Por eso NUNCA se espera (await) desde el arranque ni desde el
+  // callback de auth — que bloquearlos es lo que dejaba la página cargando.
+  const cargarNombreReal = useCallback((uid: string) => {
+    supabase
+      .from('student_profiles')
+      .select('full_name')
+      .eq('id', uid)
+      .single()
+      .then(
+        ({ data }) => { if (data?.full_name) setUserName(data.full_name); },
+        () => { /* red caída o timeout: se queda el nombre del correo */ },
+      );
+  }, []);
+
   useEffect(() => {
     if (isAdminRoute) {
       setSessionReady(true);
@@ -59,7 +75,17 @@ function AppRoutes() {
     // Safety timeout: si getSession tarda más de 1.5s, desbloquear la app
     const safetyTimer = setTimeout(() => setSessionReady(true), 1500);
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    // ⚠️ Mientras sessionReady sea false, la app pinta SOLO un spinner (más
+    // abajo). Así que aquí no puede quedar nada que bloquee: antes, este
+    // bloque cancelaba el temporizador de seguridad y luego esperaba a una
+    // consulta a student_profiles que solo sirve para mostrar el nombre real
+    // del alumno. Si esa consulta se atascaba, setSessionReady(true) no se
+    // llegaba a ejecutar y —con la red de seguridad ya cancelada— la página
+    // se quedaba cargando para siempre, sobre todo al recargar.
+    //
+    // Ahora: la sesión se resuelve y la app arranca de inmediato; el nombre
+    // se busca después y, si falla, simplemente se queda el nombre del correo.
+    supabase.auth.getSession().then(({ data: { session } }) => {
       clearTimeout(safetyTimer);
       if (session?.user) {
         const authName =
@@ -70,15 +96,7 @@ function AppRoutes() {
         setUserName(authName);
         setUserId(session.user.id);
         setUserEmail(session.user.email || '');
-        // Cargar nombre real desde student_profiles
-        try {
-          const { data: prof } = await supabase
-            .from('student_profiles')
-            .select('full_name')
-            .eq('id', session.user.id)
-            .single();
-          if (prof?.full_name) setUserName(prof.full_name);
-        } catch (_) { /* ignore */ }
+        cargarNombreReal(session.user.id);
       }
       setSessionReady(true);
     }).catch(() => { clearTimeout(safetyTimer); setSessionReady(true); });
@@ -106,16 +124,7 @@ function AppRoutes() {
 
         // Fuera del candado: cargar el nombre real desde student_profiles.
         const uid = session.user.id;
-        setTimeout(async () => {
-          try {
-            const { data: prof } = await supabase
-              .from('student_profiles')
-              .select('full_name')
-              .eq('id', uid)
-              .single();
-            if (prof?.full_name) setUserName(prof.full_name);
-          } catch (_) { /* ignore */ }
-        }, 0);
+        setTimeout(() => cargarNombreReal(uid), 0);
       } else if (event === 'SIGNED_OUT') {
         setIsLoggedIn(false);
         setUserName('');
@@ -125,7 +134,7 @@ function AppRoutes() {
     });
 
     return () => subscription.unsubscribe();
-  }, [isAdminRoute]);
+  }, [isAdminRoute, cargarNombreReal]);
 
   const handleLogin = (email: string, name: string, uid?: string, isAdmin?: boolean, country?: string, city?: string, isNewReg?: boolean, program?: 'english' | 'spanish') => {
     setIsLoggedIn(true);
