@@ -171,28 +171,34 @@ function AppRoutes() {
     setTimeout(() => navigate(ROUTE_PATHS.DASHBOARD), 300);
   };
 
-  // Cierre de sesión resiliente. Antes, un signOut() que fallara cortaba la
-  // función y dejaba al usuario "dentro" (con la sesión aún guardada, así que
-  // recargar tampoco lo sacaba). Ahora: si el signOut global falla se intenta
-  // el local, el estado de React se limpia SIEMPRE, y como último recurso se
-  // borran a mano las llaves de sesión de Supabase en sessionStorage.
-  const handleLogout = async () => {
+  // Borra a mano la sesión que Supabase guarda en sessionStorage, para que
+  // recargar la página no vuelva a meter al usuario dentro.
+  const borrarSesionGuardada = () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-    } catch (e) {
-      console.error('[logout] signOut global falló, intentando local:', e);
-      try {
-        await supabase.auth.signOut({ scope: 'local' });
-      } catch (e2) {
-        console.error('[logout] signOut local también falló, limpiando storage:', e2);
-        try {
-          Object.keys(window.sessionStorage)
-            .filter(k => k.startsWith('sb-') || k.includes('supabase.auth'))
-            .forEach(k => window.sessionStorage.removeItem(k));
-        } catch (_) { /* storage inaccesible — el estado local igual se limpia abajo */ }
-      }
-    }
+      Object.keys(window.sessionStorage)
+        .filter(k => k.startsWith('sb-') || k.includes('supabase.auth'))
+        .forEach(k => window.sessionStorage.removeItem(k));
+    } catch (_) { /* storage inaccesible: el estado de React igual se limpia */ }
+  };
+
+  // ⚠️ Cerrar sesión NO espera a la red.
+  //
+  // Antes esta función hacía `await supabase.auth.signOut()` y solo después
+  // limpiaba el estado y navegaba. Resultado: el alumno pulsaba «Cerrar
+  // sesión» y no pasaba absolutamente nada hasta que respondiera el servidor.
+  // Con mala cobertura eso son muchos segundos mirando un botón que parece
+  // roto — y por eso reportaban que «no da».
+  //
+  // Para el usuario, cerrar sesión es instantáneo: se sale y punto. Así que
+  // primero se sale (estado, sesión guardada y navegación) y al servidor se
+  // le avisa por detrás. Si ese aviso falla o no llega nunca, da igual: la
+  // sesión local ya está borrada y recargar no lo devuelve dentro.
+  const handleLogout = () => {
+    // 1) Avisar al servidor, sin esperarlo y sin que un fallo rompa nada.
+    supabase.auth.signOut().catch(() => { /* ya salimos igual */ });
+
+    // 2) Salir de inmediato. Esto ocurre SIEMPRE.
+    borrarSesionGuardada();
     setIsLoggedIn(false);
     setUserName('');
     setUserId('');
