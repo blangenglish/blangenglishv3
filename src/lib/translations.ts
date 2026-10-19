@@ -118,6 +118,22 @@ export const translations = {
         titleSingle: 'Así aprendes aquí',
         subtitleSingle: 'Un solo plan, con clases en vivo y profesor propio. Esto es lo que incluye.',
         cta: 'Empieza hoy',
+        // Los dos botones de cada tarjeta. "Cotizar" solo informa el valor del
+        // plan: no inscribe ni cobra. "Registrarse" es el flujo de registro de
+        // siempre (Partes 8, 11 y 25).
+        ctaCotizar: 'Cotizar',
+        ctaRegistrarse: 'Registrarse',
+        cotizacion: {
+          title: 'Valor del plan',
+          porMes: 'COP al mes',
+          porTrimestre: 'COP cada 3 meses',
+          desdeLabel: 'Desde',
+          // El plan con profesor no tiene precio único: depende de las horas y
+          // los días que elija el estudiante.
+          notaProfesor: 'El valor exacto depende de cuántas horas al día y cuántos días a la semana elijas. Lo calculas al armar tu plan, antes de pagar nada.',
+          nota: 'Solo informativo: ver el precio no te inscribe ni te cobra.',
+          cerrar: 'Ocultar valor',
+        },
         englishForYou: 'Acceso completo a English for You: fonética, English for the World y tips de grammar, listening, writing, reading, speaking y vocabulary.',
         items: [
           {
@@ -672,6 +688,17 @@ export const translations = {
         titleSingle: 'How you learn here',
         subtitleSingle: 'One single plan, with live classes and your own teacher. This is what it includes.',
         cta: 'Start today',
+        ctaCotizar: 'Get a quote',
+        ctaRegistrarse: 'Sign up',
+        cotizacion: {
+          title: 'Plan price',
+          porMes: 'COP per month',
+          porTrimestre: 'COP every 3 months',
+          desdeLabel: 'From',
+          notaProfesor: 'The exact price depends on how many hours a day and how many days a week you choose. You work it out when you build your plan, before paying anything.',
+          nota: 'Just for information: seeing the price does not sign you up or charge you.',
+          cerrar: 'Hide price',
+        },
         englishForYou: 'Full access to English for You: phonetics, English for the World, and tips on grammar, listening, writing, reading, speaking and vocabulary.',
         items: [
           {

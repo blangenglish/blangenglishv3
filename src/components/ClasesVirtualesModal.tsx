@@ -10,6 +10,13 @@ import { TermsAcceptBox } from '@/components/TermsAcceptBox';
 import { useLanguage } from '@/lib/language';
 import { translations } from '@/lib/translations';
 import { supabase } from '@/integrations/supabase/client';
+import {
+  AUTOESTUDIO_PRECIOS_BASE,
+  PRECIOS,
+  SPEAKOLOGY_FEE,
+  formatCOP,
+  formatUSD,
+} from '@/lib/precios';
 
 interface ClasesVirtualesModalProps {
   open: boolean;
@@ -46,48 +53,13 @@ const DIA_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri'] as const;
 // PENDIENTE POR DEFINIR: si el precio final varía según el grupo de edad, o si
 // es el mismo precio base para los 3 y solo cambia el enfoque/contenido del plan
 // (como está ahora). No inventar montos distintos hasta que esto se confirme —
-// por ahora PRECIOS (abajo) es el mismo para niños, jóvenes y adultos.
+// por ahora PRECIOS (en @/lib/precios) es el mismo para niños, jóvenes y adultos.
 const EDAD_EMOJI = { kids: '🧒', teens: '🧑', adults: '🎓' } as const;
 
-// ── Autoaprendizaje (solo Adultos): plan de plataforma sin profesor, sin horario ──
-// Mismos precios de siempre del curso (Plan Mensual / Plan Trimestral).
-// PENDIENTE POR DEFINIR (Parte 9): cuál de estos dos planes (o de las 4 tarjetas
-// del menú principal) es el "Más popular". Hasta que se confirme, ninguna
-// tarjeta de plan lleva el badge/borde plateado o dorado de acento — no inventar
-// cuál es el destacado.
-const AUTOESTUDIO_PRECIOS_BASE = {
-  mensual: { cop: 60000, usd: 16 },
-  trimestral: { cop: 250000, usd: 68 },
-} as const;
-
-// ── Tabla de precios por combinación horas×días (modalidad con profesor) ──────
-const PRECIOS = {
-  1: {
-    1: { regular: 200000,  final: 190000, unidades: 4,  valorUnit: 47500, label: 'clase' },
-    2: { regular: 400000,  final: 360000, unidades: 8,  valorUnit: 45000, label: 'clase' },
-    3: { regular: 600000,  final: 510000, unidades: 12, valorUnit: 42500, label: 'clase' },
-    4: { regular: 800000,  final: 640000, unidades: 16, valorUnit: 40000, label: 'clase' },
-    5: { regular: 1000000, final: 750000, unidades: 20, valorUnit: 37500, label: 'clase' },
-  },
-  2: {
-    1: { regular: 384000,  final: 365000,  unidades: 8,  valorUnit: 45625, label: 'hora' },
-    2: { regular: 768000,  final: 690000,  unidades: 16, valorUnit: 43125, label: 'hora' },
-    3: { regular: 1152000, final: 980000,  unidades: 24, valorUnit: 40833, label: 'hora' },
-    4: { regular: 1536000, final: 1230000, unidades: 32, valorUnit: 38437, label: 'hora' },
-    5: { regular: 1920000, final: 1440000, unidades: 40, valorUnit: 36000, label: 'hora' },
-  },
-} as const;
-
-const TRM = 3566.08; // tasa de cambio fija 1 USD = $3,566.08 COP
-const SPEAKOLOGY_FEE = 82000; // cargo único trimestral por activar Speakology IA
-
-function formatCOP(n: number) {
-  return '$' + n.toLocaleString('es-CO');
-}
-
-function formatUSD(cop: number) {
-  return '≈ $' + (cop / TRM).toFixed(2) + ' USD';
-}
+// Los precios (autoaprendizaje y tabla horas×días), la TRM, el cargo de
+// Speakology y los formateadores viven en @/lib/precios: el botón "Cotizar" de
+// las tarjetas de planes (EnglishProgram.tsx) usa exactamente los mismos
+// números, así que no pueden estar copiados en dos archivos.
 
 // Exportados para reusarlos en PlanEspanolModal.tsx (Parte 17) — mismos rangos
 // horarios para ambos cursos, sin duplicar el arreglo.
