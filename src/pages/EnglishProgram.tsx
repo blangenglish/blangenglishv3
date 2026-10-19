@@ -13,7 +13,7 @@ import { MODULES } from '@/components/EnglishForYou';
 import { MUNDO_REAL_TOPICS } from '@/pages/MundoRealData';
 import { useLanguage } from '@/lib/language';
 import { translations } from '@/lib/translations';
-import { cotizacionDePlan, formatCOP } from '@/lib/precios';
+import { CotizadorModal } from '@/components/CotizadorModal';
 
 const staggerContainer = {
   hidden: { opacity: 0 },
@@ -114,14 +114,9 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn, moduleId = 'adu
   ).filter(Boolean);
   // Nombre del módulo para la insignia del bloque de planes ("Inglés para niños").
   const nombreModulo = translations[lang].englishHub.modules[moduleId]?.title;
-  // Tarjetas cuya cotización está abierta. Es una lista y no un solo id para
-  // que el visitante pueda abrir los tres valores a la vez y compararlos:
-  // abrir uno no debe cerrar el que ya estaba viendo.
-  const [cotizados, setCotizados] = useState<string[]>([]);
-  const alternarCotizacion = (id: string) =>
-    setCotizados((abiertos) =>
-      abiertos.includes(id) ? abiertos.filter((x) => x !== id) : [...abiertos, id],
-    );
+  // Plan que se está cotizando, o null si el cotizador está cerrado.
+  const [cotizando, setCotizando] = useState<string | null>(null);
+  const planCotizado = t.planes.items.find((p) => p.id === cotizando);
   const [searchParams] = useSearchParams();
   // Esta página es el módulo de Inglés para adultos (/ingles/adultos). El parámetro
   // ?age=kids|teens|adults se sigue aceptando por si llega desde un enlace antiguo;
@@ -280,52 +275,15 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn, moduleId = 'adu
                       {t.planes.englishForYou}
                     </p>
 
-                    {/* Cotización: aparece dentro de la misma tarjeta, sin salir
-                        de la página y sin iniciar ningún registro ni pago. */}
-                    {cotizados.includes(plan.id) && cotizacionDePlan(plan.id) && (
-                      <div className="mt-5 rounded-2xl border-2 border-primary/30 bg-primary/5 p-4">
-                        <p className="text-[11px] font-bold uppercase tracking-wide text-primary mb-1.5">
-                          {t.planes.cotizacion.title}
-                        </p>
-                        {(() => {
-                          const q = cotizacionDePlan(plan.id);
-                          return (
-                            <>
-                              <p className="leading-none">
-                                {q.desde && (
-                                  <span className="text-xs font-semibold text-muted-foreground mr-1.5">
-                                    {t.planes.cotizacion.desdeLabel}
-                                  </span>
-                                )}
-                                <span className="text-2xl font-black">{formatCOP(q.cop)}</span>
-                              </p>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                {q.periodo === 'trimestre'
-                                  ? t.planes.cotizacion.porTrimestre
-                                  : t.planes.cotizacion.porMes}
-                                {' · ≈ $'}{q.usd}{' USD'}
-                              </p>
-                              {q.desde && (
-                                <p className="text-[11px] text-foreground/70 leading-snug mt-2.5">
-                                  {t.planes.cotizacion.notaProfesor}
-                                </p>
-                              )}
-                            </>
-                          );
-                        })()}
-                        <p className="text-[11px] text-muted-foreground leading-snug mt-2.5 border-t border-primary/20 pt-2.5">
-                          {t.planes.cotizacion.nota}
-                        </p>
-                      </div>
-                    )}
-
                     <div className="grid grid-cols-2 gap-2.5 mt-5">
+                      {/* "Cotizar" abre el formulario de cotización: el visitante
+                          elige horas y días y ve el precio. No inscribe ni cobra. */}
                       <Button
                         variant="outline"
                         className="w-full rounded-xl py-5 font-bold text-sm border-2 border-[#111111]/20 hover:bg-[#111111]/5 transition-colors"
-                        onClick={() => alternarCotizacion(plan.id)}
+                        onClick={() => setCotizando(plan.id)}
                       >
-                        {cotizados.includes(plan.id) ? t.planes.cotizacion.cerrar : t.planes.ctaCotizar}
+                        {t.planes.ctaCotizar}
                       </Button>
                       <Button
                         className="w-full rounded-xl py-5 font-bold text-sm bg-[#111111] hover:bg-[#111111]/90 text-white transition-colors gap-1.5 shadow-lg"
@@ -732,6 +690,17 @@ export default function EnglishProgram({ onOpenAuth, isLoggedIn, moduleId = 'adu
           </motion.div>
         </div>
       </section>
+
+      {/* Cotizador: solo informa el precio. El registro sigue siendo el de
+          siempre (onOpenAuth), tanto desde la tarjeta como desde acá. */}
+      <CotizadorModal
+        open={cotizando !== null}
+        planId={cotizando || ''}
+        planTitle={planCotizado?.title}
+        planTag={planCotizado?.tag}
+        onClose={() => setCotizando(null)}
+        onRegistrarse={() => onOpenAuth?.('register')}
+      />
 
     </Layout>
   );

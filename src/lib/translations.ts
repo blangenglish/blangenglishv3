@@ -123,16 +123,18 @@ export const translations = {
         // siempre (Partes 8, 11 y 25).
         ctaCotizar: 'Cotizar',
         ctaRegistrarse: 'Registrarse',
+        // Textos del cotizador (CotizadorModal.tsx).
         cotizacion: {
-          title: 'Valor del plan',
+          title: 'Cotiza tu plan',
+          // El plan con profesor no tiene precio único: depende de las horas y
+          // los días que elija el estudiante, así que los elige acá.
+          ajusta: 'Elige cuántas horas al día y cuántos días a la semana quieres clase. El precio se calcula al instante.',
+          periodoMes: 'mes',
           porMes: 'COP al mes',
           porTrimestre: 'COP cada 3 meses',
-          desdeLabel: 'Desde',
-          // El plan con profesor no tiene precio único: depende de las horas y
-          // los días que elija el estudiante.
-          notaProfesor: 'El valor exacto depende de cuántas horas al día y cuántos días a la semana elijas. Lo calculas al armar tu plan, antes de pagar nada.',
-          nota: 'Solo informativo: ver el precio no te inscribe ni te cobra.',
-          cerrar: 'Ocultar valor',
+          speakologyOpcional: (fee: string) => `🤖 Opcional: si eliges practicar con Speakology, se suma ${fee} COP cada 3 meses.`,
+          nota: 'Solo informativo: esta cotización no te inscribe ni te cobra. El plan se confirma por WhatsApp antes de pagar nada.',
+          cerrar: 'Cerrar',
         },
         englishForYou: 'Acceso completo a English for You: fonética, English for the World y tips de grammar, listening, writing, reading, speaking y vocabulary.',
         items: [
@@ -691,13 +693,14 @@ export const translations = {
         ctaCotizar: 'Get a quote',
         ctaRegistrarse: 'Sign up',
         cotizacion: {
-          title: 'Plan price',
+          title: 'Get a quote',
+          ajusta: 'Choose how many hours a day and how many days a week you want classes. The price is worked out instantly.',
+          periodoMes: 'month',
           porMes: 'COP per month',
           porTrimestre: 'COP every 3 months',
-          desdeLabel: 'From',
-          notaProfesor: 'The exact price depends on how many hours a day and how many days a week you choose. You work it out when you build your plan, before paying anything.',
-          nota: 'Just for information: seeing the price does not sign you up or charge you.',
-          cerrar: 'Hide price',
+          speakologyOpcional: (fee: string) => `🤖 Optional: if you choose to practise with Speakology, add ${fee} COP every 3 months.`,
+          nota: 'Just for information: this quote does not sign you up or charge you. The plan is confirmed over WhatsApp before you pay anything.',
+          cerrar: 'Close',
         },
         englishForYou: 'Full access to English for You: phonetics, English for the World, and tips on grammar, listening, writing, reading, speaking and vocabulary.',
         items: [
