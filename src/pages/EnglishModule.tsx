@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Sparkles, Clock, BookOpen, Download, FileText, Headphones, ChevronDown, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Layout } from '@/components/Layout';
+import { WordListPlayer } from '@/components/WordListPlayer';
 import { MODULES } from '@/components/EnglishForYou';
 import { ROUTE_PATHS } from '@/lib/index';
 import { supabase } from '@/integrations/supabase/client';
@@ -27,6 +28,7 @@ interface Section {
   audio_path: string | null;
   pdf_path: string | null;
   embed_html: string | null;
+  word_list: string | null;
   sort_order: number;
 }
 
@@ -247,6 +249,9 @@ export default function EnglishModule({ isLoggedIn, onOpenAuth, onLogout, userNa
                         dangerouslySetInnerHTML={{ __html: section.rich_text }}
                       />
                     )}
+
+                    {/* Palabras para escuchar (las lee la voz del navegador) */}
+                    {section.word_list && <WordListPlayer words={section.word_list} />}
 
                     {/* Imagen */}
                     {section.image_path && (
