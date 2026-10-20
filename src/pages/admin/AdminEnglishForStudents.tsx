@@ -12,11 +12,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { adminInsert, adminUpdate, adminDelete, adminSelect } from '@/lib/adminWrite';
+import { WordListPlayer, parseWordList } from '@/components/WordListPlayer';
 import {
   PenLine, BookOpen, Headphones, BookMarked, Library,
   Plus, X, ChevronRight, ChevronDown, ChevronUp, Sparkles, Trash2,
   ImageIcon, Music2, FileText, Upload, Globe, Loader2, Code2,
-  Pencil, Eye, Download,
+  Pencil, Eye, Download, Volume2,
 } from 'lucide-react';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
@@ -47,6 +48,7 @@ interface DBSection {
   audio_path: string | null;
   pdf_path: string | null;
   embed_html: string | null;
+  word_list: string | null;
   is_published: boolean;
   sort_order: number;
   created_at: string;
@@ -142,6 +144,7 @@ export default function AdminEnglishForStudents() {
   const [formTitle, setFormTitle] = useState('');
   const [formRichText, setFormRichText] = useState('');
   const [formEmbedHtml, setFormEmbedHtml] = useState('');
+  const [formWordList, setFormWordList] = useState('');
   const [formImageFile, setFormImageFile] = useState<File | null>(null);
   const [formImagePreview, setFormImagePreview] = useState<string | null>(null);
   const [formAudioFile, setFormAudioFile] = useState<File | null>(null);
@@ -189,7 +192,7 @@ export default function AdminEnglishForStudents() {
 
   // ── Helpers del modal ─────────────────────────────────────────────────────
   const resetForm = () => {
-    setFormTitle(''); setFormRichText(''); setFormEmbedHtml('');
+    setFormTitle(''); setFormRichText(''); setFormEmbedHtml(''); setFormWordList('');
     setFormImageFile(null); setFormImagePreview(null);
     setFormAudioFile(null); setFormPdfFile(null);
     setImageMode('file'); setImageUrl('');
@@ -210,6 +213,7 @@ export default function AdminEnglishForStudents() {
     setFormTitle(sec.title);
     setFormRichText(sec.rich_text || '');
     setFormEmbedHtml(sec.embed_html || '');
+    setFormWordList(sec.word_list || '');
     setStep('form');
     setModalOpen(true);
   };
@@ -222,16 +226,18 @@ export default function AdminEnglishForStudents() {
 
   const canPublish = () => {
     if (!formTitle.trim() || !selectedModule) return false;
+    // Una lista de palabras ya es contenido suficiente para publicar.
+    const hasWords = formWordList.trim().length > 0;
     if (isRichText) {
       const hasImage = imageMode === 'url' ? imageUrl.trim().startsWith('http') : formImageFile !== null;
       const hasEmbed = formEmbedHtml.trim().length > 0;
-      return formRichText.replace(/<[^>]+>/g, '').trim().length > 0 || hasImage || hasEmbed;
+      return formRichText.replace(/<[^>]+>/g, '').trim().length > 0 || hasImage || hasEmbed || hasWords;
     }
     if (isListening) {
       const hasAudio = audioMode === 'url' ? audioUrl.trim().startsWith('http') : formAudioFile !== null;
       const hasPdf = pdfMode === 'url' ? pdfUrl.trim().startsWith('http') : formPdfFile !== null;
       const hasEmbed = formEmbedHtml.trim().length > 0;
-      return hasAudio || hasPdf || hasEmbed;
+      return hasAudio || hasPdf || hasEmbed || hasWords;
     }
     return false;
   };
@@ -259,6 +265,7 @@ export default function AdminEnglishForStudents() {
         title:       formTitle.trim(),
         rich_text:   isRichText ? formRichText : null,
         embed_html:  formEmbedHtml.trim() || null,
+        word_list:   formWordList.trim() || null,
         image_path,
         audio_path,
         pdf_path,
@@ -285,6 +292,7 @@ export default function AdminEnglishForStudents() {
         title: formTitle.trim(),
         rich_text: isRichText ? formRichText : undefined,
         embed_html: formEmbedHtml.trim() || null,
+        word_list: formWordList.trim() || null,
       }, editingId);
       toast({ title: 'Cambios guardados ✅' });
       closeModal();
@@ -436,6 +444,12 @@ export default function AdminEnglishForStudents() {
                           <div className="flex items-center gap-2 text-xs text-muted-foreground">
                             <Code2 className="w-3.5 h-3.5 text-violet-500 shrink-0" />
                             <span className="truncate">Contenido embebido (HTML)</span>
+                          </div>
+                        )}
+                        {sec.word_list && (
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <Volume2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                            <span className="truncate">{parseWordList(sec.word_list).length} palabras con pronunciación</span>
                           </div>
                         )}
                       </CardContent>
@@ -645,6 +659,33 @@ export default function AdminEnglishForStudents() {
                         </div>
                       </>
                     )}
+
+                    {/* ── PALABRAS PARA ESCUCHAR ──────────────────────────────
+                        Va fuera de los dos bloques de arriba a propósito: se
+                        pidió poder añadir pronunciación en CUALQUIER módulo, no
+                        solo en Listening. No hay que grabar nada: la voz del
+                        navegador lee cada palabra. */}
+                    <div className="space-y-1.5">
+                      <Label className="text-sm font-semibold flex items-center gap-1.5">
+                        <Volume2 className="w-3.5 h-3.5" /> Palabras para escuchar <span className="text-muted-foreground font-normal">(opcional)</span>
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        Una por línea. Si pones <span className="font-mono">=</span>, lo de la derecha es la traducción y
+                        no se pronuncia. El estudiante verá un altavoz en cada palabra y un botón «Escuchar todo».
+                      </p>
+                      <Textarea
+                        value={formWordList}
+                        onChange={(e) => setFormWordList(e.target.value)}
+                        placeholder={'library = biblioteca\nto hand in homework = entregar la tarea\nplayground = patio de recreo'}
+                        className="text-sm min-h-[120px]"
+                      />
+                      {formWordList.trim() && (
+                        <div className="space-y-1 pt-1">
+                          <p className="text-xs text-muted-foreground">Así lo verá el estudiante (pruébalo, suena):</p>
+                          <WordListPlayer words={formWordList} />
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {/* Pie fijo */}
@@ -702,6 +743,8 @@ export default function AdminEnglishForStudents() {
                     dangerouslySetInnerHTML={{ __html: previewSection.rich_text }}
                   />
                 )}
+
+                {previewSection.word_list && <WordListPlayer words={previewSection.word_list} />}
 
                 {previewSection.image_path && (
                   <div className="rounded-xl overflow-hidden border border-border/40">
