@@ -1,8 +1,8 @@
 // @ts-nocheck
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { ArrowLeft, Sparkles, Clock, BookOpen, Download, FileText, Headphones, Image as ImageIcon } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowLeft, Sparkles, Clock, BookOpen, Download, FileText, Headphones, ChevronDown, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Layout } from '@/components/Layout';
 import { MODULES } from '@/components/EnglishForYou';
@@ -47,6 +47,13 @@ export default function EnglishModule({ isLoggedIn, onOpenAuth, onLogout, userNa
 
   const [sections, setSections] = useState<Section[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // Las secciones arrancan cerradas: el estudiante ve la lista de títulos y
+  // abre la que le interesa. Antes se pintaban todas desplegadas y la página
+  // era una cascada imposible de recorrer. Solo una abierta a la vez — así el
+  // título que acaba de pulsar no se le va de la pantalla, y al cerrarse la
+  // anterior se desmonta su iframe, que es lo que corta el audio del juego.
+  const [openId, setOpenId] = useState<string | null>(null);
 
   // Parte 25: este módulo es contenido exclusivo de inglés — una cuenta de
   // programa Español jamás debe poder verlo, ni siquiera navegando directo
@@ -191,8 +198,10 @@ export default function EnglishModule({ isLoggedIn, onOpenAuth, onLogout, userNa
             </motion.div>
           ) : (
             /* Secciones publicadas por el admin */
-            <div className="space-y-6">
-              {sections.map((section, i) => (
+            <div className="space-y-3">
+              {sections.map((section, i) => {
+                const isOpen = openId === section.id;
+                return (
                 <motion.div
                   key={section.id}
                   initial={{ opacity: 0, y: 20 }}
@@ -200,12 +209,36 @@ export default function EnglishModule({ isLoggedIn, onOpenAuth, onLogout, userNa
                   transition={{ delay: 0.1 + i * 0.07 }}
                   className="bg-background rounded-2xl border border-border/50 shadow-sm overflow-hidden"
                 >
-                  {/* Título de la sección */}
-                  <div className="px-6 pt-6 pb-4 border-b border-border/40">
-                    <h2 className="text-lg font-bold text-foreground">{section.title}</h2>
-                  </div>
+                  {/* Título: toda la fila es el botón que abre la sección */}
+                  <button
+                    type="button"
+                    onClick={() => setOpenId(isOpen ? null : section.id)}
+                    aria-expanded={isOpen}
+                    className={`w-full flex items-center justify-between gap-4 px-5 sm:px-6 py-5 text-left transition-colors ${
+                      isOpen ? 'bg-primary/5' : 'hover:bg-muted/50'
+                    }`}
+                  >
+                    <h2 className="text-base sm:text-lg font-bold text-foreground leading-snug">
+                      {section.title}
+                    </h2>
+                    <ChevronDown
+                      className={`w-5 h-5 shrink-0 text-primary transition-transform duration-300 ${
+                        isOpen ? 'rotate-180' : ''
+                      }`}
+                    />
+                  </button>
 
-                  <div className="p-6 space-y-5">
+                  <AnimatePresence initial={false}>
+                  {isOpen && (
+                  <motion.div
+                    key="body"
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.25, ease: 'easeInOut' }}
+                    className="overflow-hidden border-t border-border/40"
+                  >
+                  <div className="p-5 sm:p-6 space-y-5">
 
                     {/* Texto enriquecido */}
                     {section.rich_text && (
@@ -282,8 +315,12 @@ export default function EnglishModule({ isLoggedIn, onOpenAuth, onLogout, userNa
                     )}
 
                   </div>
+                  </motion.div>
+                  )}
+                  </AnimatePresence>
                 </motion.div>
-              ))}
+                );
+              })}
 
               {/* Botones de navegación al final */}
               <motion.div
