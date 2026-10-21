@@ -109,11 +109,46 @@ export const MATERIAL_TYPE_CONFIG: Record<StageMaterialType, { label: string; em
  * La usan UnitViewer (lo que ve el alumno) y UnitStagesEditor (la vista previa
  * del panel), para que las dos corrijan exactamente igual.
  */
+/**
+ * Contracciones inglesas y su forma larga. Sin esto, un alumno que escribe
+ * "I would like" cuando la respuesta guardada es "I'd like" falla una pregunta
+ * que tiene bien. Se expanden en los dos lados de la comparación, así que da
+ * igual cuál de las dos formas use cada uno.
+ */
+const CONTRACTIONS: Array<[RegExp, string]> = [
+  [/\bcan't\b/g, 'cannot'],
+  [/\bwon't\b/g, 'will not'],
+  [/\bshan't\b/g, 'shall not'],
+  [/n't\b/g, ' not'],        // don't, doesn't, isn't, haven't, wouldn't…
+  [/'ll\b/g, ' will'],
+  [/'re\b/g, ' are'],
+  [/'ve\b/g, ' have'],
+  [/'d\b/g, ' would'],       // ambiguo con "had", pero "would" cubre más casos
+  [/'m\b/g, ' am'],
+  [/\bit's\b/g, 'it is'],
+  [/\bthat's\b/g, 'that is'],
+  [/\bwhat's\b/g, 'what is'],
+  [/\bhere's\b/g, 'here is'],
+  [/\bthere's\b/g, 'there is'],
+  [/\bhe's\b/g, 'he is'],
+  [/\bshe's\b/g, 'she is'],
+  [/\blet's\b/g, 'let us'],
+];
+
 export function normalizeWritten(s: unknown): string {
-  return String(s ?? '')
+  let out = String(s ?? '')
     .normalize('NFD')                    // á → a + ´ ; ñ → n + ~ ; ü → u + ¨
     .replace(/[\u0300-\u036f]/g, '')     // borra los acentos ya separados
     .toLowerCase()
+    // El apóstrofo tipográfico que pega Word (’) se unifica ANTES de expandir
+    // las contracciones: si no, "don’t" no coincide nunca con "don't" y el
+    // alumno falla por un carácter que no distingue a simple vista.
+    .replace(/[’ʼ]/g, "'")
+    .replace(/[“”]/g, '"');
+
+  for (const [re, full] of CONTRACTIONS) out = out.replace(re, full);
+
+  return out
     .replace(/[.,;:!?¡¿"'«»]/g, '')      // puntuación irrelevante para acertar
     .replace(/\s+/g, ' ')                // varios espacios cuentan como uno
     .trim();
