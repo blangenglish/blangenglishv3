@@ -1,7 +1,7 @@
 // @ts-nocheck
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate, Navigate } from 'react-router-dom';
+import { useNavigate, Navigate, useSearchParams } from 'react-router-dom';
 import { usePricingPlans } from '@/hooks/useSupabaseData';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
@@ -33,7 +33,7 @@ import { EnglishForYou } from '@/components/EnglishForYou';
 import { SPANISH_STAGES } from '@/lib/stages';
 import { ClasesVirtualesModal } from '@/components/ClasesVirtualesModal';
 import { PlanEspanolModal } from '@/components/PlanEspanolModal';
-import { MUNDO_REAL_TOPICS, MR_CATEGORIES } from '@/pages/MundoRealData';
+import { MundoRealSection } from '@/components/mundo-real/MundoRealSection';
 
 interface DashboardProps {
   isLoggedIn?: boolean;
@@ -949,16 +949,11 @@ const [loadingUnits, setLoadingUnits] = useState<string | null>(null);
     setShowClasesModal(true);
   };
 
-  // Mundo Real state
+  // Mundo Real: el Dashboard solo decide si se muestra. Todo lo demás (temas,
+  // pestañas, respuestas, progreso) vive en src/components/mundo-real/.
   const [showMundoReal, setShowMundoReal] = useState(false);
-  const [mundoRealTopic, setMundoRealTopic] = useState<string | null>(null);
-  const [mundoRealTab, setMundoRealTab] = useState<'vocab'|'frases'|'expresiones'|'phrasal'|'estructura'|'dialogo'>('vocab');
-  const [mrAnswers, setMrAnswers] = useState<Record<string, number>>({});
-  const [mrWordOrder, setMrWordOrder] = useState<string[]>([]);
-  const [mrWordSubmitted, setMrWordSubmitted] = useState(false);
-  const [mrCategoryFilter, setMrCategoryFilter] = useState('Todos');
-  const [mrSearch, setMrSearch] = useState('');
-  const [mrOverrides, setMrOverrides] = useState<Record<string, any>>({});
+  /** Tema a abrir de entrada cuando se llega por ?mr=<id>. */
+  const [deepLinkTopic, setDeepLinkTopic] = useState<string | null>(null);
 
   // Review state
   const [existingReview, setExistingReview] = useState<{ rating: number; comment: string } | null | 'loading'>('loading');
@@ -967,20 +962,35 @@ const [loadingUnits, setLoadingUnits] = useState<string | null>(null);
   const [reviewHover, setReviewHover] = useState(0);
   const [reviewSending, setReviewSending] = useState(false);
 
-  function openMRTopic(id: string | null) {
-    setMundoRealTopic(id);
-    setMundoRealTab('vocab');
-    setMrAnswers({});
-    setMrWordOrder([]);
-    setMrWordSubmitted(false);
-  }
-
   useEffect(() => {
     if (activeTab !== 'english') {
       setShowMundoReal(false);
-      openMRTopic(null);
+      setDeepLinkTopic(null);
     }
   }, [activeTab]);
+
+  // ?tab=english abre directamente la pestaña de inglés, y ?mr=1 o
+  // ?mr=<id del tema> entra ya en Mundo Real. Sin esto, los cuatro botones
+  // «Volver a English for you!» de EnglishModule.tsx dejaban al estudiante en
+  // «Mis Cursos», porque el dashboard nunca leía la query string.
+  const [searchParams] = useSearchParams();
+  const appliedDeepLink = useRef(false);
+  useEffect(() => {
+    if (appliedDeepLink.current) return;
+    const tab = searchParams.get('tab');
+    if (!tab) return;
+    const valid: TabId[] = ['cursos', 'cuenta', 'pagos', 'progreso', 'sesion', 'ayuda', 'english'];
+    if (!valid.includes(tab as TabId)) return;
+    appliedDeepLink.current = true;
+    setActiveTab(tab as TabId);
+    if (tab === 'english') {
+      const mr = searchParams.get('mr');
+      if (mr) {
+        setShowMundoReal(true);
+        if (mr !== '1') setDeepLinkTopic(mr);
+      }
+    }
+  }, [searchParams]);
 
 useEffect(() => {
     // Load payment config
@@ -1020,54 +1030,6 @@ useEffect(() => {
     });
     return () => clearTimeout(safetyTimer);
   }, []);
-
-  // Cargar overrides de Mundo Real (ediciones del admin)
-  useEffect(() => {
-    supabase
-      .from('mundo_real_overrides')
-      .select('topic_id, vocabulary, phrases, structure, dialogue, expressions, phrasal_verbs')
-      .then(({ data }) => {
-        if (data?.length) {
-          const map: Record<string, any> = {};
-          data.forEach((row: any) => { map[row.topic_id] = row; });
-          setMrOverrides(map);
-        }
-      });
-  }, []);
-
-  // Fusionar datos estáticos con overrides del admin.
-  //
-  // El vocabulario y las frases se CONCATENAN (el admin añade, no reemplaza),
-  // y por eso hay que quitar los repetidos: el editor del admin se inicializa
-  // con los datos del archivo, así que si alguien abre un tema y le da a
-  // guardar sin tocar nada, esas mismas palabras quedan también en el override
-  // y el estudiante las vería dos veces. dedupe() es lo que evita eso.
-  const dedupe = (items: any[], key: (item: any) => string): any[] => {
-    const seen = new Set<string>();
-    return items.filter(item => {
-      const k = (key(item) ?? '').trim().toLowerCase();
-      if (!k) return true;
-      if (seen.has(k)) return false;
-      seen.add(k);
-      return true;
-    });
-  };
-
-  const mergedMundoRealTopics = useMemo(() =>
-    MUNDO_REAL_TOPICS.map(t => {
-      const ov = mrOverrides[t.id];
-      if (!ov) return t;
-      return {
-        ...t,
-        vocabulary:   dedupe([...(t.vocabulary ?? []), ...(ov.vocabulary ?? [])], v => v.word),
-        phrases:      dedupe([...(t.phrases ?? []),    ...(ov.phrases ?? [])],    p => p.phrase),
-        structure:    ov.structure     ?? t.structure,
-        dialogue:     ov.dialogue      ?? t.dialogue,
-        expressions:  ov.expressions   ?? t.expressions  ?? [],
-        phrasalVerbs: ov.phrasal_verbs ?? t.phrasalVerbs ?? [],
-      };
-    }),
-  [mrOverrides]);
 
   const loadUnitsForCourse = async (courseId: string) => {
     if (courseUnits[courseId]) return; // already loaded
@@ -3540,460 +3502,20 @@ useEffect(() => {
                 </motion.div>
               )}
 
-              {/* ─── INGLÉS PARA EL MUNDO REAL (dentro de English for you!) ─── */}
-              {activeTab === 'english' && showMundoReal && (() => {
-                const topic = mundoRealTopic ? mergedMundoRealTopics.find(t => t.id === mundoRealTopic) : null;
-                const categories = MR_CATEGORIES;
-                const filtered = mergedMundoRealTopics.filter(t => {
-                  const matchCat = mrCategoryFilter === 'Todos' || t.category === mrCategoryFilter;
-                  const matchSearch = t.title.toLowerCase().includes(mrSearch.toLowerCase()) || t.category.toLowerCase().includes(mrSearch.toLowerCase());
-                  return matchCat && matchSearch;
-                });
-
-                if (!topic) {
-                  // ── LIST VIEW ──
-                  return (
-                    <motion.div key="mundo-real-list" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-5">
-                      <button onClick={() => { setShowMundoReal(false); openMRTopic(null); }} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors">
-                        ← English for you!
-                      </button>
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <Globe className="w-6 h-6 text-primary" />
-                          <h1 className="text-2xl md:text-3xl font-extrabold">Inglés para el Mundo Real</h1>
-                        </div>
-                        <p className="text-muted-foreground text-sm">Aprende inglés en situaciones cotidianas reales. Elige un tema y practica vocabulario, frases y conversaciones.</p>
-                      </div>
-                      {/* Search */}
-                      <input
-                        type="text"
-                        placeholder="Buscar tema..."
-                        value={mrSearch}
-                        onChange={e => setMrSearch(e.target.value)}
-                        className="w-full border border-border/60 bg-background rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
-                      />
-                      {/* Category filter */}
-                      <div className="flex flex-wrap gap-2">
-                        {categories.map(cat => (
-                          <button
-                            key={cat}
-                            onClick={() => setMrCategoryFilter(cat)}
-                            className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all ${mrCategoryFilter === cat ? 'bg-primary text-primary-foreground border-primary' : 'bg-background border-border/60 text-muted-foreground hover:border-primary/60'}`}
-                          >{cat}</button>
-                        ))}
-                      </div>
-                      {/* Grid */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {filtered.map((t, i) => (
-                          <motion.div
-                            key={t.id}
-                            initial={{ opacity: 0, y: 12 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: i * 0.03 }}
-                            className={`rounded-2xl border border-border/50 bg-gradient-to-br ${t.cardBg} shadow-sm hover:shadow-md transition-shadow cursor-pointer p-4 flex gap-3 items-start`}
-                            onClick={() => openMRTopic(t.id)}
-                          >
-                            <span className="text-3xl mt-0.5">{t.emoji}</span>
-                            <div className="flex-1 min-w-0">
-                              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${t.badge}`}>{t.category}</span>
-                              <h3 className="font-bold text-sm mt-1 leading-snug">{t.title}</h3>
-                            </div>
-                            <button
-                              className={`shrink-0 mt-1 px-3 py-1 rounded-xl text-xs font-bold bg-gradient-to-r ${t.color} text-white shadow-sm`}
-                              onClick={e => { e.stopPropagation(); openMRTopic(t.id); }}
-                            >Explorar</button>
-                          </motion.div>
-                        ))}
-                        {filtered.length === 0 && (
-                          <p className="col-span-2 text-center text-muted-foreground text-sm py-8">No se encontraron temas.</p>
-                        )}
-                      </div>
-                    </motion.div>
-                  );
-                }
-
-                // ── DETAIL VIEW ──
-                const tabs = [
-                  { id: 'vocab',       label: '📖 Vocabulario' },
-                  { id: 'frases',      label: '💬 Frases' },
-                  ...(topic.expressions?.length  ? [{ id: 'expresiones', label: '🗣️ Expresiones' }] : []),
-                  ...(topic.phrasalVerbs?.length  ? [{ id: 'phrasal',     label: '🔀 Phrasal Verbs' }] : []),
-                  { id: 'estructura',  label: '🏗️ Estructura' },
-                  { id: 'dialogo',     label: '🎭 Diálogo' },
-                ] as const;
-
-                const speak = (text: string) => {
-                  const u = new SpeechSynthesisUtterance(text);
-                  u.lang = 'en-US'; u.rate = 0.85;
-                  window.speechSynthesis.cancel();
-                  window.speechSynthesis.speak(u);
-                };
-
-                return (
-                  <motion.div key={`mr-detail-${topic.id}`} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-5">
-                    {/* Back + header */}
-                    <div>
-                      <button onClick={() => openMRTopic(null)} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary mb-3 transition-colors">
-                        ← Volver a temas
-                      </button>
-                      <div className="flex items-center gap-3">
-                        <span className="text-4xl">{topic.emoji}</span>
-                        <div>
-                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${topic.badge}`}>{topic.category}</span>
-                          <h1 className="text-xl md:text-2xl font-extrabold mt-0.5">{topic.title}</h1>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Sub-tabs */}
-                    <div className="flex gap-2 flex-wrap">
-                      {tabs.map(tb => (
-                        <button
-                          key={tb.id}
-                          onClick={() => setMundoRealTab(tb.id)}
-                          className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all ${mundoRealTab === tb.id ? `bg-gradient-to-r ${topic.color} text-white shadow-sm` : 'bg-muted/60 text-muted-foreground hover:bg-muted'}`}
-                        >{tb.label}</button>
-                      ))}
-                    </div>
-
-                    {/* ── VOCABULARY TAB ── */}
-                    {mundoRealTab === 'vocab' && (
-                      <div className="space-y-4">
-                        <div className="rounded-2xl border border-border/50 bg-card shadow-sm divide-y divide-border/40">
-                          {topic.vocabulary.map((v, i) => (
-                            <div key={i} className="flex items-center gap-3 p-4">
-                              <button onClick={() => speak(v.word)} className="p-1.5 rounded-lg hover:bg-muted transition-colors text-primary" title="Escuchar">🔊</button>
-                              <div className="flex-1">
-                                <span className="font-bold text-base">{v.word}</span>
-                                <span className="mx-2 text-muted-foreground">→</span>
-                                <span className="text-muted-foreground text-sm">{v.translation}</span>
-                                <p className="text-xs text-muted-foreground/80 italic mt-0.5">"{v.example}"</p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                        {/* Vocab exercise */}
-                        <div className="rounded-2xl border border-border/50 bg-card shadow-sm p-4 space-y-3">
-                          <h3 className="font-bold text-sm">🎯 Ejercicio: ¿Cuál es la traducción?</h3>
-                          {topic.vocabulary.map((v, i) => {
-                            const key = `vocab-${i}`;
-                            const chosen = mrAnswers[key];
-                            const correct = v.options.indexOf(v.translation);
-                            return (
-                              <div key={key} className={`rounded-xl border p-3 ${chosen !== undefined ? (chosen === correct ? 'border-green-400 bg-green-50 dark:bg-green-950/20' : 'border-red-400 bg-red-50 dark:bg-red-950/20') : 'border-border/40'}`}>
-                                <p className="font-semibold text-sm mb-2">"{v.word}"</p>
-                                <div className="grid grid-cols-2 gap-1.5">
-                                  {v.options.map((opt, oi) => (
-                                    <button
-                                      key={oi}
-                                      disabled={chosen !== undefined}
-                                      onClick={() => setMrAnswers(a => ({ ...a, [key]: oi }))}
-                                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-                                        chosen !== undefined
-                                          ? oi === correct ? 'bg-green-500 text-white border-green-500' : chosen === oi ? 'bg-red-400 text-white border-red-400' : 'bg-muted/40 text-muted-foreground border-border/40'
-                                          : 'bg-background border-border/60 hover:border-primary/60 hover:bg-primary/5'
-                                      }`}
-                                    >{opt}</button>
-                                  ))}
-                                </div>
-                                {chosen !== undefined && (
-                                  <p className={`text-xs mt-1.5 font-semibold ${chosen === correct ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
-                                    {chosen === correct ? '✅ ¡Correcto!' : `❌ Era: ${v.translation}`}
-                                  </p>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* ── PHRASES TAB ── */}
-                    {mundoRealTab === 'frases' && (
-                      <div className="space-y-4">
-                        <div className="rounded-2xl border border-border/50 bg-card shadow-sm divide-y divide-border/40">
-                          {topic.phrases.map((p, i) => (
-                            <div key={i} className="p-4 flex gap-3 items-start">
-                              <button onClick={() => speak(p.phrase.replace('___', p.missing))} className="p-1.5 rounded-lg hover:bg-muted transition-colors text-primary mt-0.5" title="Escuchar">🔊</button>
-                              <div>
-                                <p className="font-bold text-sm">{p.phrase.replace('___', p.missing)}</p>
-                                <p className="text-muted-foreground text-xs mt-0.5">{p.meaning}</p>
-                                <span className="inline-block mt-1 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">Cuándo: {p.when}</span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                        {/* Phrases exercise */}
-                        <div className="rounded-2xl border border-border/50 bg-card shadow-sm p-4 space-y-3">
-                          <h3 className="font-bold text-sm">🎯 Ejercicio: Completa la frase</h3>
-                          {topic.phrases.map((p, i) => {
-                            const key = `phrase-${i}`;
-                            const chosen = mrAnswers[key];
-                            return (
-                              <div key={key} className={`rounded-xl border p-3 ${chosen !== undefined ? (chosen === p.correct ? 'border-green-400 bg-green-50 dark:bg-green-950/20' : 'border-red-400 bg-red-50 dark:bg-red-950/20') : 'border-border/40'}`}>
-                                <p className="font-semibold text-sm mb-2">{p.phrase}</p>
-                                <div className="grid grid-cols-2 gap-1.5">
-                                  {p.options.map((opt, oi) => (
-                                    <button
-                                      key={oi}
-                                      disabled={chosen !== undefined}
-                                      onClick={() => setMrAnswers(a => ({ ...a, [key]: oi }))}
-                                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-                                        chosen !== undefined
-                                          ? oi === p.correct ? 'bg-green-500 text-white border-green-500' : chosen === oi ? 'bg-red-400 text-white border-red-400' : 'bg-muted/40 text-muted-foreground border-border/40'
-                                          : 'bg-background border-border/60 hover:border-primary/60 hover:bg-primary/5'
-                                      }`}
-                                    >{opt}</button>
-                                  ))}
-                                </div>
-                                {chosen !== undefined && (
-                                  <p className={`text-xs mt-1.5 font-semibold ${chosen === p.correct ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
-                                    {chosen === p.correct ? '✅ ¡Correcto!' : `❌ Era: ${p.options[p.correct]}`}
-                                  </p>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* ── EXPRESIONES & IDIOMS TAB ── */}
-                    {mundoRealTab === 'expresiones' && (
-                      <div className="space-y-3">
-                        <div className="rounded-2xl border border-border/50 bg-card shadow-sm divide-y divide-border/40">
-                          {(topic.expressions ?? []).map((e, i) => (
-                            <div key={i} className="p-4 flex gap-3 items-start">
-                              <button onClick={() => speak(e.expression)} className="p-1.5 rounded-lg hover:bg-muted transition-colors text-primary mt-0.5 shrink-0" title="Escuchar">🔊</button>
-                              <div className="flex-1">
-                                <p className="font-bold text-sm">"{e.expression}"</p>
-                                <p className="text-muted-foreground text-xs mt-0.5">💡 {e.meaning}</p>
-                                <p className="text-xs italic text-muted-foreground/80 mt-1 border-l-2 border-primary/30 pl-2">"{e.example}"</p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                        {/* Ejercicio: ¿Cuál es el significado? */}
-                        {(topic.expressions ?? []).length > 0 && (
-                          <div className="rounded-2xl border border-border/50 bg-card shadow-sm p-4 space-y-3">
-                            <h3 className="font-bold text-sm">🎯 Ejercicio: ¿Qué significa esta expresión?</h3>
-                            {(topic.expressions ?? []).map((e, i) => {
-                              const key = `expr-${i}`;
-                              const chosen = mrAnswers[key];
-                              const allMeanings = (topic.expressions ?? []).map(x => x.meaning);
-                              const opts = [...new Set([e.meaning, ...allMeanings.filter(m => m !== e.meaning).slice(0, 3)])].slice(0, 4);
-                              const correct = opts.indexOf(e.meaning);
-                              return (
-                                <div key={key} className={`rounded-xl border p-3 ${chosen !== undefined ? (chosen === correct ? 'border-green-400 bg-green-50 dark:bg-green-950/20' : 'border-red-400 bg-red-50 dark:bg-red-950/20') : 'border-border/40'}`}>
-                                  <p className="font-semibold text-sm mb-2">"{e.expression}"</p>
-                                  <div className="grid grid-cols-1 gap-1.5">
-                                    {opts.map((opt, oi) => (
-                                      <button key={oi} disabled={chosen !== undefined}
-                                        onClick={() => setMrAnswers(a => ({ ...a, [key]: oi }))}
-                                        className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all text-left ${
-                                          chosen !== undefined
-                                            ? oi === correct ? 'bg-green-500 text-white border-green-500' : chosen === oi ? 'bg-red-400 text-white border-red-400' : 'bg-muted/40 text-muted-foreground border-border/40'
-                                            : 'bg-background border-border/60 hover:border-primary/60 hover:bg-primary/5'
-                                        }`}>{opt}</button>
-                                    ))}
-                                  </div>
-                                  {chosen !== undefined && (
-                                    <p className={`text-xs mt-1.5 font-semibold ${chosen === correct ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
-                                      {chosen === correct ? '✅ ¡Correcto!' : `❌ Significado: ${e.meaning}`}
-                                    </p>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* ── PHRASAL VERBS TAB ── */}
-                    {mundoRealTab === 'phrasal' && (
-                      <div className="space-y-3">
-                        <div className="rounded-2xl border border-border/50 bg-card shadow-sm divide-y divide-border/40">
-                          {(topic.phrasalVerbs ?? []).map((pv, i) => (
-                            <div key={i} className="p-4 flex gap-3 items-start">
-                              <button onClick={() => speak(pv.verb)} className="p-1.5 rounded-lg hover:bg-muted transition-colors text-primary mt-0.5 shrink-0" title="Escuchar">🔊</button>
-                              <div className="flex-1">
-                                <div className="flex items-baseline gap-2 flex-wrap">
-                                  <span className="font-bold text-sm text-primary">{pv.verb}</span>
-                                  <span className="text-muted-foreground text-xs">→</span>
-                                  <span className="text-sm text-muted-foreground">{pv.meaning}</span>
-                                </div>
-                                <p className="text-xs italic text-muted-foreground/80 mt-1 border-l-2 border-primary/30 pl-2">"{pv.example}"</p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                        {/* Ejercicio: completar con phrasal verb correcto */}
-                        {(topic.phrasalVerbs ?? []).length > 0 && (
-                          <div className="rounded-2xl border border-border/50 bg-card shadow-sm p-4 space-y-3">
-                            <h3 className="font-bold text-sm">🎯 Ejercicio: ¿Cuál es el significado?</h3>
-                            {(topic.phrasalVerbs ?? []).map((pv, i) => {
-                              const key = `pv-${i}`;
-                              const chosen = mrAnswers[key];
-                              const allMeanings = (topic.phrasalVerbs ?? []).map(x => x.meaning);
-                              const opts = [...new Set([pv.meaning, ...allMeanings.filter(m => m !== pv.meaning).slice(0, 3)])].slice(0, 4);
-                              const correct = opts.indexOf(pv.meaning);
-                              return (
-                                <div key={key} className={`rounded-xl border p-3 ${chosen !== undefined ? (chosen === correct ? 'border-green-400 bg-green-50 dark:bg-green-950/20' : 'border-red-400 bg-red-50 dark:bg-red-950/20') : 'border-border/40'}`}>
-                                  <p className="font-semibold text-sm mb-2 text-primary">"{pv.verb}"</p>
-                                  <div className="grid grid-cols-1 gap-1.5">
-                                    {opts.map((opt, oi) => (
-                                      <button key={oi} disabled={chosen !== undefined}
-                                        onClick={() => setMrAnswers(a => ({ ...a, [key]: oi }))}
-                                        className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all text-left ${
-                                          chosen !== undefined
-                                            ? oi === correct ? 'bg-green-500 text-white border-green-500' : chosen === oi ? 'bg-red-400 text-white border-red-400' : 'bg-muted/40 text-muted-foreground border-border/40'
-                                            : 'bg-background border-border/60 hover:border-primary/60 hover:bg-primary/5'
-                                        }`}>{opt}</button>
-                                    ))}
-                                  </div>
-                                  {chosen !== undefined && (
-                                    <p className={`text-xs mt-1.5 font-semibold ${chosen === correct ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
-                                      {chosen === correct ? '✅ ¡Correcto!' : `❌ Significado: ${pv.meaning}`}
-                                    </p>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* ── STRUCTURE TAB ── */}
-                    {mundoRealTab === 'estructura' && (
-                      <div className="space-y-4">
-                        <div className="rounded-2xl border border-border/50 bg-card shadow-sm p-5 space-y-3">
-                          <h2 className="font-extrabold text-base">{topic.structure.title}</h2>
-                          <p className="text-sm text-muted-foreground">{topic.structure.explanation}</p>
-                          <div className="space-y-1.5">
-                            {topic.structure.examples.map((ex, i) => (
-                              <div key={i} className="flex items-center gap-2">
-                                <button onClick={() => speak(ex)} className="text-primary hover:opacity-70 transition-opacity" title="Escuchar">🔊</button>
-                                <p className="text-sm font-medium italic">"{ex}"</p>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                        {/* Word order exercise */}
-                        <div className="rounded-2xl border border-border/50 bg-card shadow-sm p-4 space-y-3">
-                          <h3 className="font-bold text-sm">🎯 Ejercicio: Ordena las palabras</h3>
-                          <p className="text-xs text-muted-foreground">Forma la frase: <span className="font-semibold text-foreground">"{topic.structure.examples[2]}"</span></p>
-                          {/* Available words */}
-                          <div className="flex flex-wrap gap-2">
-                            {topic.structure.words.filter(w => !mrWordOrder.includes(w) || topic.structure.words.filter(x => x === w).length > mrWordOrder.filter(x => x === w).length).map((w, i) => (
-                              <button
-                                key={`avail-${i}-${w}`}
-                                disabled={mrWordSubmitted}
-                                onClick={() => setMrWordOrder(o => [...o, w])}
-                                className="px-3 py-1 rounded-lg border border-border/60 bg-background text-sm font-medium hover:border-primary/60 hover:bg-primary/5 transition-all disabled:opacity-40"
-                              >{w}</button>
-                            ))}
-                          </div>
-                          {/* Current order */}
-                          <div className="min-h-[40px] flex flex-wrap gap-2 rounded-xl border border-dashed border-border/60 bg-muted/30 p-2">
-                            {mrWordOrder.map((w, i) => (
-                              <button
-                                key={`order-${i}`}
-                                disabled={mrWordSubmitted}
-                                onClick={() => setMrWordOrder(o => { const n = [...o]; n.splice(i, 1); return n; })}
-                                className={`px-3 py-1 rounded-lg text-sm font-medium border transition-all ${mrWordSubmitted ? (mrWordOrder.join(' ') === topic.structure.examples[2] ? 'bg-green-500 text-white border-green-500' : 'bg-red-400 text-white border-red-400') : 'bg-primary/10 text-primary border-primary/40 hover:bg-red-50 hover:border-red-300'}`}
-                              >{w}</button>
-                            ))}
-                            {mrWordOrder.length === 0 && <span className="text-xs text-muted-foreground/60 self-center">Haz clic en las palabras para ordenarlas</span>}
-                          </div>
-                          <div className="flex gap-2">
-                            <button
-                              disabled={mrWordOrder.length === 0 || mrWordSubmitted}
-                              onClick={() => setMrWordSubmitted(true)}
-                              className="px-4 py-1.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold disabled:opacity-40"
-                            >Verificar</button>
-                            <button
-                              onClick={() => { setMrWordOrder([]); setMrWordSubmitted(false); }}
-                              className="px-4 py-1.5 rounded-xl border border-border/60 text-xs font-medium hover:bg-muted"
-                            >Reiniciar</button>
-                          </div>
-                          {mrWordSubmitted && (
-                            <p className={`text-sm font-semibold ${mrWordOrder.join(' ') === topic.structure.examples[2] ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
-                              {mrWordOrder.join(' ') === topic.structure.examples[2] ? '✅ ¡Perfecto!' : `❌ La respuesta correcta es: "${topic.structure.examples[2]}"`}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* ── DIALOGUE TAB ── */}
-                    {mundoRealTab === 'dialogo' && (() => {
-                      const bTurns = topic.dialogue.filter(l => l.speaker === 'B' && l.options);
-                      const totalB = bTurns.length;
-                      const answeredB = bTurns.filter((_, bi) => mrAnswers[`dial-${bi}`] !== undefined).length;
-                      const allDone = answeredB === totalB;
-                      let bIndex = 0;
-                      return (
-                        <div className="space-y-4">
-                          <div className="rounded-2xl border border-border/50 bg-card shadow-sm p-4 space-y-3">
-                            {topic.dialogue.map((line, li) => {
-                              const isB = line.speaker === 'B';
-                              const isInteractive = isB && line.options;
-                              const thisBIdx = isInteractive ? bIndex++ : -1;
-                              const key = `dial-${thisBIdx}`;
-                              const chosen = mrAnswers[key];
-                              const prevAnswered = thisBIdx === 0 || mrAnswers[`dial-${thisBIdx - 1}`] !== undefined;
-
-                              if (isInteractive && !prevAnswered) return null;
-
-                              return (
-                                <div key={li} className={`flex ${isB ? 'justify-end' : 'justify-start'}`}>
-                                  <div className={`max-w-[85%] ${isB ? 'items-end' : 'items-start'} flex flex-col gap-1`}>
-                                    <span className="text-xs text-muted-foreground px-1">{isB ? 'Tú' : 'A'}</span>
-                                    {!isInteractive ? (
-                                      <div className={`px-4 py-2.5 rounded-2xl text-sm font-medium ${isB ? 'bg-primary text-primary-foreground rounded-br-sm' : 'bg-muted text-foreground rounded-bl-sm'}`}>
-                                        {line.text}
-                                      </div>
-                                    ) : chosen !== undefined ? (
-                                      <div className={`px-4 py-2.5 rounded-2xl text-sm font-medium ${chosen === line.correct ? 'bg-green-500 text-white' : 'bg-red-400 text-white'} rounded-br-sm`}>
-                                        {line.options[chosen]}
-                                        {chosen !== line.correct && <span className="block text-xs mt-0.5 opacity-80">✓ {line.options[line.correct]}</span>}
-                                      </div>
-                                    ) : (
-                                      <div className="space-y-1.5">
-                                        {line.options.map((opt, oi) => (
-                                          <button
-                                            key={oi}
-                                            onClick={() => setMrAnswers(a => ({ ...a, [key]: oi }))}
-                                            className="block w-full text-left px-4 py-2 rounded-xl border border-border/60 bg-background text-sm hover:border-primary/60 hover:bg-primary/5 transition-all"
-                                          >{opt}</button>
-                                        ))}
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                          {allDone && (
-                            <div className="rounded-2xl border border-green-400 bg-green-50 dark:bg-green-950/20 p-4 text-center">
-                              <p className="font-bold text-green-700 dark:text-green-400">
-                                🎉 ¡Diálogo completado! Acertaste {bTurns.filter((t, bi) => mrAnswers[`dial-${bi}`] === t.correct).length} de {totalB} respuestas.
-                              </p>
-                              <button onClick={() => { const reset = {}; bTurns.forEach((_, bi) => { delete reset[`dial-${bi}`]; }); setMrAnswers(a => { const n = { ...a }; bTurns.forEach((_, bi) => delete n[`dial-${bi}`]); return n; }); }} className="mt-2 text-xs text-green-700 dark:text-green-400 underline">Intentar de nuevo</button>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })()}
-                  </motion.div>
-                );
-              })()}
+              {/* ─── INGLÉS PARA EL MUNDO REAL (dentro de English for you!) ───
+                  El visor entero vive en src/components/mundo-real/. */}
+              {activeTab === 'english' && showMundoReal && (
+                <MundoRealSection
+                  key="mundo-real"
+                  onExit={() => setShowMundoReal(false)}
+                  initialTopicId={deepLinkTopic}
+                  studentId={currentUserId}
+                />
+              )}
 
               {/* ─── ENGLISH FOR YOU ─── */}
               {activeTab === 'english' && !showMundoReal && (
-                <EnglishForYou onMundoReal={() => { setShowMundoReal(true); openMRTopic(null); }} onClasesEnVivo={() => setActiveTab('sesion')} />
+                <EnglishForYou onMundoReal={() => { setShowMundoReal(true); setDeepLinkTopic(null); }} onClasesEnVivo={() => setActiveTab('sesion')} />
               )}
 
               {/* ─── AYUDA ─── */}

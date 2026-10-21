@@ -292,7 +292,7 @@ export const MUNDO_REAL_TOPICS: MRTopic[] = [
       { word: 'a starter', translation: 'una entrada', example: 'She made soup as a starter.', options: ['una entrada', 'un postre', 'una bebida', 'un acompañamiento'] },
       { word: 'a second helping', translation: 'una segunda porción', example: 'Would you like a second helping?', options: ['una segunda porción', 'un plato nuevo', 'una bebida más', 'una servilleta'] },
       { word: 'homemade', translation: 'casero', example: 'The bread is homemade.', options: ['casero', 'congelado', 'comprado', 'importado'] },
-      { word: 'a dish', translation: 'un plato (comida)', example: 'What is this dish called?', options: ['un plato de comida', 'un plato de cerámica', 'una receta escrita', 'un cubierto'] },
+      { word: 'a dish', translation: 'un plato de comida', example: 'What is this dish called?', options: ['un plato de comida', 'un plato de cerámica', 'una receta escrita', 'un cubierto'] },
       { word: 'to be full', translation: 'estar lleno', example: 'It was delicious, but I am full.', options: ['estar lleno', 'tener hambre', 'estar enfermo', 'estar cansado'] },
     ],
     phrases: [
@@ -590,7 +590,7 @@ export const MUNDO_REAL_TOPICS: MRTopic[] = [
       { word: 'an appointment', translation: 'una cita', example: 'I would like to book an appointment.', options: ['una cita', 'una receta', 'una urgencia', 'un examen'] },
       { word: 'a GP', translation: 'un médico general', example: 'I need to see a GP, not a specialist.', options: ['un médico general', 'un especialista', 'un enfermero', 'un cirujano'] },
       { word: 'a referral', translation: 'una remisión', example: 'You need a referral to see the specialist.', options: ['una remisión', 'una receta', 'un informe', 'una factura'] },
-      { word: 'a slot', translation: 'un cupo, un espacio en la agenda', example: 'We have a slot at four on Thursday.', options: ['un cupo en la agenda', 'una sala', 'un turno de guardia', 'una lista'] },
+      { word: 'a slot', translation: 'un cupo en la agenda', example: 'We have a slot at four on Thursday.', options: ['un cupo en la agenda', 'una sala', 'un turno de guardia', 'una lista'] },
       { word: 'urgent', translation: 'urgente', example: 'Is it urgent or can it wait?', options: ['urgente', 'leve', 'rutinario', 'opcional'] },
       { word: 'to cancel', translation: 'cancelar', example: 'I need to cancel my appointment on Monday.', options: ['cancelar', 'confirmar', 'adelantar', 'repetir'] },
     ],
@@ -623,7 +623,7 @@ export const MUNDO_REAL_TOPICS: MRTopic[] = [
     vocabulary: [
       { word: 'coverage', translation: 'cobertura', example: 'Does my coverage include dental care?', options: ['cobertura', 'cuota mensual', 'descuento', 'reembolso'] },
       { word: 'a premium', translation: 'la cuota mensual', example: 'The monthly premium is 90 dollars.', options: ['la cuota mensual', 'el copago', 'el deducible', 'la multa'] },
-      { word: 'a deductible', translation: 'el monto que pagas antes de que cubra el seguro', example: 'You pay the first 500: that is the deductible.', options: ['lo que pagas antes de que cubra el seguro', 'la cuota mensual', 'el porcentaje de descuento', 'el tope anual'] },
+      { word: 'a deductible', translation: 'lo que pagas antes de que cubra el seguro', example: 'You pay the first 500: that is the deductible.', options: ['lo que pagas antes de que cubra el seguro', 'la cuota mensual', 'el porcentaje de descuento', 'el tope anual'] },
       { word: 'a copay', translation: 'un copago', example: 'There is a 20 dollar copay for each visit.', options: ['un copago', 'una propina', 'un anticipo', 'una cuota anual'] },
       { word: 'in network', translation: 'dentro de la red del seguro', example: 'Is this clinic in network?', options: ['dentro de la red del seguro', 'cerca de casa', 'abierto las 24 horas', 'público'] },
       { word: 'a claim', translation: 'una reclamación', example: 'The hospital will file the claim for you.', options: ['una reclamación', 'una queja', 'una receta', 'un diagnóstico'] },
@@ -690,7 +690,7 @@ export const MUNDO_REAL_TOPICS: MRTopic[] = [
     color: 'from-rose-500 to-red-500', cardBg: 'from-rose-50 to-red-50 dark:from-rose-950/30 dark:to-red-950/30', badge: 'bg-rose-100 text-rose-700',
     vocabulary: [
       { word: 'a vaccine', translation: 'una vacuna', example: 'The flu vaccine is free this month.', options: ['una vacuna', 'una inyección de vitaminas', 'un antibiótico', 'una radiografía'] },
-      { word: 'a jab', translation: 'un pinchazo, una vacuna (coloquial)', example: 'I am going for my flu jab tomorrow.', options: ['un pinchazo, una vacuna', 'una pastilla', 'una venda', 'una cita'] },
+      { word: 'a jab', translation: 'un pinchazo, una vacuna', example: 'I am going for my flu jab tomorrow.', options: ['un pinchazo, una vacuna', 'una pastilla', 'una venda', 'una cita'] },
       { word: 'a booster', translation: 'un refuerzo', example: 'You need a booster every ten years.', options: ['un refuerzo', 'una primera dosis', 'una receta', 'un control'] },
       { word: 'side effects', translation: 'efectos secundarios', example: 'The side effects are usually mild.', options: ['efectos secundarios', 'síntomas iniciales', 'contraindicaciones', 'alergias'] },
       { word: 'a vaccination record', translation: 'un carné de vacunas', example: 'Please bring your vaccination record.', options: ['un carné de vacunas', 'una historia clínica', 'un carné del seguro', 'un certificado médico'] },
@@ -1555,7 +1555,7 @@ export const MUNDO_REAL_TOPICS: MRTopic[] = [
       { word: 'income', translation: 'ingresos', example: 'You declare all your income from last year.', options: ['ingresos', 'gastos', 'ahorros', 'deudas'] },
       { word: 'a deduction', translation: 'una deducción', example: 'Travel costs can be a deduction.', options: ['una deducción', 'un recargo', 'un anticipo', 'una sanción'] },
       { word: 'a refund', translation: 'una devolución', example: 'I got a refund of 300 euros.', options: ['una devolución', 'un pago extra', 'una cuota', 'un descuento comercial'] },
-      { word: 'a payslip', translation: 'una nómina, un desprendible de pago', example: 'Keep every payslip from the year.', options: ['una nómina', 'una factura', 'un contrato', 'un extracto bancario'] },
+      { word: 'a payslip', translation: 'una nómina', example: 'Keep every payslip from the year.', options: ['una nómina', 'una factura', 'un contrato', 'un extracto bancario'] },
     ],
     phrases: [
       { phrase: 'Tax ___ deducted automatically from my salary.', meaning: 'El impuesto se descuenta automáticamente del sueldo.', when: 'Explicar cómo funciona', missing: 'is', options: ['is', 'are', 'has', 'does'], correct: 0 },
@@ -4038,7 +4038,7 @@ export const MUNDO_REAL_TOPICS: MRTopic[] = [
     id: 'soporte-tecnico', title: 'Soporte Técnico', category: 'Vida Digital', emoji: '🛠️',
     color: 'from-purple-600 to-fuchsia-600', cardBg: 'from-purple-50 to-fuchsia-50 dark:from-purple-950/30 dark:to-fuchsia-950/30', badge: 'bg-purple-100 text-purple-700',
     vocabulary: [
-      { word: 'to crash', translation: 'cerrarse de golpe, colgarse', example: 'The app crashes every time I open it.', options: ['cerrarse de golpe', 'ir lento', 'actualizarse', 'reiniciarse solo'] },
+      { word: 'to crash', translation: 'cerrarse de golpe', example: 'The app crashes every time I open it.', options: ['cerrarse de golpe', 'ir lento', 'actualizarse', 'reiniciarse solo'] },
       { word: 'to freeze', translation: 'congelarse', example: 'The screen freezes after a minute.', options: ['congelarse', 'apagarse', 'parpadear', 'brillar'] },
       { word: 'an error message', translation: 'un mensaje de error', example: 'I get an error message every time.', options: ['un mensaje de error', 'una notificación', 'un aviso de pago', 'un correo'] },
       { word: 'to restart', translation: 'reiniciar', example: 'Have you tried restarting it?', options: ['reiniciar', 'desinstalar', 'actualizar', 'formatear'] },
