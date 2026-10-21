@@ -1035,15 +1035,32 @@ useEffect(() => {
       });
   }, []);
 
-  // Fusionar datos estáticos con overrides del admin
+  // Fusionar datos estáticos con overrides del admin.
+  //
+  // El vocabulario y las frases se CONCATENAN (el admin añade, no reemplaza),
+  // y por eso hay que quitar los repetidos: el editor del admin se inicializa
+  // con los datos del archivo, así que si alguien abre un tema y le da a
+  // guardar sin tocar nada, esas mismas palabras quedan también en el override
+  // y el estudiante las vería dos veces. dedupe() es lo que evita eso.
+  const dedupe = (items: any[], key: (item: any) => string): any[] => {
+    const seen = new Set<string>();
+    return items.filter(item => {
+      const k = (key(item) ?? '').trim().toLowerCase();
+      if (!k) return true;
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+  };
+
   const mergedMundoRealTopics = useMemo(() =>
     MUNDO_REAL_TOPICS.map(t => {
       const ov = mrOverrides[t.id];
       if (!ov) return t;
       return {
         ...t,
-        vocabulary:   [...(t.vocabulary ?? []), ...(ov.vocabulary ?? [])],
-        phrases:      [...(t.phrases ?? []),     ...(ov.phrases ?? [])],
+        vocabulary:   dedupe([...(t.vocabulary ?? []), ...(ov.vocabulary ?? [])], v => v.word),
+        phrases:      dedupe([...(t.phrases ?? []),    ...(ov.phrases ?? [])],    p => p.phrase),
         structure:    ov.structure     ?? t.structure,
         dialogue:     ov.dialogue      ?? t.dialogue,
         expressions:  ov.expressions   ?? t.expressions  ?? [],
