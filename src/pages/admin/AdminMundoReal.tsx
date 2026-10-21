@@ -31,6 +31,10 @@ const CAT_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
   'Situaciones Difíciles':      { bg: 'bg-red-100',     text: 'text-red-700',     dot: 'bg-red-500'     },
   'Comunicación del Día a Día': { bg: 'bg-teal-100',    text: 'text-teal-700',    dot: 'bg-teal-500'    },
   'Emergencias':                { bg: 'bg-rose-100',    text: 'text-rose-700',    dot: 'bg-rose-500'    },
+  'Vivienda':                   { bg: 'bg-emerald-100', text: 'text-emerald-700', dot: 'bg-emerald-500' },
+  'Trámites Migratorios':       { bg: 'bg-sky-100',     text: 'text-sky-700',     dot: 'bg-sky-500'     },
+  'Vida Digital':               { bg: 'bg-purple-100',  text: 'text-purple-700',  dot: 'bg-purple-500'  },
+  'Vida Diaria':                { bg: 'bg-lime-100',    text: 'text-lime-700',    dot: 'bg-lime-500'    },
 };
 const fallbackColor = { bg: 'bg-gray-100', text: 'text-gray-700', dot: 'bg-gray-400' };
 
