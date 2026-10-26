@@ -224,6 +224,11 @@ function TopicEditModal({
     { id: 'dialogo',     label: '🎭 Diálogo',         count: 1 + dialoguesExtra.length  },
   ] as const;
 
+  // Nombres de seccion ya usados en este tema. La lista sugerida los ofrece al
+  // escribir, para que «Pagar» no acabe convertido en «Pagar» y «pagar».
+  const vocabGroups = Array.from(new Set(vocab.map(v => (v.group ?? '').trim()).filter(Boolean)));
+  const phraseGroups = Array.from(new Set(phrases.map(p => (p.group ?? '').trim()).filter(Boolean)));
+
   return (
     <motion.div
       className="fixed inset-0 z-[100] flex items-center justify-center p-4"
@@ -291,17 +296,26 @@ function TopicEditModal({
                   <p className="text-xs text-muted-foreground">
                     Edita cada palabra con su traducción y frase de ejemplo. Los cambios reemplazarán el contenido que ve el estudiante.
                   </p>
+                  <p className="text-xs text-muted-foreground">
+                    💡 La <strong>sección</strong> agrupa las palabras en la pantalla del estudiante: estudia y practica una
+                    sección a la vez en vez de la lista entera. Escribe el mismo nombre en todas las palabras que vayan juntas,
+                    o déjalo vacío para mostrarlas en una sola lista.
+                  </p>
                   <div className="rounded-2xl border border-border/50 bg-card overflow-hidden">
                     {/* Cabecera de columnas */}
-                    <div className="grid grid-cols-[1fr_1fr_2fr_32px] gap-2 px-3 py-2 bg-muted/40 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+                    <div className="grid grid-cols-[1fr_1fr_1fr_2fr_32px] gap-2 px-3 py-2 bg-muted/40 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
                       <span>Inglés</span>
                       <span>Español</span>
+                      <span>Sección</span>
                       <span>Frase de ejemplo</span>
                       <span />
                     </div>
+                    <datalist id="mr-vocab-groups">
+                      {vocabGroups.map(g => <option key={g} value={g} />)}
+                    </datalist>
                     <div className="divide-y divide-border/30">
                       {vocab.map((v, i) => (
-                        <div key={i} className="grid grid-cols-[1fr_1fr_2fr_32px] gap-2 items-center px-3 py-2.5">
+                        <div key={i} className="grid grid-cols-[1fr_1fr_1fr_2fr_32px] gap-2 items-center px-3 py-2.5">
                           <Input
                             value={v.word}
                             onChange={e => updateVocab(i, 'word', e.target.value)}
@@ -312,6 +326,13 @@ function TopicEditModal({
                             value={v.translation}
                             onChange={e => updateVocab(i, 'translation', e.target.value)}
                             placeholder="traducción"
+                            className="h-8 text-sm"
+                          />
+                          <Input
+                            value={v.group ?? ''}
+                            onChange={e => updateVocab(i, 'group', e.target.value)}
+                            placeholder="(sin sección)"
+                            list="mr-vocab-groups"
                             className="h-8 text-sm"
                           />
                           <Input
@@ -356,7 +377,7 @@ function TopicEditModal({
                                 placeholder="Frase en inglés (usa ___ para el espacio en blanco)"
                                 className="text-sm font-semibold"
                               />
-                              <div className="grid grid-cols-2 gap-2">
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                 <Input
                                   value={p.meaning}
                                   onChange={e => updatePhrase(i, 'meaning', e.target.value)}
@@ -366,10 +387,20 @@ function TopicEditModal({
                                 <Input
                                   value={p.when}
                                   onChange={e => updatePhrase(i, 'when', e.target.value)}
-                                  placeholder="Cuándo usarla (ej: Al llegar)"
+                                  placeholder="Cuándo usarla (ej: Si ya reservaste)"
+                                  className="text-sm"
+                                />
+                                <Input
+                                  value={p.group ?? ''}
+                                  onChange={e => updatePhrase(i, 'group', e.target.value)}
+                                  placeholder="Sección (ej: Al llegar)"
+                                  list="mr-phrase-groups"
                                   className="text-sm"
                                 />
                               </div>
+                              <datalist id="mr-phrase-groups">
+                                {phraseGroups.map(g => <option key={g} value={g} />)}
+                              </datalist>
                             </div>
                             <button
                               onClick={() => deletePhrase(i)}

@@ -170,17 +170,33 @@ export function MundoRealSection({ onExit, initialTopicId = null, studentId }: M
     });
   }, [persistBlock]);
 
-  /** Reinicia un bloque para poder repetirlo sin salir del tema. */
-  const resetBlock = useCallback((prefix: string) => {
+  /**
+   * Reinicia un bloque para poder repetirlo sin salir del tema.
+   *
+   * Con `onlyKeys` se reinicia solo una parte: lo necesitan las pestañas con
+   * secciones, donde repetir «Pagar» no puede borrar lo ya hecho en «Pedir».
+   * En ese caso el bloque conserva respuestas, así que se guarda el resto en
+   * vez de borrar la fila de progreso.
+   */
+  const resetBlock = useCallback((prefix: string, onlyKeys?: string[]) => {
+    const block = blockOfKey(prefix + 'x');
+    const partial = !!onlyKeys?.length;
+
     setAnswers(prev => {
       const next: Record<string, string> = {};
-      for (const [k, v] of Object.entries(prev)) if (!k.startsWith(prefix)) next[k] = v;
+      if (partial) {
+        const drop = new Set(onlyKeys);
+        for (const [k, v] of Object.entries(prev)) if (!drop.has(k)) next[k] = v;
+      } else {
+        for (const [k, v] of Object.entries(prev)) if (!k.startsWith(prefix)) next[k] = v;
+      }
+      if (block && partial) persistBlock(block, next);
       return next;
     });
+
     if (prefix === 's:') { setOrder({}); setOrderDone({}); }
-    const block = blockOfKey(prefix + 'x');
-    if (block && topic) progress.clearBlock(topic.id, block);
-  }, [topic, progress]);
+    if (block && topic && !partial) progress.clearBlock(topic.id, block);
+  }, [topic, progress, persistBlock]);
 
   /**
    * Al verificar un ejercicio de ordenar se guarda la frase que montó el alumno,
