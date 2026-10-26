@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import {
   MUNDO_REAL_TOPICS, MR_CATEGORIES,
-  type MRTopic, type MRVocab, type MRPhrase, type MRStructure, type MRDialogueLine,
+  type MRTopic, type MRVocab, type MRPhrase, type MRStructure, type MRDialogueLine, type MRDialogue,
   type MRExpression, type MRPhrasalVerb,
 } from '@/pages/MundoRealData';
 import { adminUpsert } from '@/lib/adminWrite';
@@ -74,13 +74,18 @@ function TopicEditModal({
   const [phrasalVerbs, setPhrasalVerbs] = useState<MRPhrasalVerb[]>(
     (topic.phrasalVerbs ?? []).map(p => ({ ...p }))
   );
-  const [newWord, setNewWord] = useState('');
+
+  // Estructuras y diálogos ADICIONALES. Estos no vienen del archivo: viven solo
+  // en las columnas structures_extra / dialogues_extra y se SUMAN a los de
+  // arriba, que son los originales. Por eso arrancan vacíos.
+  const [structuresExtra, setStructuresExtra] = useState<MRStructure[]>([]);
+  const [dialoguesExtra, setDialoguesExtra] = useState<MRDialogue[]>([]);
 
   /* ── Cargar override existente de Supabase ── */
   useEffect(() => {
     supabase
       .from('mundo_real_overrides')
-      .select('vocabulary, phrases, structure, dialogue, expressions, phrasal_verbs')
+      .select('vocabulary, phrases, structure, dialogue, expressions, phrasal_verbs, structures_extra, dialogues_extra')
       .eq('topic_id', topic.id)
       .maybeSingle()
       .then(({ data }) => {
@@ -91,6 +96,8 @@ function TopicEditModal({
           if (data.dialogue)      setDialogue(data.dialogue);
           if (data.expressions)   setExpressions(data.expressions);
           if (data.phrasal_verbs) setPhrasalVerbs(data.phrasal_verbs);
+          if (data.structures_extra) setStructuresExtra(data.structures_extra);
+          if (data.dialogues_extra)  setDialoguesExtra(data.dialogues_extra);
         }
         setLoading(false);
       })
@@ -142,6 +149,40 @@ function TopicEditModal({
   const addDialogue = () =>
     setDialogue(prev => [...prev, { speaker: prev.length % 2 === 0 ? 'A' : 'B', text: '' }]);
 
+  /** Quita los ejemplos en blanco y las estructuras que quedaron sin nada. */
+  const sanitizeStructuresExtra = (list: MRStructure[]): MRStructure[] =>
+    list
+      .map(st => ({
+        title: (st.title ?? '').trim(),
+        explanation: (st.explanation ?? '').trim(),
+        examples: (st.examples ?? []).map(e => (e ?? '').trim()).filter(Boolean),
+      }))
+      .filter(st => st.title || st.examples.length);
+
+  /**
+   * Limpia las conversaciones adicionales antes de guardarlas.
+   *
+   * El visor del alumno pinta un boton por cada entrada de `options`, asi que
+   * un turno a medio escribir le llegaria como opciones en blanco. Aqui se
+   * tiran las vacias, y si la primera (la correcta) se quedo sin texto o no
+   * quedan al menos dos, el turno pasa a ser una linea normal sin ejercicio.
+   */
+  const sanitizeDialoguesExtra = (list: MRDialogue[]): MRDialogue[] =>
+    list
+      .map((d, i) => ({
+        id: (d.id ?? '').trim() || `extra-${i + 1}`,
+        title: (d.title ?? '').trim() || `Conversacion ${i + 2}`,
+        lines: (d.lines ?? [])
+          .filter(l => (l.text ?? '').trim())
+          .map(l => {
+            const opts = (l.options ?? []).map(o => (o ?? '').trim());
+            const keep = opts.length >= 2 && opts[0] && opts.filter(Boolean).length >= 2;
+            if (!keep) return { speaker: l.speaker, text: l.text.trim() };
+            return { speaker: l.speaker, text: l.text.trim(), options: opts.filter(Boolean), correct: 0 };
+          }),
+      }))
+      .filter(d => d.lines.length > 0);
+
   /* ── Guardar ── */
   const handleSave = async () => {
     setSaving(true);
@@ -158,6 +199,8 @@ function TopicEditModal({
           dialogue,
           expressions,
           phrasal_verbs: phrasalVerbs,
+          structures_extra: sanitizeStructuresExtra(structuresExtra),
+          dialogues_extra: sanitizeDialoguesExtra(dialoguesExtra),
           updated_at: new Date().toISOString(),
         },
         'topic_id',
@@ -177,8 +220,8 @@ function TopicEditModal({
     { id: 'frases',      label: '💬 Frases',          count: phrases.length      },
     { id: 'expresiones', label: '🗣️ Expresiones',    count: expressions.length  },
     { id: 'phrasal',     label: '🔀 Phrasal Verbs',  count: phrasalVerbs.length },
-    { id: 'estructura',  label: '🏗️ Estructura',     count: null                },
-    { id: 'dialogo',     label: '🎭 Diálogo',         count: dialogue.length     },
+    { id: 'estructura',  label: '🏗️ Estructura',     count: 1 + structuresExtra.length },
+    { id: 'dialogo',     label: '🎭 Diálogo',         count: 1 + dialoguesExtra.length  },
   ] as const;
 
   return (
@@ -519,42 +562,92 @@ function TopicEditModal({
                     </Button>
                   </div>
 
-                  {/* Palabras clave */}
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                      Palabras clave (chips)
-                    </label>
-                    <div className="flex flex-wrap gap-1.5 min-h-8">
-                      {structure.words.map((w, i) => (
-                        <span
-                          key={i}
-                          className="flex items-center gap-1 bg-primary/10 text-primary text-xs font-mono px-2 py-1 rounded-lg border border-primary/20"
-                        >
-                          {w}
-                          <button
-                            onClick={() => setStructure(s => ({ ...s, words: s.words.filter((_, j) => j !== i) }))}
-                            className="hover:text-red-500 transition-colors"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                    <div className="flex gap-2">
-                      <Input
-                        value={newWord}
-                        onChange={e => setNewWord(e.target.value)}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter' && newWord.trim()) {
-                            setStructure(s => ({ ...s, words: [...s.words, newWord.trim()] }));
-                            setNewWord('');
-                          }
-                        }}
-                        placeholder="Nueva palabra + Enter para agregar"
-                        className="text-sm h-8 font-mono flex-1"
-                      />
-                    </div>
+                  {/* El campo `words` ya no se usa: las fichas del ejercicio de
+                      ordenar salen de la propia frase de ejemplo, así que cada
+                      ejemplo de arriba genera su propio ejercicio. */}
+                  <p className="text-xs text-muted-foreground border-t border-border/40 pt-3">
+                    💡 Cada ejemplo de cuatro palabras o más se convierte solo en un ejercicio
+                    de ordenar. No hace falta escribir las fichas a mano.
+                  </p>
+
+                  {/* ── Estructuras adicionales ── */}
+                  <div className="space-y-3 pt-2 border-t border-border/40">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-bold">Estructuras adicionales</h4>
+                    <Button
+                      variant="ghost" size="sm"
+                      onClick={() => setStructuresExtra(s => [...s, { title: '', explanation: '', examples: [''] }])}
+                      className="gap-1.5 text-xs h-7 rounded-xl text-primary hover:text-primary"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Agregar estructura
+                    </Button>
                   </div>
+                  <p className="text-xs text-muted-foreground">
+                    Se suman a la de arriba. El estudiante las ve en un selector dentro de la pestaña Estructura.
+                  </p>
+
+                  {structuresExtra.map((s, si) => (
+                    <div key={si} className="rounded-2xl border border-border/50 bg-card p-4 space-y-3">
+                      <div className="flex gap-2 items-center">
+                        <span className="text-xs font-bold text-muted-foreground shrink-0">{si + 2}.</span>
+                        <Input
+                          value={s.title}
+                          onChange={e => setStructuresExtra(prev => prev.map((x, j) => j === si ? { ...x, title: e.target.value } : x))}
+                          placeholder="Título, p. ej. Could I have + sustantivo?"
+                          className="text-sm font-semibold flex-1"
+                        />
+                        <button
+                          onClick={() => setStructuresExtra(prev => prev.filter((_, j) => j !== si))}
+                          className="flex items-center justify-center h-8 w-8 rounded-lg hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors shrink-0"
+                          title="Eliminar esta estructura"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      <Textarea
+                        value={s.explanation}
+                        onChange={e => setStructuresExtra(prev => prev.map((x, j) => j === si ? { ...x, explanation: e.target.value } : x))}
+                        placeholder="Explica la regla y el error típico…"
+                        rows={3}
+                        className="text-sm resize-none"
+                      />
+
+                      <div className="space-y-2">
+                        {(s.examples ?? []).map((ex, ei) => (
+                          <div key={ei} className="flex gap-2 items-center">
+                            <span className="text-xs text-muted-foreground w-4 shrink-0 text-right">{ei + 1}.</span>
+                            <Input
+                              value={ex}
+                              onChange={e => setStructuresExtra(prev => prev.map((x, j) => j === si
+                                ? { ...x, examples: (x.examples ?? []).map((y, k) => k === ei ? e.target.value : y) }
+                                : x))}
+                              placeholder="Example sentence…"
+                              className="text-sm italic flex-1"
+                            />
+                            <button
+                              onClick={() => setStructuresExtra(prev => prev.map((x, j) => j === si
+                                ? { ...x, examples: (x.examples ?? []).filter((_, k) => k !== ei) }
+                                : x))}
+                              className="flex items-center justify-center h-8 w-8 rounded-lg hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors shrink-0"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ))}
+                        <Button
+                          variant="ghost" size="sm"
+                          onClick={() => setStructuresExtra(prev => prev.map((x, j) => j === si
+                            ? { ...x, examples: [...(x.examples ?? []), ''] }
+                            : x))}
+                          className="gap-1.5 text-xs h-7 rounded-xl text-primary hover:text-primary"
+                        >
+                          <Plus className="w-3.5 h-3.5" /> Agregar ejemplo
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
                 </div>
               )}
 
@@ -604,6 +697,122 @@ function TopicEditModal({
                         <Plus className="w-3.5 h-3.5" /> Agregar línea
                       </Button>
                     </div>
+                  </div>
+
+                  {/* ── Conversaciones adicionales ── */}
+                  <div className="space-y-3 pt-3 border-t border-border/40">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-bold">Conversaciones adicionales</h4>
+                      <Button
+                        variant="ghost" size="sm"
+                        onClick={() => setDialoguesExtra(d => [...d, {
+                          id: `d${Date.now()}`,
+                          title: '',
+                          lines: [
+                            { speaker: 'A', text: '' },
+                            { speaker: 'B', text: '___', options: ['', '', '', ''], correct: 0 },
+                          ],
+                        }])}
+                        className="gap-1.5 text-xs h-7 rounded-xl text-primary hover:text-primary"
+                      >
+                        <Plus className="w-3.5 h-3.5" /> Agregar conversación
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Se suman a la de arriba. En los turnos de B, la primera opción es la correcta
+                      y el estudiante las ve barajadas.
+                    </p>
+
+                    {dialoguesExtra.map((d, di) => (
+                      <div key={d.id ?? di} className="rounded-2xl border border-border/50 bg-card p-4 space-y-3">
+                        <div className="flex gap-2 items-center">
+                          <span className="text-xs font-bold text-muted-foreground shrink-0">{di + 2}.</span>
+                          <Input
+                            value={d.title}
+                            onChange={e => setDialoguesExtra(prev => prev.map((x, j) => j === di ? { ...x, title: e.target.value } : x))}
+                            placeholder="Nombre de la conversación, p. ej. Pedir la cuenta"
+                            className="text-sm font-semibold flex-1"
+                          />
+                          <button
+                            onClick={() => setDialoguesExtra(prev => prev.filter((_, j) => j !== di))}
+                            className="flex items-center justify-center h-8 w-8 rounded-lg hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors shrink-0"
+                            title="Eliminar esta conversación"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+
+                        <div className="space-y-2">
+                          {(d.lines ?? []).map((line, li) => (
+                            <div key={li} className="flex gap-2 items-start">
+                              <button
+                                onClick={() => setDialoguesExtra(prev => prev.map((x, j) => j === di
+                                  ? { ...x, lines: x.lines.map((l, k) => k === li ? { ...l, speaker: l.speaker === 'A' ? 'B' : 'A' } : l) }
+                                  : x))}
+                                title="Click para cambiar hablante"
+                                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-all hover:scale-110 ${
+                                  line.speaker === 'A' ? 'bg-primary text-primary-foreground' : 'bg-emerald-500 text-white'
+                                }`}
+                              >{line.speaker}</button>
+
+                              <div className="flex-1 space-y-1.5">
+                                <Input
+                                  value={line.text}
+                                  onChange={e => setDialoguesExtra(prev => prev.map((x, j) => j === di
+                                    ? { ...x, lines: x.lines.map((l, k) => k === li ? { ...l, text: e.target.value } : l) }
+                                    : x))}
+                                  placeholder={line.speaker === 'B' ? '___ (deja ___ si el alumno elige)' : 'Lo que dice la otra persona…'}
+                                  className="h-8 text-sm"
+                                />
+                                {line.speaker === 'B' && (line.options ?? []).map((opt, oi) => (
+                                  <Input
+                                    key={oi}
+                                    value={opt}
+                                    onChange={e => setDialoguesExtra(prev => prev.map((x, j) => j === di
+                                      ? { ...x, lines: x.lines.map((l, k) => k === li
+                                          ? { ...l, options: (l.options ?? []).map((o, m) => m === oi ? e.target.value : o) }
+                                          : l) }
+                                      : x))}
+                                    placeholder={oi === 0 ? 'Opción CORRECTA' : `Opción incorrecta ${oi}`}
+                                    className={`h-7 text-xs ${oi === 0 ? 'border-emerald-400 font-medium' : ''}`}
+                                  />
+                                ))}
+                              </div>
+
+                              <button
+                                onClick={() => setDialoguesExtra(prev => prev.map((x, j) => j === di
+                                  ? { ...x, lines: x.lines.filter((_, k) => k !== li) }
+                                  : x))}
+                                className="flex items-center justify-center h-8 w-8 rounded-lg hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors shrink-0"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          ))}
+
+                          <div className="flex gap-2">
+                            <Button
+                              variant="ghost" size="sm"
+                              onClick={() => setDialoguesExtra(prev => prev.map((x, j) => j === di
+                                ? { ...x, lines: [...x.lines, { speaker: 'A', text: '' }] }
+                                : x))}
+                              className="gap-1.5 text-xs h-7 rounded-xl text-primary hover:text-primary"
+                            >
+                              <Plus className="w-3.5 h-3.5" /> Línea de A
+                            </Button>
+                            <Button
+                              variant="ghost" size="sm"
+                              onClick={() => setDialoguesExtra(prev => prev.map((x, j) => j === di
+                                ? { ...x, lines: [...x.lines, { speaker: 'B', text: '___', options: ['', '', '', ''], correct: 0 }] }
+                                : x))}
+                              className="gap-1.5 text-xs h-7 rounded-xl text-emerald-600 hover:text-emerald-600"
+                            >
+                              <Plus className="w-3.5 h-3.5" /> Turno del alumno
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}

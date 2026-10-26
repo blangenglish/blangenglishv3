@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { orderExercises, isOrderCorrect } from '@/lib/mundoRealExercises';
 import type { MRTabProps } from '../types';
 
@@ -12,17 +13,43 @@ interface StructureTabProps extends MRTabProps {
 export function StructureTab({
   topic, speak, order, orderDone, onOrder, onOrderDone,
 }: StructureTabProps) {
-  const exercises = orderExercises(topic.id, topic.structure?.examples ?? []);
+  // El tema puede traer varias estructuras (pedir, modificar, comparar…).
+  const structures = topic.structures ?? (topic.structure ? [topic.structure] : []);
+  const [current, setCurrent] = useState(0);
+  const structure = structures[current];
+
+  if (!structure) {
+    return <p className="text-xs text-muted-foreground">Este tema todavía no tiene estructuras.</p>;
+  }
+
+  const exercises = orderExercises(topic.id, structure.examples ?? [], 4, current);
 
   return (
     <div className="space-y-4">
+      {structures.length > 1 && (
+        <div className="flex gap-1.5 flex-wrap">
+          {structures.map((s, i) => (
+            <button
+              key={i}
+              onClick={() => setCurrent(i)}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold border transition-all ${
+                i === current
+                  ? 'bg-primary text-primary-foreground border-primary'
+                  : 'bg-background border-border/60 text-muted-foreground hover:border-primary/60'
+              }`}
+              title={s.title}
+            >{i + 1}. {s.title.length > 28 ? s.title.slice(0, 28) + '…' : s.title}</button>
+          ))}
+        </div>
+      )}
+
       <div className="rounded-2xl border border-border/50 bg-card shadow-sm p-5 space-y-3">
-        <h2 className="font-extrabold text-base">{topic.structure?.title}</h2>
-        <p className="text-sm text-muted-foreground">{topic.structure?.explanation}</p>
+        <h2 className="font-extrabold text-base">{structure.title}</h2>
+        <p className="text-sm text-muted-foreground">{structure.explanation}</p>
         <div className="space-y-1.5">
-          {(topic.structure?.examples ?? []).map((ex, i) => (
+          {(structure.examples ?? []).map((ex, i) => (
             <div key={i} className="flex items-center gap-2">
-              <button onClick={() => speak(ex)} className="text-primary hover:opacity-70 transition-opacity" title="Escuchar">🔊</button>
+              <button onClick={() => speak(ex)} className="text-primary hover:opacity-70 transition-opacity shrink-0" title="Escuchar">🔊</button>
               <p className="text-sm font-medium italic">"{ex}"</p>
             </div>
           ))}
@@ -30,11 +57,8 @@ export function StructureTab({
       </div>
 
       {/* Ordenar las palabras.
-          Antes había un solo ejercicio por tema y era imposible: mostraba
-          examples[2] como objetivo pero repartía las fichas de structure.words,
-          que formaban otra frase. Y si el tema no llegaba a tres ejemplos, el
-          objetivo era literalmente "undefined". Ahora las fichas salen de la
-          propia frase objetivo, con la puntuación pegada a su palabra. */}
+          Las fichas salen de la propia frase objetivo, con la puntuación pegada
+          a su palabra, y hay un ejercicio por cada ejemplo. */}
       {exercises.map(ex => {
         const placedIds = order[ex.key] ?? [];
         const done = orderDone[ex.key] ?? false;
@@ -97,7 +121,7 @@ export function StructureTab({
       })}
 
       {exercises.length === 0 && (
-        <p className="text-xs text-muted-foreground">Este tema todavía no tiene frases largas para ordenar.</p>
+        <p className="text-xs text-muted-foreground">Esta estructura no tiene frases largas para ordenar.</p>
       )}
     </div>
   );

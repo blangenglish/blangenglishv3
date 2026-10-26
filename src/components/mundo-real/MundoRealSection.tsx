@@ -14,7 +14,7 @@ import { AnimatePresence } from 'framer-motion';
 import { speak as speakEnglish, cancelSpeech } from '@/lib/tts';
 import {
   vocabItems, phraseItems, expressionItems, phrasalItems,
-  orderExercises, isOrderCorrect, dialogueChoice,
+  allOrderExercises, isOrderCorrect, dialogueChoices,
 } from '@/lib/mundoRealExercises';
 import type { MRBlock } from '@/lib/mundoRealProgress';
 import { useMundoRealTopics } from './useMundoRealTopics';
@@ -78,17 +78,11 @@ export function MundoRealSection({ onExit, initialTopicId = null, studentId }: M
       frases: phraseItems(topic.id, topic.phrases ?? []),
       expresiones: expressionItems(topic.id, topic.expressions ?? [], sameCat.flatMap(t => (t.expressions ?? []).map(e => e.meaning))),
       phrasal: phrasalItems(topic.id, topic.phrasalVerbs ?? [], sameCat.flatMap(t => (t.phrasalVerbs ?? []).map(p => p.meaning))),
-      estructura: orderExercises(topic.id, topic.structure?.examples ?? []),
-      dialogo: (() => {
-        let b = 0;
-        return (topic.dialogue ?? [])
-          .map(line => {
-            const c = line.speaker === 'B' ? dialogueChoice(topic.id, line, b) : null;
-            if (c) b++;
-            return c;
-          })
-          .filter(Boolean) as NonNullable<ReturnType<typeof dialogueChoice>>[];
-      })(),
+      // Se cuentan TODAS las estructuras y TODOS los diálogos del tema, no
+      // solo el que esté abierto: el bloque se completa cuando están todos.
+      estructura: allOrderExercises(topic.id, topic.structures ?? (topic.structure ? [topic.structure] : [])),
+      dialogo: (topic.dialogues ?? (topic.dialogue?.length ? [{ lines: topic.dialogue }] : []))
+        .flatMap((d: any, i: number) => dialogueChoices(topic.id, d.lines ?? [], i)),
     };
   }, [topic, topics]);
 
@@ -99,8 +93,9 @@ export function MundoRealSection({ onExit, initialTopicId = null, studentId }: M
       let n = 2; // vocabulario y frases están siempre
       if (t.expressions?.length) n++;
       if (t.phrasalVerbs?.length) n++;
-      if ((t.structure?.examples ?? []).length) n++;
-      if ((t.dialogue ?? []).some(l => l.speaker === 'B' && l.options?.length)) n++;
+      if ((t.structures ?? (t.structure ? [t.structure] : [])).some(s => (s?.examples ?? []).length)) n++;
+      const dls = t.dialogues ?? (t.dialogue?.length ? [{ lines: t.dialogue }] : []);
+      if (dls.some((d: any) => (d.lines ?? []).some((l: any) => l.speaker === 'B' && l.options?.length))) n++;
       out[t.id] = n;
     });
     return out;

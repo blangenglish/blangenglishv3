@@ -1,13 +1,24 @@
+import { useState } from 'react';
 import { dialogueChoice } from '@/lib/mundoRealExercises';
 import type { MRTabProps } from '../types';
 
 export function DialogueTab({ topic, answers, onAnswer, onResetBlock, speak }: MRTabProps) {
+  // Un tema puede traer varias conversaciones (pedir mesa, reclamar, pagar…).
+  const dialogues = topic.dialogues ?? (topic.dialogue?.length
+    ? [{ id: 'base', title: 'Conversación principal', lines: topic.dialogue }]
+    : []);
+  const [current, setCurrent] = useState(0);
+  const dialogue = dialogues[current];
+
+  if (!dialogue) {
+    return <p className="text-xs text-muted-foreground">Este tema todavía no tiene diálogos.</p>;
+  }
+
   // Cada turno interactivo se precalcula con sus opciones ya barajadas y la
-  // correcta capturada como texto. Antes las opciones salían en el orden del
-  // array y la correcta era siempre la primera.
+  // correcta capturada como texto.
   let bIndex = 0;
-  const lines = (topic.dialogue ?? []).map(line => {
-    const choice = line.speaker === 'B' ? dialogueChoice(topic.id, line, bIndex) : null;
+  const lines = dialogue.lines.map(line => {
+    const choice = line.speaker === 'B' ? dialogueChoice(topic.id, line, bIndex, current) : null;
     if (choice) bIndex++;
     return { line, choice };
   });
@@ -18,6 +29,33 @@ export function DialogueTab({ topic, answers, onAnswer, onResetBlock, speak }: M
 
   return (
     <div className="space-y-4">
+      {dialogues.length > 1 && (
+        <div className="flex gap-1.5 flex-wrap">
+          {dialogues.map((d, i) => {
+            const dDone = (() => {
+              let b = 0;
+              const cs = d.lines.map(l => {
+                const c = l.speaker === 'B' ? dialogueChoice(topic.id, l, b, i) : null;
+                if (c) b++;
+                return c;
+              }).filter(Boolean) as { key: string }[];
+              return cs.length > 0 && cs.every(c => answers[c.key] !== undefined);
+            })();
+            return (
+              <button
+                key={d.id}
+                onClick={() => setCurrent(i)}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold border transition-all ${
+                  i === current
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'bg-background border-border/60 text-muted-foreground hover:border-primary/60'
+                }`}
+              >{dDone && '✓ '}{i + 1}. {d.title}</button>
+            );
+          })}
+        </div>
+      )}
+
       {/* Mientras queden turnos por responder solo se leen las líneas de la otra
           persona: leer la conversación entera sería cantar las respuestas. */}
       <div className="flex justify-end">
@@ -79,13 +117,20 @@ export function DialogueTab({ topic, answers, onAnswer, onResetBlock, speak }: M
       </div>
 
       {allDone && (
-        <div className="rounded-2xl border border-green-400 bg-green-50 dark:bg-green-950/20 p-4 text-center">
+        <div className="rounded-2xl border border-green-400 bg-green-50 dark:bg-green-950/20 p-4 text-center space-y-2">
           <p className="font-bold text-green-700 dark:text-green-400">
             🎉 ¡Diálogo completado! Acertaste {choices.filter(c => answers[c.key] === c.correct).length} de {choices.length} respuestas.
           </p>
-          <button onClick={() => onResetBlock('d:')} className="mt-2 text-xs text-green-700 dark:text-green-400 underline">
-            Intentar de nuevo
-          </button>
+          <div className="flex items-center justify-center gap-4">
+            <button onClick={() => onResetBlock(`d:${current}.`)} className="text-xs text-green-700 dark:text-green-400 underline">
+              Intentar de nuevo
+            </button>
+            {current < dialogues.length - 1 && (
+              <button onClick={() => setCurrent(current + 1)} className="text-xs font-bold text-green-700 dark:text-green-400 underline">
+                Siguiente conversación →
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>
