@@ -261,6 +261,113 @@ export function useTextFilter<T>(items: readonly T[], fields: (item: T) => strin
   return { query, setQuery, filtered };
 }
 
+/* ── Secciones de un bloque ───────────────────────────────────────────────── */
+
+/**
+ * La fila de secciones del modo Estudiar. Misma forma que el selector de
+ * estructuras, para que las dos pestañas se naveguen igual.
+ */
+export function GroupChips({
+  block, names, current, onPick, counts, doneNames,
+}: {
+  block: MRBlockId;
+  names: string[];
+  current: number;
+  onPick: (i: number) => void;
+  counts: number[];
+  /** Secciones con todas sus preguntas respondidas. */
+  doneNames?: Set<string>;
+}) {
+  const th = BLOCK_THEME[block];
+  return (
+    <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 mb-4">
+      {names.map((name, i) => (
+        <button
+          key={name}
+          onClick={() => onPick(i)}
+          title={name}
+          className={`shrink-0 max-w-[15rem] rounded-xl border px-3.5 py-2 text-left transition-all ${
+            i === current
+              ? `bg-gradient-to-r ${th.grad} text-white border-transparent shadow-sm`
+              : 'bg-card border-border/60 text-muted-foreground hover:border-border hover:text-foreground'
+          }`}
+        >
+          <span className="block text-[10px] font-bold uppercase tracking-wide opacity-70 tabular-nums">
+            {doneNames?.has(name) ? '✓ Terminada' : `${counts[i]} ítems`}
+          </span>
+          <span className="block text-xs font-bold truncate">{name}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * El selector del modo Practicar: una tarjeta por sección con su propio avance.
+ * Sustituye al ejercicio único que antes encadenaba las preguntas de todo el
+ * bloque de una sola vez.
+ */
+export function GroupCards({
+  block, groups, onPick,
+}: {
+  block: MRBlockId;
+  groups: { name: string; total: number; answered: number; hits: number }[];
+  onPick: (i: number) => void;
+}) {
+  const th = BLOCK_THEME[block];
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      {groups.map((g, i) => {
+        const done = g.total > 0 && g.answered === g.total;
+        return (
+          <button
+            key={g.name}
+            onClick={() => onPick(i)}
+            className={`group text-left rounded-2xl border bg-card p-4 shadow-sm transition-all hover:shadow-md ${
+              done ? 'border-emerald-400' : 'border-border/60 hover:border-border'
+            }`}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <h4 className="font-bold text-sm leading-snug">{g.name}</h4>
+              {done ? (
+                <span className="shrink-0 grid place-items-center w-5 h-5 rounded-full bg-emerald-500 text-white text-[11px] font-black">✓</span>
+              ) : (
+                <span className={`shrink-0 text-xs font-bold tabular-nums ${th.text}`}>
+                  {g.answered} / {g.total}
+                </span>
+              )}
+            </div>
+
+            <div className="mt-3">
+              <ProgressTrack value={g.answered} total={g.total} block={block} />
+            </div>
+
+            <p className="mt-2 text-xs text-muted-foreground">
+              {g.answered === 0
+                ? `${g.total} preguntas`
+                : done
+                  ? `${g.hits} de ${g.total} correctas`
+                  : `${g.total - g.answered} por responder`}
+            </p>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Enlace para volver al selector de secciones. */
+export function BackToGroups({ onBack, label }: { onBack: () => void; label: string }) {
+  return (
+    <button
+      onClick={onBack}
+      className="mb-3 inline-flex items-center gap-1.5 text-xs font-bold text-muted-foreground transition-colors hover:text-primary"
+    >
+      <span aria-hidden="true">←</span> {label}
+    </button>
+  );
+}
+
 /* ── Avisos ───────────────────────────────────────────────────────────────── */
 
 /** Lo que se ve cuando un bloque no tiene contenido o el filtro no encuentra nada. */

@@ -21,13 +21,15 @@ interface QuizRunnerProps {
   items: MCItem[];
   /** La pregunta que se repite, p. ej. «¿Cuál es la traducción?». */
   question: string;
-  /** Prefijo de las claves de este bloque, para poder reiniciarlo. */
-  prefix: string;
   /** Una columna para textos largos (significados), dos para palabras. */
   cols: 1 | 2;
   answers: Record<string, string>;
   onAnswer: (key: string, text: string) => void;
-  onResetBlock: (prefix: string) => void;
+  /**
+   * Borra las respuestas de ESTOS ítems. Lo decide quien usa el reproductor,
+   * porque con secciones hay que poder repetir una sin perder las demás.
+   */
+  onReset: () => void;
   /** Si se puede escuchar el enunciado (vocabulario, expresiones, verbos). */
   speak?: (text: string) => void;
 }
@@ -39,8 +41,8 @@ function firstUnanswered(items: MCItem[], answers: Record<string, string>): numb
 }
 
 export function QuizRunner({
-  block, items, question, prefix, cols,
-  answers, onAnswer, onResetBlock, speak,
+  block, items, question, cols,
+  answers, onAnswer, onReset, speak,
 }: QuizRunnerProps) {
   const th = BLOCK_THEME[block];
 
@@ -78,7 +80,7 @@ export function QuizRunner({
               <span className="tabular-nums">{items.length}</span>.
             </p>
             <button
-              onClick={() => onResetBlock(prefix)}
+              onClick={onReset}
               className={`mt-4 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r ${th.grad} px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-transform hover:scale-[1.03] active:scale-95`}
             >
               <span aria-hidden="true">↻</span> Repetir el bloque
@@ -216,7 +218,7 @@ export function QuizRunner({
           </button>
           {answeredCount > 0 && (
             <button
-              onClick={() => onResetBlock(prefix)}
+              onClick={onReset}
               className="text-xs text-muted-foreground underline hover:text-primary"
             >
               Empezar de nuevo

@@ -18,6 +18,10 @@ export interface MRTabProps {
   mode: MRMode;
   answers: Record<string, string>;
   onAnswer: (key: string, text: string) => void;
-  onResetBlock: (prefix: string) => void;
+  /**
+   * Borra las respuestas del bloque. Con `onlyKeys` borra solo esas, que es lo
+   * que permite repetir una sección sin perder el resto del bloque.
+   */
+  onResetBlock: (prefix: string, onlyKeys?: string[]) => void;
   speak: (text: string) => void;
 }

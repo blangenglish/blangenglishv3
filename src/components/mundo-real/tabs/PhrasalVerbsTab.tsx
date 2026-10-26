@@ -17,11 +17,10 @@ export function PhrasalVerbsTab({ topic, allTopics, mode, answers, onAnswer, onR
         block="phrasal"
         items={items}
         question="¿Cuál es el significado?"
-        prefix="pv:"
         cols={1}
         answers={answers}
         onAnswer={onAnswer}
-        onResetBlock={onResetBlock}
+        onReset={() => onResetBlock('pv:')}
         speak={speak}
       />
     );

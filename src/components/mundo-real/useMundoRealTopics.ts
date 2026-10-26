@@ -45,6 +45,40 @@ function dedupe<T>(items: T[], key: (item: T) => string): T[] {
   });
 }
 
+/**
+ * Reordena los ítems por sección.
+ *
+ * El merge pone primero lo del archivo, así que sin esto el orden de las
+ * secciones lo decidirían las pocas palabras heredadas: en «En el Restaurante»
+ * «Pagar y problemas» saldría segunda y «Llegar y la mesa» tercera, porque el
+ * archivo empieza por `bill` y `tip`. El orden correcto es el del override, que
+ * es donde el profesor escribió las secciones en secuencia; lo del archivo se
+ * coloca dentro de la sección que le toca.
+ *
+ * Para los temas sin secciones no hace nada.
+ */
+function sortByGroupOrder<T extends { group?: string }>(merged: T[], reference: readonly T[]): T[] {
+  const order = new Map<string, number>();
+  const nameOf = (it: T) => (it.group ?? '').trim();
+
+  for (const it of reference) {
+    const g = nameOf(it);
+    if (g && !order.has(g)) order.set(g, order.size);
+  }
+  if (order.size === 0) return merged;
+
+  // Una sección que solo exista en el archivo va detrás, en su orden original.
+  for (const it of merged) {
+    const g = nameOf(it);
+    if (g && !order.has(g)) order.set(g, order.size);
+  }
+
+  return merged
+    .map((it, i) => ({ it, i, rank: order.get(nameOf(it)) ?? Number.MAX_SAFE_INTEGER }))
+    .sort((a, b) => a.rank - b.rank || a.i - b.i)
+    .map(x => x.it);
+}
+
 export interface UseMundoRealTopics {
   topics: MRTopic[];
   loading: boolean;
@@ -101,8 +135,14 @@ export function useMundoRealTopics(): UseMundoRealTopics {
 
         return {
           ...t,
-          vocabulary:   dedupe([...(t.vocabulary ?? []), ...((ov.vocabulary as any[]) ?? [])], (v: any) => v.word),
-          phrases:      dedupe([...(t.phrases ?? []),    ...((ov.phrases as any[]) ?? [])],    (p: any) => p.phrase),
+          vocabulary: sortByGroupOrder(
+            dedupe([...(t.vocabulary ?? []), ...((ov.vocabulary as any[]) ?? [])], (v: any) => v.word),
+            (ov.vocabulary as any[]) ?? [],
+          ),
+          phrases: sortByGroupOrder(
+            dedupe([...(t.phrases ?? []), ...((ov.phrases as any[]) ?? [])], (p: any) => p.phrase),
+            (ov.phrases as any[]) ?? [],
+          ),
           structure:    baseStructure,
           dialogue:     baseDialogue,
           expressions:  (ov.expressions as any[]) ?? t.expressions  ?? [],

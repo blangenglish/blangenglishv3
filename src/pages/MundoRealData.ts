@@ -1,6 +1,6 @@
 // @ts-nocheck
-export interface MRVocab { word: string; translation: string; example: string; options: string[]; }
-export interface MRPhrase { phrase: string; meaning: string; when: string; missing: string; options: string[]; correct: number; }
+export interface MRVocab { word: string; translation: string; example: string; options: string[]; group?: string; }
+export interface MRPhrase { phrase: string; meaning: string; when: string; missing: string; options: string[]; correct: number; group?: string; }
 /** `words` ya no se usa: las fichas de ordenar salen de la propia frase. */
 export interface MRStructure { title: string; explanation: string; examples: string[]; words?: string[]; }
 export interface MRDialogueLine { speaker: 'A' | 'B'; text: string; options?: string[]; correct?: number; }
@@ -39,19 +39,19 @@ export const MUNDO_REAL_TOPICS: MRTopic[] = [
     cardBg: 'from-orange-50 to-amber-50 dark:from-orange-950/30 dark:to-amber-950/30',
     badge: 'bg-orange-100 text-orange-700',
     vocabulary: [
-      { word: 'menu', translation: 'carta / menú', example: 'Could I see the menu, please?', options: ['carta / menú', 'cuenta', 'plato', 'bebida'] },
-      { word: 'waiter', translation: 'mesero / camarero', example: 'Excuse me, waiter! Can I order?', options: ['mesero / camarero', 'chef', 'cliente', 'gerente'] },
-      { word: 'bill', translation: 'cuenta', example: 'Can we have the bill, please?', options: ['cuenta', 'menú', 'propina', 'cambio'] },
-      { word: 'tip', translation: 'propina', example: 'Should I leave a tip?', options: ['propina', 'descuento', 'impuesto', 'precio'] },
-      { word: 'reservation', translation: 'reservación', example: 'I have a reservation for two.', options: ['reservación', 'invitación', 'pedido', 'mesa'] },
-      { word: 'appetizer', translation: 'entrada / aperitivo', example: 'For appetizer I\'ll have the soup.', options: ['entrada / aperitivo', 'postre', 'plato fuerte', 'bebida'] },
-      { word: 'dessert', translation: 'postre', example: 'What desserts do you have?', options: ['postre', 'entrada', 'ensalada', 'sopa'] },
+      { group: 'La carta', word: 'menu', translation: 'carta / menú', example: 'Could I see the menu, please?', options: ['carta / menú', 'cuenta', 'plato', 'bebida'] },
+      { group: 'La carta', word: 'waiter', translation: 'mesero / camarero', example: 'Excuse me, waiter! Can I order?', options: ['mesero / camarero', 'chef', 'cliente', 'gerente'] },
+      { group: 'Pagar y problemas', word: 'bill', translation: 'cuenta', example: 'Can we have the bill, please?', options: ['cuenta', 'menú', 'propina', 'cambio'] },
+      { group: 'Pagar y problemas', word: 'tip', translation: 'propina', example: 'Should I leave a tip?', options: ['propina', 'descuento', 'impuesto', 'precio'] },
+      { group: 'Llegar y la mesa', word: 'reservation', translation: 'reservación', example: 'I have a reservation for two.', options: ['reservación', 'invitación', 'pedido', 'mesa'] },
+      { group: 'Los platos', word: 'appetizer', translation: 'entrada / aperitivo', example: 'For appetizer I\'ll have the soup.', options: ['entrada / aperitivo', 'postre', 'plato fuerte', 'bebida'] },
+      { group: 'Los platos', word: 'dessert', translation: 'postre', example: 'What desserts do you have?', options: ['postre', 'entrada', 'ensalada', 'sopa'] },
     ],
     phrases: [
-      { phrase: 'A table for ___, please.', meaning: 'Una mesa para dos, por favor.', when: 'Al llegar al restaurante', missing: 'two', options: ['two', 'one', 'some', 'many'], correct: 0 },
-      { phrase: 'I\'d like to ___ the steak.', meaning: 'Quisiera pedir el filete.', when: 'Ordenar comida', missing: 'order', options: ['order', 'cook', 'serve', 'taste'], correct: 0 },
-      { phrase: 'What do you ___?', meaning: '¿Qué recomienda?', when: 'Pedir recomendación', missing: 'recommend', options: ['recommend', 'prefer', 'cook', 'serve'], correct: 0 },
-      { phrase: 'Could I have the ___, please?', meaning: '¿Me podría traer la cuenta?', when: 'Pedir la cuenta', missing: 'bill', options: ['bill', 'menu', 'dessert', 'fork'], correct: 0 },
+      { group: 'Al llegar', phrase: 'A table for ___, please.', meaning: 'Una mesa para dos, por favor.', when: 'Al llegar al restaurante', missing: 'two', options: ['two', 'one', 'some', 'many'], correct: 0 },
+      { group: 'Pedir', phrase: 'I\'d like to ___ the steak.', meaning: 'Quisiera pedir el filete.', when: 'Ordenar comida', missing: 'order', options: ['order', 'cook', 'serve', 'taste'], correct: 0 },
+      { group: 'Entender la carta', phrase: 'What do you ___?', meaning: '¿Qué recomienda?', when: 'Pedir recomendación', missing: 'recommend', options: ['recommend', 'prefer', 'cook', 'serve'], correct: 0 },
+      { group: 'Pagar', phrase: 'Could I have the ___, please?', meaning: '¿Me podría traer la cuenta?', when: 'Pedir la cuenta', missing: 'bill', options: ['bill', 'menu', 'dessert', 'fork'], correct: 0 },
     ],
     structure: {
       title: 'I\'d like + noun / I\'d like to + verb',

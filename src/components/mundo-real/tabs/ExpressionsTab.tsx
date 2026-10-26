@@ -20,11 +20,10 @@ export function ExpressionsTab({ topic, allTopics, mode, answers, onAnswer, onRe
         block="expresiones"
         items={items}
         question="¿Qué significa esta expresión?"
-        prefix="e:"
         cols={1}
         answers={answers}
         onAnswer={onAnswer}
-        onResetBlock={onResetBlock}
+        onReset={() => onResetBlock('e:')}
         speak={speak}
       />
     );
