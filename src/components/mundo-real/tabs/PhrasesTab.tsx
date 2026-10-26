@@ -1,34 +1,74 @@
 import { phraseItems } from '@/lib/mundoRealExercises';
-import { Choice, BlockScore } from '../ExercisePieces';
+import { QuizRunner } from '../QuizRunner';
+import { SectionCard, SectionHeader, CountPill, StudyGrid, TermCard, FilterField, useTextFilter, EmptyNote } from '../ui';
 import type { MRTabProps } from '../types';
 
 export function PhrasesTab({ topic, mode, answers, onAnswer, onResetBlock, speak }: MRTabProps) {
   const items = phraseItems(topic.id, topic.phrases ?? []);
+  const phrases = topic.phrases ?? [];
+  const { query, setQuery, filtered } = useTextFilter(phrases, p => [p.phrase, p.meaning, p.missing]);
+
+  if (mode === 'practicar') {
+    return (
+      <QuizRunner
+        block="frases"
+        items={items}
+        question="Completa la frase"
+        prefix="p:"
+        cols={2}
+        answers={answers}
+        onAnswer={onAnswer}
+        onResetBlock={onResetBlock}
+      />
+    );
+  }
 
   return (
-    <div className="space-y-4">
-      {mode === 'estudiar' && (
-        <div className="rounded-2xl border border-border/50 bg-card shadow-sm divide-y divide-border/40">
-          {(topic.phrases ?? []).map((p, i) => (
-            <div key={i} className="p-4 flex gap-3 items-start">
-              <button onClick={() => speak(p.phrase.replace('___', p.missing))} className="p-1.5 rounded-lg hover:bg-muted transition-colors text-primary mt-0.5" title="Escuchar">🔊</button>
-              <div>
-                <p className="font-bold text-sm">{p.phrase.replace('___', p.missing)}</p>
-                <p className="text-muted-foreground text-xs mt-0.5">{p.meaning}</p>
-                <span className="inline-block mt-1 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">Cuándo: {p.when}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+    <SectionCard>
+      <SectionHeader
+        block="frases"
+        title="Frases útiles"
+        subtitle="Frases completas, con cuándo se usa cada una."
+        right={<CountPill block="frases">{phrases.length} frases</CountPill>}
+      />
 
-      <div className="rounded-2xl border border-border/50 bg-card shadow-sm p-4 space-y-3">
-        <h3 className="font-bold text-sm">🎯 Completa la frase</h3>
-        {items.map(item => (
-          <Choice key={item.key} item={item} cols={2} answers={answers} onAnswer={onAnswer} />
-        ))}
-        <BlockScore items={items} prefix="p:" answers={answers} onResetBlock={onResetBlock} />
-      </div>
-    </div>
+      {phrases.length === 0 ? (
+        <EmptyNote>Este tema todavía no tiene frases.</EmptyNote>
+      ) : (
+        <>
+          {phrases.length > 12 && (
+            <FilterField
+              value={query}
+              onChange={setQuery}
+              placeholder="Buscar una frase o su significado…"
+              shown={filtered.length}
+              total={phrases.length}
+            />
+          )}
+
+          {filtered.length === 0 ? (
+            <EmptyNote>Ninguna frase coincide con «{query}».</EmptyNote>
+          ) : (
+            <StudyGrid>
+              {filtered.map((p, i) => {
+                // En la lista de estudio la frase se ve COMPLETA; el hueco solo
+                // tiene sentido en el ejercicio.
+                const full = p.phrase.replace('___', p.missing);
+                return (
+                  <TermCard
+                    key={`${p.phrase}-${i}`}
+                    block="frases"
+                    term={full}
+                    gloss={p.meaning}
+                    tag={p.when ? `Cuándo: ${p.when}` : undefined}
+                    onSpeak={() => speak(full)}
+                  />
+                );
+              })}
+            </StudyGrid>
+          )}
+        </>
+      )}
+    </SectionCard>
   );
 }

@@ -1,5 +1,6 @@
 import { phrasalItems } from '@/lib/mundoRealExercises';
-import { Choice, BlockScore } from '../ExercisePieces';
+import { QuizRunner } from '../QuizRunner';
+import { SectionCard, SectionHeader, CountPill, StudyGrid, TermCard, FilterField, useTextFilter, EmptyNote } from '../ui';
 import type { MRTabProps } from '../types';
 
 export function PhrasalVerbsTab({ topic, allTopics, mode, answers, onAnswer, onResetBlock, speak }: MRTabProps) {
@@ -7,36 +8,66 @@ export function PhrasalVerbsTab({ topic, allTopics, mode, answers, onAnswer, onR
     .filter(t => t.category === topic.category && t.id !== topic.id)
     .flatMap(t => (t.phrasalVerbs ?? []).map(p => p.meaning));
   const items = phrasalItems(topic.id, topic.phrasalVerbs ?? [], pool);
+  const phrasalVerbs = topic.phrasalVerbs ?? [];
+  const { query, setQuery, filtered } = useTextFilter(phrasalVerbs, p => [p.verb, p.meaning]);
+
+  if (mode === 'practicar') {
+    return (
+      <QuizRunner
+        block="phrasal"
+        items={items}
+        question="¿Cuál es el significado?"
+        prefix="pv:"
+        cols={1}
+        answers={answers}
+        onAnswer={onAnswer}
+        onResetBlock={onResetBlock}
+        speak={speak}
+      />
+    );
+  }
 
   return (
-    <div className="space-y-3">
-      {mode === 'estudiar' && (
-        <div className="rounded-2xl border border-border/50 bg-card shadow-sm divide-y divide-border/40">
-          {(topic.phrasalVerbs ?? []).map((pv, i) => (
-            <div key={i} className="p-4 flex gap-3 items-start">
-              <button onClick={() => speak(pv.verb)} className="p-1.5 rounded-lg hover:bg-muted transition-colors text-primary mt-0.5 shrink-0" title="Escuchar">🔊</button>
-              <div className="flex-1">
-                <div className="flex items-baseline gap-2 flex-wrap">
-                  <span className="font-bold text-sm text-primary">{pv.verb}</span>
-                  <span className="text-muted-foreground text-xs">→</span>
-                  <span className="text-sm text-muted-foreground">{pv.meaning}</span>
-                </div>
-                <p className="text-xs italic text-muted-foreground/80 mt-1 border-l-2 border-primary/30 pl-2">"{pv.example}"</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+    <SectionCard>
+      <SectionHeader
+        block="phrasal"
+        title="Phrasal Verbs"
+        subtitle="Verbo más partícula: el significado cambia por completo."
+        right={<CountPill block="phrasal">{phrasalVerbs.length}</CountPill>}
+      />
 
-      {items.length > 0 && (
-        <div className="rounded-2xl border border-border/50 bg-card shadow-sm p-4 space-y-3">
-          <h3 className="font-bold text-sm">🎯 ¿Cuál es el significado?</h3>
-          {items.map(item => (
-            <Choice key={item.key} item={item} cols={1} answers={answers} onAnswer={onAnswer} />
-          ))}
-          <BlockScore items={items} prefix="pv:" answers={answers} onResetBlock={onResetBlock} />
-        </div>
+      {phrasalVerbs.length === 0 ? (
+        <EmptyNote>Este tema todavía no tiene phrasal verbs.</EmptyNote>
+      ) : (
+        <>
+          {phrasalVerbs.length > 12 && (
+            <FilterField
+              value={query}
+              onChange={setQuery}
+              placeholder="Buscar un verbo o su significado…"
+              shown={filtered.length}
+              total={phrasalVerbs.length}
+            />
+          )}
+
+          {filtered.length === 0 ? (
+            <EmptyNote>Ningún phrasal verb coincide con «{query}».</EmptyNote>
+          ) : (
+            <StudyGrid>
+              {filtered.map((pv, i) => (
+                <TermCard
+                  key={`${pv.verb}-${i}`}
+                  block="phrasal"
+                  term={pv.verb}
+                  gloss={pv.meaning}
+                  example={pv.example ? `"${pv.example}"` : undefined}
+                  onSpeak={() => speak(pv.verb)}
+                />
+              ))}
+            </StudyGrid>
+          )}
+        </>
       )}
-    </div>
+    </SectionCard>
   );
 }

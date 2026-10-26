@@ -1,5 +1,6 @@
 import { expressionItems } from '@/lib/mundoRealExercises';
-import { Choice, BlockScore } from '../ExercisePieces';
+import { QuizRunner } from '../QuizRunner';
+import { SectionCard, SectionHeader, CountPill, StudyGrid, TermCard, FilterField, useTextFilter, EmptyNote } from '../ui';
 import type { MRTabProps } from '../types';
 
 export function ExpressionsTab({ topic, allTopics, mode, answers, onAnswer, onResetBlock, speak }: MRTabProps) {
@@ -10,33 +11,66 @@ export function ExpressionsTab({ topic, allTopics, mode, answers, onAnswer, onRe
     .filter(t => t.category === topic.category && t.id !== topic.id)
     .flatMap(t => (t.expressions ?? []).map(e => e.meaning));
   const items = expressionItems(topic.id, topic.expressions ?? [], pool);
+  const expressions = topic.expressions ?? [];
+  const { query, setQuery, filtered } = useTextFilter(expressions, e => [e.expression, e.meaning]);
+
+  if (mode === 'practicar') {
+    return (
+      <QuizRunner
+        block="expresiones"
+        items={items}
+        question="¿Qué significa esta expresión?"
+        prefix="e:"
+        cols={1}
+        answers={answers}
+        onAnswer={onAnswer}
+        onResetBlock={onResetBlock}
+        speak={speak}
+      />
+    );
+  }
 
   return (
-    <div className="space-y-3">
-      {mode === 'estudiar' && (
-        <div className="rounded-2xl border border-border/50 bg-card shadow-sm divide-y divide-border/40">
-          {(topic.expressions ?? []).map((e, i) => (
-            <div key={i} className="p-4 flex gap-3 items-start">
-              <button onClick={() => speak(e.expression)} className="p-1.5 rounded-lg hover:bg-muted transition-colors text-primary mt-0.5 shrink-0" title="Escuchar">🔊</button>
-              <div className="flex-1">
-                <p className="font-bold text-sm">"{e.expression}"</p>
-                <p className="text-muted-foreground text-xs mt-0.5">💡 {e.meaning}</p>
-                <p className="text-xs italic text-muted-foreground/80 mt-1 border-l-2 border-primary/30 pl-2">"{e.example}"</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+    <SectionCard>
+      <SectionHeader
+        block="expresiones"
+        title="Expresiones"
+        subtitle="Lo que se dice de verdad, no la traducción literal."
+        right={<CountPill block="expresiones">{expressions.length}</CountPill>}
+      />
 
-      {items.length > 0 && (
-        <div className="rounded-2xl border border-border/50 bg-card shadow-sm p-4 space-y-3">
-          <h3 className="font-bold text-sm">🎯 ¿Qué significa esta expresión?</h3>
-          {items.map(item => (
-            <Choice key={item.key} item={item} cols={1} answers={answers} onAnswer={onAnswer} />
-          ))}
-          <BlockScore items={items} prefix="e:" answers={answers} onResetBlock={onResetBlock} />
-        </div>
+      {expressions.length === 0 ? (
+        <EmptyNote>Este tema todavía no tiene expresiones.</EmptyNote>
+      ) : (
+        <>
+          {expressions.length > 12 && (
+            <FilterField
+              value={query}
+              onChange={setQuery}
+              placeholder="Buscar una expresión o su significado…"
+              shown={filtered.length}
+              total={expressions.length}
+            />
+          )}
+
+          {filtered.length === 0 ? (
+            <EmptyNote>Ninguna expresión coincide con «{query}».</EmptyNote>
+          ) : (
+            <StudyGrid>
+              {filtered.map((e, i) => (
+                <TermCard
+                  key={`${e.expression}-${i}`}
+                  block="expresiones"
+                  term={e.expression}
+                  gloss={e.meaning}
+                  example={e.example ? `"${e.example}"` : undefined}
+                  onSpeak={() => speak(e.expression)}
+                />
+              ))}
+            </StudyGrid>
+          )}
+        </>
       )}
-    </div>
+    </SectionCard>
   );
 }
