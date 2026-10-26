@@ -22,6 +22,9 @@ type OverrideRow = {
   dialogue?: unknown[] | null;
   expressions?: unknown[] | null;
   phrasal_verbs?: unknown[] | null;
+  /** Se SUMAN a structure/dialogue, no los reemplazan. */
+  structures_extra?: unknown[] | null;
+  dialogues_extra?: unknown[] | null;
 };
 
 /**
@@ -59,7 +62,7 @@ export function useMundoRealTopics(): UseMundoRealTopics {
     setLoading(true);
     supabase
       .from('mundo_real_overrides')
-      .select('topic_id, vocabulary, phrases, structure, dialogue, expressions, phrasal_verbs')
+      .select('topic_id, vocabulary, phrases, structure, dialogue, expressions, phrasal_verbs, structures_extra, dialogues_extra')
       .then(({ data, error: err }) => {
         if (err) { setError(true); setLoading(false); return; }
         if (data?.length) {
@@ -78,15 +81,34 @@ export function useMundoRealTopics(): UseMundoRealTopics {
     () =>
       MUNDO_REAL_TOPICS.map(t => {
         const ov = overrides[t.id];
-        if (!ov) return t;
+
+        // `structure` y `dialogue` siguen siendo singulares en el archivo. El
+        // visor trabaja siempre con las listas, así que lo del archivo se
+        // envuelve como el primer elemento y lo de `*_extra` se añade detrás.
+        const baseStructure = (ov?.structure as any) ?? t.structure;
+        const baseDialogue  = (ov?.dialogue as any[]) ?? t.dialogue;
+
+        const structures = [
+          ...(baseStructure ? [baseStructure] : []),
+          ...(((ov?.structures_extra as any[]) ?? [])),
+        ];
+        const dialogues = [
+          ...(baseDialogue?.length ? [{ id: 'base', title: 'Conversación principal', lines: baseDialogue }] : []),
+          ...(((ov?.dialogues_extra as any[]) ?? [])),
+        ];
+
+        if (!ov) return { ...t, structures, dialogues } as MRTopic;
+
         return {
           ...t,
           vocabulary:   dedupe([...(t.vocabulary ?? []), ...((ov.vocabulary as any[]) ?? [])], (v: any) => v.word),
           phrases:      dedupe([...(t.phrases ?? []),    ...((ov.phrases as any[]) ?? [])],    (p: any) => p.phrase),
-          structure:    (ov.structure as any)     ?? t.structure,
-          dialogue:     (ov.dialogue as any[])    ?? t.dialogue,
+          structure:    baseStructure,
+          dialogue:     baseDialogue,
           expressions:  (ov.expressions as any[]) ?? t.expressions  ?? [],
           phrasalVerbs: (ov.phrasal_verbs as any[]) ?? t.phrasalVerbs ?? [],
+          structures,
+          dialogues,
         } as MRTopic;
       }),
     [overrides],

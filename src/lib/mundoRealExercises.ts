@@ -205,18 +205,30 @@ export function orderExercises(
   topicId: string,
   examples: readonly string[],
   minTiles = 4,
+  /** Índice de la estructura dentro del tema, para que las claves no choquen. */
+  structureIndex = 0,
 ): OrderExercise[] {
   return examples
     .filter(ex => isOrderable(ex, minTiles))
     .map((target, i) => {
       const words = tokenizeSentence(target);
       const tiles = words.map((text, id) => ({ id, text }));
+      const slot = `${structureIndex}.${i}`;
       return {
-        key: `s:${i}`,
+        key: `s:${slot}`,
         target,
-        tiles: shuffleSeeded(tiles, mrSeed(topicId, 'estructura', String(i))),
+        tiles: shuffleSeeded(tiles, mrSeed(topicId, 'estructura', slot)),
       };
     });
+}
+
+/** Todos los ejercicios de ordenar del tema, de todas sus estructuras. */
+export function allOrderExercises(
+  topicId: string,
+  structures: readonly { examples?: readonly string[] }[],
+  minTiles = 4,
+): OrderExercise[] {
+  return structures.flatMap((s, i) => orderExercises(topicId, s.examples ?? [], minTiles, i));
 }
 
 /** ¿La respuesta del alumno reconstruye la frase? */
@@ -243,12 +255,31 @@ export function dialogueChoice(
   topicId: string,
   line: DialogueLineLike,
   turnIndex: number,
+  /** Índice del diálogo dentro del tema, para que las claves no choquen. */
+  dialogueIndex = 0,
 ): DialogueChoice | null {
   if (!line.options?.length) return null;
   const correct = line.options[line.correct ?? 0];
+  const slot = `${dialogueIndex}.${turnIndex}`;
   return {
-    key: `d:${turnIndex}`,
+    key: `d:${slot}`,
     correct,
-    options: shuffleSeeded(line.options, mrSeed(topicId, 'dialogo', String(turnIndex))),
+    options: shuffleSeeded(line.options, mrSeed(topicId, 'dialogo', slot)),
   };
+}
+
+/** Los turnos con opciones de un diálogo, en orden, ya barajados. */
+export function dialogueChoices(
+  topicId: string,
+  lines: readonly DialogueLineLike[],
+  dialogueIndex = 0,
+): DialogueChoice[] {
+  let turn = 0;
+  const out: DialogueChoice[] = [];
+  for (const line of lines) {
+    if (line.speaker !== 'B') continue;
+    const c = dialogueChoice(topicId, line, turn, dialogueIndex);
+    if (c) { out.push(c); turn++; }
+  }
+  return out;
 }

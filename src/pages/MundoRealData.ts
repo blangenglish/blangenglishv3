@@ -1,8 +1,11 @@
 // @ts-nocheck
 export interface MRVocab { word: string; translation: string; example: string; options: string[]; }
 export interface MRPhrase { phrase: string; meaning: string; when: string; missing: string; options: string[]; correct: number; }
-export interface MRStructure { title: string; explanation: string; examples: string[]; words: string[]; }
+/** `words` ya no se usa: las fichas de ordenar salen de la propia frase. */
+export interface MRStructure { title: string; explanation: string; examples: string[]; words?: string[]; }
 export interface MRDialogueLine { speaker: 'A' | 'B'; text: string; options?: string[]; correct?: number; }
+/** Un diálogo con nombre. Un tema puede tener varios (pedir mesa, reclamar, pagar…). */
+export interface MRDialogue { id: string; title: string; lines: MRDialogueLine[]; }
 export interface MRExpression { expression: string; meaning: string; example: string; }
 export interface MRPhrasalVerb { verb: string; meaning: string; example: string; }
 export interface MRTopic {
@@ -10,10 +13,16 @@ export interface MRTopic {
   color: string; cardBg: string; badge: string;
   vocabulary: MRVocab[];
   phrases: MRPhrase[];
+  /** La estructura original del archivo. El visor lee `structures`. */
   structure: MRStructure;
+  /** El diálogo original del archivo. El visor lee `dialogues`. */
   dialogue: MRDialogueLine[];
   expressions?: MRExpression[];
   phrasalVerbs?: MRPhrasalVerb[];
+  /** Las que arma el merge: la del archivo más las de `structures_extra`. */
+  structures?: MRStructure[];
+  /** Los que arma el merge: el del archivo más los de `dialogues_extra`. */
+  dialogues?: MRDialogue[];
 }
 
 
