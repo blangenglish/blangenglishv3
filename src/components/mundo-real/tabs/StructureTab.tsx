@@ -1,5 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { orderExercises, isOrderCorrect } from '@/lib/mundoRealExercises';
+import {
+  BLOCK_THEME, SectionCard, SectionHeader, CountPill, ProgressTrack, EmptyNote,
+} from '../ui';
 import type { MRTabProps } from '../types';
 
 interface StructureTabProps extends MRTabProps {
@@ -10,119 +13,267 @@ interface StructureTabProps extends MRTabProps {
   onOrderDone: (key: string, done: boolean) => void;
 }
 
+const TH = BLOCK_THEME.estructura;
+
 export function StructureTab({
-  topic, speak, order, orderDone, onOrder, onOrderDone,
+  topic, mode, speak, order, orderDone, onOrder, onOrderDone,
 }: StructureTabProps) {
   // El tema puede traer varias estructuras (pedir, modificar, comparar…).
   const structures = topic.structures ?? (topic.structure ? [topic.structure] : []);
   const [current, setCurrent] = useState(0);
   const structure = structures[current];
 
+  const exercises = orderExercises(topic.id, structure?.examples ?? [], 4, current);
+
+  // Un ejercicio a la vez: antes se apilaban los cuatro de la estructura, y con
+  // las siete del primer tema eso era un scroll de tableros idénticos.
+  const [exIdx, setExIdx] = useState(0);
+  useEffect(() => { setExIdx(0); }, [current]);
+
   if (!structure) {
-    return <p className="text-xs text-muted-foreground">Este tema todavía no tiene estructuras.</p>;
+    return (
+      <SectionCard>
+        <EmptyNote>Este tema todavía no tiene estructuras.</EmptyNote>
+      </SectionCard>
+    );
   }
 
-  const exercises = orderExercises(topic.id, structure.examples ?? [], 4, current);
+  /* ── Selector de estructura ── */
+  const selector = structures.length > 1 && (
+    <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+      {structures.map((s, i) => (
+        <button
+          key={i}
+          onClick={() => setCurrent(i)}
+          title={s.title}
+          className={`shrink-0 max-w-[14rem] rounded-xl border px-3.5 py-2 text-left transition-all ${
+            i === current
+              ? `bg-gradient-to-r ${TH.grad} text-white border-transparent shadow-sm`
+              : 'bg-card border-border/60 hover:border-border text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <span className="block text-[10px] font-bold uppercase tracking-wide opacity-70">
+            Patrón {i + 1}
+          </span>
+          <span className="block text-xs font-bold truncate">{s.title}</span>
+        </button>
+      ))}
+    </div>
+  );
+
+  /* ── Estudiar: la explicación y sus ejemplos ── */
+  if (mode === 'estudiar') {
+    return (
+      <div className="space-y-4">
+        {selector}
+
+        <SectionCard>
+          <SectionHeader
+            block="estructura"
+            title={structure.title}
+            subtitle={structure.explanation}
+            right={
+              structures.length > 1
+                ? <CountPill block="estructura">{current + 1} / {structures.length}</CountPill>
+                : undefined
+            }
+          />
+
+          {(structure.examples ?? []).length === 0 ? (
+            <EmptyNote>Esta estructura todavía no tiene ejemplos.</EmptyNote>
+          ) : (
+            <ol className="space-y-2.5">
+              {(structure.examples ?? []).map((ex, i) => (
+                <li
+                  key={i}
+                  className={`flex items-center gap-3 rounded-2xl border ${TH.ring} ${TH.soft} px-4 py-3`}
+                >
+                  <span className={`shrink-0 w-6 h-6 grid place-items-center rounded-full bg-card text-[11px] font-extrabold ${TH.text} tabular-nums`}>
+                    {i + 1}
+                  </span>
+                  <p className="flex-1 text-sm sm:text-[15px] font-semibold leading-snug">{ex}</p>
+                  <button
+                    onClick={() => speak(ex)}
+                    aria-label={`Escuchar «${ex}»`}
+                    title="Escuchar"
+                    className={`shrink-0 w-9 h-9 grid place-items-center rounded-full border ${TH.ring} bg-card ${TH.text} transition-transform hover:scale-110 active:scale-95`}
+                  >
+                    <span aria-hidden="true">🔊</span>
+                  </button>
+                </li>
+              ))}
+            </ol>
+          )}
+        </SectionCard>
+      </div>
+    );
+  }
+
+  /* ── Practicar: ordenar las palabras, de uno en uno ── */
+  if (exercises.length === 0) {
+    return (
+      <div className="space-y-4">
+        {selector}
+        <SectionCard>
+          <EmptyNote>Esta estructura no tiene frases lo bastante largas para ordenar.</EmptyNote>
+        </SectionCard>
+      </div>
+    );
+  }
+
+  const safeIdx = Math.min(exIdx, exercises.length - 1);
+  const ex = exercises[safeIdx];
+  const placedIds = order[ex.key] ?? [];
+  const done = orderDone[ex.key] ?? false;
+  const placed = placedIds.map(id => ex.tiles.find(t => t.id === id)!).filter(Boolean);
+  const ok = isOrderCorrect(placed, ex.target);
+  const available = ex.tiles.filter(t => !placedIds.includes(t.id));
+  const doneCount = exercises.filter(e => orderDone[e.key]).length;
+  const isLast = safeIdx === exercises.length - 1;
 
   return (
     <div className="space-y-4">
-      {structures.length > 1 && (
-        <div className="flex gap-1.5 flex-wrap">
-          {structures.map((s, i) => (
+      {selector}
+
+      <SectionCard>
+        <div className="mb-5">
+          <div className="flex items-center justify-between text-xs mb-2">
+            <span className="font-bold tabular-nums text-muted-foreground">
+              Ejercicio {safeIdx + 1} <span className="opacity-60">de {exercises.length}</span>
+            </span>
+            <span className="tabular-nums text-muted-foreground">✓ {doneCount}</span>
+          </div>
+          <ProgressTrack value={doneCount} total={exercises.length} block="estructura" />
+        </div>
+
+        <p className={`text-xs font-bold uppercase tracking-wide ${TH.text} mb-1`}>Ordena las palabras</p>
+        <h3 className="text-base sm:text-lg font-extrabold tracking-tight mb-5">
+          Arma la frase tocando las fichas en orden
+        </h3>
+
+        {/* Lo que el alumno va montando */}
+        <div
+          className={`min-h-[64px] flex flex-wrap items-center gap-2 rounded-2xl border-2 border-dashed p-3 transition-colors ${
+            done
+              ? ok
+                ? 'border-emerald-400 bg-emerald-50 dark:bg-emerald-950/20'
+                : 'border-rose-400 bg-rose-50 dark:bg-rose-950/20'
+              : `${TH.ring} ${TH.soft}`
+          }`}
+        >
+          {placed.length === 0 && (
+            <span className="text-xs text-muted-foreground/70 px-1">
+              Toca las palabras de abajo para colocarlas aquí.
+            </span>
+          )}
+          {placed.map((t, i) => (
             <button
-              key={i}
-              onClick={() => setCurrent(i)}
-              className={`px-3 py-1 rounded-lg text-xs font-semibold border transition-all ${
-                i === current
-                  ? 'bg-primary text-primary-foreground border-primary'
-                  : 'bg-background border-border/60 text-muted-foreground hover:border-primary/60'
+              key={`${ex.key}-p-${t.id}`}
+              disabled={done}
+              onClick={() => onOrder(ex.key, placedIds.filter((_, j) => j !== i))}
+              title={done ? undefined : 'Quitar'}
+              className={`rounded-xl px-3.5 py-2 text-sm font-bold shadow-sm transition-all ${
+                done
+                  ? ok
+                    ? 'bg-emerald-500 text-white'
+                    : 'bg-rose-400 text-white'
+                  : 'bg-card border border-border/60 hover:border-rose-300 hover:text-rose-600 active:scale-95'
               }`}
-              title={s.title}
-            >{i + 1}. {s.title.length > 28 ? s.title.slice(0, 28) + '…' : s.title}</button>
+            >
+              {t.text}
+            </button>
           ))}
         </div>
-      )}
 
-      <div className="rounded-2xl border border-border/50 bg-card shadow-sm p-5 space-y-3">
-        <h2 className="font-extrabold text-base">{structure.title}</h2>
-        <p className="text-sm text-muted-foreground">{structure.explanation}</p>
-        <div className="space-y-1.5">
-          {(structure.examples ?? []).map((ex, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <button onClick={() => speak(ex)} className="text-primary hover:opacity-70 transition-opacity shrink-0" title="Escuchar">🔊</button>
-              <p className="text-sm font-medium italic">"{ex}"</p>
-            </div>
+        {/* Las fichas por colocar */}
+        <div className="flex flex-wrap gap-2 mt-4 min-h-[44px]">
+          {available.map(t => (
+            <button
+              key={`${ex.key}-a-${t.id}`}
+              disabled={done}
+              onClick={() => onOrder(ex.key, [...placedIds, t.id])}
+              className="rounded-xl border border-border/60 bg-background px-3.5 py-2 text-sm font-semibold transition-all hover:border-primary/60 hover:bg-primary/5 hover:shadow-sm active:scale-95 disabled:opacity-40"
+            >
+              {t.text}
+            </button>
           ))}
+          {available.length === 0 && !done && (
+            <span className="text-xs text-muted-foreground/70 self-center">
+              Ya colocaste todas. Pulsa «Verificar».
+            </span>
+          )}
         </div>
-      </div>
 
-      {/* Ordenar las palabras.
-          Las fichas salen de la propia frase objetivo, con la puntuación pegada
-          a su palabra, y hay un ejercicio por cada ejemplo. */}
-      {exercises.map(ex => {
-        const placedIds = order[ex.key] ?? [];
-        const done = orderDone[ex.key] ?? false;
-        const placed = placedIds.map(id => ex.tiles.find(t => t.id === id)!).filter(Boolean);
-        const ok = isOrderCorrect(placed, ex.target);
-        const available = ex.tiles.filter(t => !placedIds.includes(t.id));
-
-        return (
-          <div key={ex.key} className="rounded-2xl border border-border/50 bg-card shadow-sm p-4 space-y-3">
-            <h3 className="font-bold text-sm">🎯 Ordena las palabras</h3>
-
-            <div className="flex flex-wrap gap-2">
-              {available.map(t => (
-                <button
-                  key={t.id}
-                  disabled={done}
-                  onClick={() => onOrder(ex.key, [...placedIds, t.id])}
-                  className="px-3 py-1 rounded-lg border border-border/60 bg-background text-sm font-medium hover:border-primary/60 hover:bg-primary/5 transition-all disabled:opacity-40"
-                >{t.text}</button>
-              ))}
-            </div>
-
-            <div className="min-h-[40px] flex flex-wrap gap-2 rounded-xl border border-dashed border-border/60 bg-muted/30 p-2">
-              {placed.map((t, i) => (
-                <button
-                  key={`${ex.key}-${t.id}`}
-                  disabled={done}
-                  onClick={() => onOrder(ex.key, placedIds.filter((_, j) => j !== i))}
-                  className={`px-3 py-1 rounded-lg text-sm font-medium border transition-all ${
-                    done
-                      ? ok ? 'bg-green-500 text-white border-green-500' : 'bg-red-400 text-white border-red-400'
-                      : 'bg-primary/10 text-primary border-primary/40 hover:bg-red-50 hover:border-red-300'
-                  }`}
-                >{t.text}</button>
-              ))}
-              {placed.length === 0 && (
-                <span className="text-xs text-muted-foreground/60 self-center">Haz clic en las palabras para ordenarlas</span>
-              )}
-            </div>
-
-            <div className="flex gap-2">
+        {/* Acciones */}
+        <div className="mt-5 flex flex-wrap items-center gap-2.5">
+          {!done ? (
+            <>
               <button
-                disabled={placed.length !== ex.tiles.length || done}
+                disabled={placed.length !== ex.tiles.length}
                 onClick={() => onOrderDone(ex.key, true)}
-                className="px-4 py-1.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold disabled:opacity-40"
-              >Verificar</button>
+                className={`rounded-xl bg-gradient-to-r ${TH.grad} px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-transform enabled:hover:scale-[1.03] enabled:active:scale-95 disabled:opacity-40`}
+              >
+                Verificar
+              </button>
+              {placed.length > 0 && (
+                <button
+                  onClick={() => onOrder(ex.key, [])}
+                  className="rounded-xl border border-border/60 px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted"
+                >
+                  Vaciar
+                </button>
+              )}
+            </>
+          ) : (
+            <>
+              <p className={`flex-1 text-sm font-bold ${ok ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                {ok ? '¡Perfecto!' : <>La frase era: <span className="font-extrabold">{ex.target}</span></>}
+              </p>
+              <button
+                onClick={() => speak(ex.target)}
+                aria-label="Escuchar la frase correcta"
+                title="Escuchar"
+                className={`shrink-0 w-10 h-10 grid place-items-center rounded-full border ${TH.ring} ${TH.soft} ${TH.text} transition-transform hover:scale-110 active:scale-95`}
+              >
+                <span aria-hidden="true">🔊</span>
+              </button>
               <button
                 onClick={() => { onOrder(ex.key, []); onOrderDone(ex.key, false); }}
-                className="px-4 py-1.5 rounded-xl border border-border/60 text-xs font-medium hover:bg-muted"
-              >Reiniciar</button>
-            </div>
+                className="rounded-xl border border-border/60 px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted"
+              >
+                Reintentar
+              </button>
+              {!isLast && (
+                <button
+                  onClick={() => setExIdx(i => Math.min(i + 1, exercises.length - 1))}
+                  className={`rounded-xl bg-gradient-to-r ${TH.grad} px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-transform hover:scale-[1.03] active:scale-95`}
+                >
+                  Siguiente →
+                </button>
+              )}
+            </>
+          )}
+        </div>
 
-            {done && (
-              <p className={`text-sm font-semibold ${ok ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
-                {ok ? '✅ ¡Perfecto!' : `❌ La respuesta correcta es: "${ex.target}"`}
-              </p>
-            )}
+        {exercises.length > 1 && (
+          <div className="mt-4 pt-4 border-t border-border/50 flex items-center justify-between">
+            <button
+              onClick={() => setExIdx(i => Math.max(i - 1, 0))}
+              disabled={safeIdx === 0}
+              className="text-xs font-semibold text-muted-foreground hover:text-primary disabled:opacity-40 disabled:hover:text-muted-foreground"
+            >
+              ← Anterior
+            </button>
+            <button
+              onClick={() => setExIdx(i => Math.min(i + 1, exercises.length - 1))}
+              disabled={isLast}
+              className="text-xs font-semibold text-muted-foreground hover:text-primary disabled:opacity-40 disabled:hover:text-muted-foreground"
+            >
+              Saltar →
+            </button>
           </div>
-        );
-      })}
-
-      {exercises.length === 0 && (
-        <p className="text-xs text-muted-foreground">Esta estructura no tiene frases largas para ordenar.</p>
-      )}
+        )}
+      </SectionCard>
     </div>
   );
 }
