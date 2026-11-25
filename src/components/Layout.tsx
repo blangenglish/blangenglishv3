@@ -10,6 +10,7 @@ import { ROUTE_PATHS } from '@/lib/index';
 import type { AuthModal } from '@/lib/index';
 import { useLanguage } from '@/lib/language';
 import { translations } from '@/lib/translations';
+import { useSetting } from '@/lib/useSiteConfig';
 import { Globe } from 'lucide-react';
 
 // ── Parte 16: mensajes rotativos DENTRO de la barra blanca del header ──────
@@ -131,10 +132,13 @@ export function Layout({ children, isLoggedIn = false, onOpenAuth, onLogout, use
     </button>
   );
 
+  // Enlaces de redes: editables desde admin (site_settings, grupo 'social').
+  // Cada literal es el fallback, así que si la configuración no carga el pie
+  // de página queda exactamente como estaba.
   const socialLinks = [
-    { icon: SiWhatsapp, href: 'https://whatsapp.com/channel/0029VbCYgGe6WaKj1KPxei2F', label: 'WhatsApp' },
-    { icon: SiInstagram, href: 'https://www.instagram.com/blangenglish/', label: 'Instagram' },
-    { icon: SiTiktok, href: 'https://www.tiktok.com/@blangenglish', label: 'TikTok' },
+    { icon: SiWhatsapp, href: useSetting('whatsapp_channel_url', 'https://whatsapp.com/channel/0029VbCYgGe6WaKj1KPxei2F'), label: 'WhatsApp' },
+    { icon: SiInstagram, href: useSetting('instagram_url', 'https://www.instagram.com/blangenglish/'), label: 'Instagram' },
+    { icon: SiTiktok, href: useSetting('tiktok_url', 'https://www.tiktok.com/@blangenglish'), label: 'TikTok' },
   ];
 
   return (
