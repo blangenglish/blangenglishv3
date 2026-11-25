@@ -85,12 +85,14 @@ export interface DBPricingPlan {
   updated_at: string;
 }
 
+// Refleja el esquema real de la tabla: la clave es la PK y no hay id ni
+// created_at. El tipo anterior declaraba esas dos columnas y no existen.
 export interface DBSiteSettings {
-  id: string;
   key: string;
-  value: string;
-  created_at: string;
-  updated_at: string;
+  value: string | null;
+  label: string | null;
+  group_name: string | null;
+  updated_at: string | null;
 }
 
 export interface AdminUser {
