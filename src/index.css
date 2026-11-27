@@ -85,7 +85,68 @@
   --sidebar-accent-foreground: oklch(0.20 0 0);
   --sidebar-border: oklch(0.88 0.01 270);
   --sidebar-ring: oklch(0.55 0.25 285);
+
+  /* ────────────────────────────────────────────────────────────────────
+     Tokens de marca editables desde el panel de admin.
+
+     Los valores de abajo son EXACTAMENTE los colores que la home tenía
+     escritos a mano, así que mientras nadie toque el panel nada cambia.
+
+     Por qué tokens y no clases: Tailwind v4 descubre las clases leyendo el
+     código fuente. Un color elegido en el admin vive en Supabase, el
+     escáner no lo ve nunca y esa clase no existiría en el CSS. Una custom
+     property sí se puede cambiar en caliente desde JavaScript.
+     Ver src/lib/theme.ts.
+     ──────────────────────────────────────────────────────────────────── */
+
+  /* Degradado de marca: el hero y los bloques oscuros */
+  --brand-from: #4C1D95;   /* era violet-900 */
+  --brand-via:  #6B21A8;   /* era purple-800 */
+  --brand-to:   #6D28D9;   /* era to-primary  */
+
+  /* Fondo tintado de página y de secciones suaves */
+  --tint-from: #FAF5FF;              /* era purple-50   */
+  --tint-via:  rgb(245 243 255 / 0.6); /* era violet-50/60 */
+
+  /* Tinta de botones y superficies de tarjeta */
+  --ink:         #111111;
+  --card-border: #E5E7EB;
+  --badge-bg:    #4C1D95;
+
+  /* Altura vertical de sección, elegible por el admin */
+  --pad-sm: 2rem;
+  --pad-md: 3rem;
+  --pad-lg: 4rem;
 }
+
+/* Utilidades estáticas: Tailwind las ve en este fichero, así que siempre
+   entran al CSS. El valor lo ponen las variables de arriba, que sí son
+   editables en caliente. */
+@utility surface-brand {
+  background-image: linear-gradient(
+    to bottom right,
+    var(--brand-from),
+    var(--brand-via),
+    var(--brand-to)
+  );
+}
+
+@utility surface-tint {
+  background-image: linear-gradient(
+    to bottom right,
+    var(--tint-from),
+    var(--tint-via),
+    var(--background)
+  );
+}
+
+@utility surface-ink {
+  background-color: var(--ink);
+}
+
+@utility section-pad-sm { padding-block: var(--pad-sm); }
+@utility section-pad-md { padding-block: var(--pad-md); }
+@utility section-pad-lg { padding-block: var(--pad-lg); }
 
 .dark {
   --background: oklch(0.12 0.01 285);

@@ -37,6 +37,8 @@ import AdminMundoReal from '@/pages/admin/AdminMundoReal';
 import AdminPricing from '@/pages/admin/AdminPricing';
 import AdminSettings from '@/pages/admin/AdminSettings';
 import { loadSiteConfig } from '@/lib/siteConfig';
+import { applySavedTheme } from '@/lib/theme';
+import AdminSiteEditor from '@/pages/admin/AdminSiteEditor';
 
 const queryClient = new QueryClient();
 
@@ -73,7 +75,7 @@ function AppRoutes() {
   // Fire-and-forget a propósito: nadie la espera y cada lectura tiene su
   // fallback, así que un fallo aquí no puede dejar la app en blanco.
   useEffect(() => {
-    void loadSiteConfig();
+    void loadSiteConfig().then(applySavedTheme);
   }, []);
 
   useEffect(() => {
@@ -237,6 +239,7 @@ function AppRoutes() {
         <Route path={ADMIN_ROUTES.MUNDO_REAL} element={<AdminMundoReal />} />
         <Route path={ADMIN_ROUTES.PRICING} element={<AdminPricing />} />
         <Route path={ADMIN_ROUTES.SETTINGS} element={<AdminSettings />} />
+        <Route path={ADMIN_ROUTES.SITE_EDITOR} element={<AdminSiteEditor />} />
       </Routes>
     );
   }
