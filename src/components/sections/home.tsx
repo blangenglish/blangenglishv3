@@ -41,8 +41,14 @@ export function HomeHero({ content, style, lang }: SectionProps) {
   return (
     <section className={`relative overflow-hidden ${padClass(style)}`}>
       <div className={`absolute inset-0 ${bgClass(style)}`} />
-      <div className="absolute top-0 left-0 w-[300px] sm:w-[550px] h-[300px] sm:h-[550px] bg-white/10 rounded-full blur-3xl" />
+      {/* Capas decorativas del hero original. Se dejan en blanco translúcido y
+          no en un violeta fijo para que sigan quedando bien con cualquier
+          paleta que se elija en el panel. */}
+      <div className="absolute top-0 left-0 w-[300px] sm:w-[550px] h-[300px] sm:h-[550px] bg-white/15 rounded-full blur-3xl" />
       <div className="absolute bottom-0 right-0 w-[250px] sm:w-[450px] h-[250px] sm:h-[450px] bg-white/10 rounded-full blur-3xl" />
+      {oscuro && (
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(255,255,255,0.12),_transparent_60%)]" />
+      )}
 
       <div className="container mx-auto px-4 relative z-10">
         <motion.div

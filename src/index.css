@@ -113,10 +113,19 @@
   --card-border: #E5E7EB;
   --badge-bg:    #4C1D95;
 
-  /* Altura vertical de sección, elegible por el admin */
+  /* Altura vertical de sección, elegible por el admin.
+     Los valores replican los que tenía la home escritos a mano
+     (py-12 / py-16 / py-16 sm:py-24 md:py-28) y escalan igual. */
   --pad-sm: 2rem;
   --pad-md: 3rem;
   --pad-lg: 4rem;
+}
+
+@media (min-width: 640px) {
+  :root { --pad-sm: 2.5rem; --pad-md: 4rem; --pad-lg: 6rem; }
+}
+@media (min-width: 768px) {
+  :root { --pad-lg: 7rem; }
 }
 
 /* Utilidades estáticas: Tailwind las ve en este fichero, así que siempre
